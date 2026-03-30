@@ -204,8 +204,8 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test withLock helper for automatic cleanup
     - Test lock release failure handling
 
-- [ ] 8. Implement Conflict Detector service
-  - [ ] 8.1 Create Conflict Detector with overlap checking
+- [-] 8. Implement Conflict Detector service
+  - [x] 8.1 Create Conflict Detector with overlap checking
     - Implement checkOverlap method to find overlapping shifts for a staff member
     - Convert all shift times to UTC for cross-timezone comparison
     - Query database for shifts with time range overlap (startTime < newEnd AND endTime > newStart)

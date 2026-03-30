@@ -10,6 +10,7 @@ import { UserModule } from './modules/user/user.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { CacheModule } from './modules/cache/cache.module';
 import { LockModule } from './modules/lock/lock.module';
+import { ConflictModule } from './modules/conflict/conflict.module';
 
 // Module imports will be added as we build services
 // import { ScheduleModule } from './modules/schedule/schedule.module';
@@ -59,6 +60,7 @@ import { LockModule } from './modules/lock/lock.module';
     AuditModule,
     CacheModule,
     LockModule,
+    ConflictModule,
 
     // Feature modules
     UserModule,
