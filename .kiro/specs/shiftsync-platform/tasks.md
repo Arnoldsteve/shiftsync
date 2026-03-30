@@ -538,7 +538,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test outlier detection at boundary conditions
     - Test percentage calculations with edge cases
 
-- [ ] 16. Checkpoint - Business logic services complete
+- [x] 16. Checkpoint - Business logic services complete
   - Ensure Swap Service, Overtime Tracker, and Fairness Analyzer are working correctly. Run all tests. Ask the user if questions arise.
 
 - [ ] 17. Implement Background Job Queue with BullMQ
@@ -551,7 +551,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Mount BullBoard UI at /admin/queues endpoint (Admin only)
     - _Requirements: 24.1, 24.5, 29.4_
 
-  - [ ] 17.2 Implement fairness report background job
+  - [x] 17.2 Implement fairness report background job
     - Create job processor for "fairness-report" job type
     - Accept location ID, start date, end date as job data
     - Call Fairness Service methods to generate report
@@ -563,7 +563,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - **Property 62: Fairness Report Background Job Queuing**
     - **Validates: Requirements 24.2**
 
-  - [ ] 17.4 Implement overtime report background job
+  - [x] 17.4 Implement overtime report background job
     - Create job processor for "overtime-report" job type
     - Accept multiple pay periods as job data
     - Call Overtime Service methods to calculate overtime
@@ -575,7 +575,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - **Property 63: Overtime Report Background Job Queuing**
     - **Validates: Requirements 24.3**
 
-  - [ ] 17.6 Implement job status tracking
+  - [x] 17.6 Implement job status tracking
     - Create endpoints to query job status (queued, processing, completed, failed)
     - Store job metadata for user tracking
     - Implement admin interface to view and retry failed jobs

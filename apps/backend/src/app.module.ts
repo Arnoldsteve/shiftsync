@@ -16,6 +16,7 @@ import { ScheduleModule } from './modules/schedule/schedule.module';
 import { SwapModule } from './modules/swap/swap.module';
 import { OvertimeModule } from './modules/overtime/overtime.module';
 import { FairnessModule } from './modules/fairness/fairness.module';
+import { QueueModule } from './modules/queue/queue.module';
 
 // Module imports will be added as we build services
 
