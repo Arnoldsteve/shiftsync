@@ -18,6 +18,7 @@ import { OvertimeModule } from './modules/overtime/overtime.module';
 import { FairnessModule } from './modules/fairness/fairness.module';
 import { QueueModule } from './modules/queue/queue.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
+import { CalloutModule } from './modules/callout/callout.module';
 
 // Module imports will be added as we build services
 
@@ -73,6 +74,7 @@ import { RealtimeModule } from './modules/realtime/realtime.module';
     FairnessModule,
     QueueModule,
     RealtimeModule,
+    CalloutModule,
     // ScheduleModule,
     // SwapModule,
     // OvertimeModule,
