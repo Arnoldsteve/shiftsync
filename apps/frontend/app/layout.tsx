@@ -2,6 +2,9 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
+import { AuthProvider } from '@/contexts/auth-context';
+import { QueryProvider } from '@/providers/query-provider';
+import { WebSocketProvider } from '@/contexts/websocket-context';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -18,8 +21,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        {children}
-        <Toaster />
+        <QueryProvider>
+          <AuthProvider>
+            <WebSocketProvider>
+              {children}
+              <Toaster />
+            </WebSocketProvider>
+          </AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   );
