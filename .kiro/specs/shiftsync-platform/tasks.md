@@ -588,14 +588,14 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test job status tracking
 
 - [ ] 18. Implement Real-Time Sync with Socket.io
-  - [ ] 18.1 Set up Socket.io server with NestJS
+  - [x] 18.1 Set up Socket.io server with NestJS
     - Install Socket.io and configure WebSocket gateway
     - Set up JWT authentication for WebSocket connections
     - Implement connection and disconnection handlers
     - Configure CORS for WebSocket connections
     - _Requirements: 15.3, 30.1_
 
-  - [ ] 18.2 Implement room-based subscriptions
+  - [x] 18.2 Implement room-based subscriptions
     - Implement subscribe:location and subscribe:staff client events
     - Verify user authorization before subscribing to rooms
     - Join client to appropriate Socket.io rooms
@@ -606,7 +606,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - **Property 41: Client Subscription Authorization**
     - **Validates: Requirements 15.4**
 
-  - [ ] 18.4 Implement server-to-client event broadcasting
+  - [x] 18.4 Implement server-to-client event broadcasting
     - Implement shift:created, shift:updated, shift:deleted events
     - Implement assignment:changed event
     - Implement swap:created, swap:updated events
@@ -628,7 +628,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - **Property 42: Conflict Notification Broadcast**
     - **Validates: Requirements 16.4**
 
-  - [ ] 18.8 Integrate real-time events with services
+  - [x] 18.8 Integrate real-time events with services
     - Add event emission to Schedule Service (shift and assignment changes)
     - Add event emission to Swap Service (swap request updates)
     - Add event emission to Conflict Detector (conflict detection)

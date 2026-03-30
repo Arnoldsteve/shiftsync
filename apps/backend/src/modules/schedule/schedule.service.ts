@@ -4,6 +4,7 @@ import { AuditService } from '../audit/audit.service';
 import { CacheService } from '../cache/cache.service';
 import { ConflictService } from '../conflict/conflict.service';
 import { ComplianceService } from '../compliance/compliance.service';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { Shift, Assignment } from '@prisma/client';
 import { ShiftWithDetails } from './interfaces';
 
@@ -16,7 +17,8 @@ export class ScheduleService {
     private readonly auditService: AuditService,
     private readonly cacheService: CacheService,
     private readonly conflictService: ConflictService,
-    private readonly complianceService: ComplianceService
+    private readonly complianceService: ComplianceService,
+    private readonly realtimeGateway: RealtimeGateway
   ) {}
 
   /**
@@ -73,6 +75,9 @@ export class ScheduleService {
       });
 
       await this.cacheService.delete(`schedule:location:${locationId}`);
+
+      // Emit real-time event
+      this.realtimeGateway.emitShiftCreated(locationId, shift);
 
       return shift;
     } catch (error) {
@@ -147,6 +152,9 @@ export class ScheduleService {
       await this.cacheService.delete(`schedule:staff:${staffId}`);
       await this.cacheService.delete(`schedule:location:${shift.locationId}`);
 
+      // Emit real-time event
+      this.realtimeGateway.emitAssignmentChanged(shift.locationId, staffId, assignment);
+
       return assignment;
     } catch (error) {
       this.logger.error(`Error assigning staff to shift:`, error);
@@ -181,6 +189,13 @@ export class ScheduleService {
 
       await this.cacheService.delete(`schedule:staff:${assignment.staffId}`);
       await this.cacheService.delete(`schedule:location:${shift.locationId}`);
+
+      // Emit real-time event
+      this.realtimeGateway.emitAssignmentChanged(shift.locationId, assignment.staffId, {
+        shiftId,
+        staffId: assignment.staffId,
+        action: 'unassigned',
+      });
     } catch (error) {
       this.logger.error(`Error unassigning staff from shift:`, error);
       throw error;

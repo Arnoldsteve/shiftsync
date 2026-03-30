@@ -3,13 +3,7 @@ import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { OvertimeService } from '../../overtime/overtime.service';
 import { CacheService } from '../../cache/cache.service';
-
-export interface OvertimeReportJobData {
-  locationId: string;
-  payPeriods: Array<{
-    weekStart: string;
-  }>;
-}
+import { OvertimeReportJobData } from '../interfaces';
 
 @Processor('overtime-report')
 export class OvertimeReportProcessor extends WorkerHost {

@@ -3,12 +3,7 @@ import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { FairnessService } from '../../fairness/fairness.service';
 import { CacheService } from '../../cache/cache.service';
-
-export interface FairnessReportJobData {
-  locationId: string;
-  startDate: string;
-  endDate: string;
-}
+import { FairnessReportJobData } from '../interfaces';
 
 @Processor('fairness-report')
 export class FairnessReportProcessor extends WorkerHost {

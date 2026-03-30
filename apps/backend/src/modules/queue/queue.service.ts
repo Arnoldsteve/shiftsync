@@ -1,8 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, Job } from 'bullmq';
-import { FairnessReportJobData } from './processors/fairness-report.processor';
-import { OvertimeReportJobData } from './processors/overtime-report.processor';
+import { FairnessReportJobData, OvertimeReportJobData } from './interfaces';
 
 @Injectable()
 export class QueueService {

@@ -4,6 +4,7 @@ import { AuditService } from '../audit/audit.service';
 import { CacheService } from '../cache/cache.service';
 import { ConflictService } from '../conflict/conflict.service';
 import { ComplianceService } from '../compliance/compliance.service';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SwapRequest } from '@prisma/client';
 import { SwapRequestWithDetails } from './interfaces';
@@ -18,6 +19,7 @@ export class SwapService {
     private readonly cacheService: CacheService,
     private readonly conflictService: ConflictService,
     private readonly complianceService: ComplianceService,
+    private readonly realtimeGateway: RealtimeGateway,
     private readonly prisma: PrismaService
   ) {}
 
@@ -83,6 +85,16 @@ export class SwapService {
           status: 'PENDING',
         },
       });
+
+      // Emit real-time event
+      if (shift) {
+        this.realtimeGateway.emitSwapCreated(
+          shift.locationId,
+          requestorId,
+          targetStaffId,
+          swapRequest
+        );
+      }
 
       return swapRequest;
     } catch (error) {
@@ -194,6 +206,14 @@ export class SwapService {
       await this.cacheService.delete(`schedule:staff:${swapRequest.targetStaffId}`);
       await this.cacheService.delete(`schedule:location:${shift.locationId}`);
 
+      // Emit real-time event
+      this.realtimeGateway.emitSwapUpdated(
+        shift.locationId,
+        swapRequest.requestorId,
+        swapRequest.targetStaffId,
+        result
+      );
+
       return result;
     } catch (error) {
       this.logger.error(`Error approving swap request:`, error);
@@ -237,6 +257,19 @@ export class SwapService {
           rejectionReason,
         },
       });
+
+      // Emit real-time event
+      const shift = await this.prisma.shift.findUnique({
+        where: { id: swapRequest.shiftId },
+      });
+      if (shift) {
+        this.realtimeGateway.emitSwapUpdated(
+          shift.locationId,
+          swapRequest.requestorId,
+          swapRequest.targetStaffId,
+          updatedSwapRequest
+        );
+      }
 
       return updatedSwapRequest;
     } catch (error) {
