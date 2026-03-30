@@ -872,11 +872,11 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test successful operations with database verification
     - Test concurrent operations with distributed locking
 
-- [ ] 24. Checkpoint - Backend API complete
+- [x] 24. Checkpoint - Backend API complete
   - Ensure all REST API endpoints are working correctly with authentication, authorization, and validation. Run all tests. Ask the user if questions arise.
 
-- [ ] 25. Initialize Next.js 15 frontend application
-  - [ ] 25.1 Create Next.js application with App Router
+- [x] 25. Initialize Next.js 15 frontend application
+  - [x] 25.1 Create Next.js application with App Router
     - Initialize Next.js 15 in frontend workspace
     - Configure TypeScript with strict mode
     - Set up Tailwind CSS for styling
@@ -888,7 +888,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Create basic layout with navigation
     - _Requirements: Foundation for frontend_
 
-  - [ ] 25.2 Set up authentication context and API client
+  - [x] 25.2 Set up authentication context and API client
     - Create authentication context with JWT token management
     - Implement login and logout functionality
     - Create API client with axios including JWT token injection
@@ -896,7 +896,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Create protected route wrapper component
     - _Requirements: 30.1, 30.2, 30.3_
 
-  - [ ] 25.3 Set up TanStack Query and TanStack Table
+  - [x] 25.3 Set up TanStack Query and TanStack Table
     - Install and configure TanStack Query (v5) for server state management
     - Create query client with default options
     - Set up query keys for different resources
@@ -904,7 +904,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Install TanStack Table for complex data tables (fairness analytics, overtime reports)
     - _Requirements: 25.5_
 
-  - [ ] 25.4 Set up Socket.io client for real-time updates
+  - [x] 25.4 Set up Socket.io client for real-time updates
     - Install Socket.io client
     - Create WebSocket context with connection management
     - Implement JWT authentication for WebSocket connection
@@ -919,7 +919,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test WebSocket authentication
 
 - [ ] 26. Implement frontend user management features
-  - [ ] 26.1 Create login page
+  - [x] 26.1 Create login page
     - Build login form with email and password fields
     - Implement form validation
     - Call authentication API and store JWT token
@@ -927,7 +927,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Display error messages for failed login
     - _Requirements: 30.1, 30.2_
 
-  - [ ] 26.2 Create user management pages (Admin)
+  - [x] 26.2 Create user management pages (Admin)
     - Build user list page with filtering
     - Build user creation form with role selection
     - Build skill and certification assignment interface
@@ -942,7 +942,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test error handling and display
 
 - [ ] 27. Implement frontend schedule management features
-  - [ ] 27.1 Create schedule calendar view
+  - [x] 27.1 Create schedule calendar view
     - Build calendar component displaying shifts by location
     - Implement date range navigation (week/month view)
     - Display shift times in location timezone with timezone indicator
@@ -950,7 +950,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Implement shift detail modal on click
     - _Requirements: 17.1, 17.4, 21.1, 21.2_
 
-  - [ ] 27.2 Create shift creation form (Manager)
+  - [x] 27.2 Create shift creation form (Manager)
     - Build form with location, start time, end time, required skills
     - Implement timezone-aware date/time pickers
     - Support overnight shift creation
@@ -958,14 +958,14 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Display validation errors from API
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 18.1_
 
-  - [ ] 27.3 Create staff assignment interface (Manager)
+  - [x] 27.3 Create staff assignment interface (Manager)
     - Build staff selection dropdown filtered by skills and certifications
     - Display validation errors (missing skills, overlap, rest period violations)
     - Show overtime warning if assignment would create overtime
     - Implement optimistic UI updates
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 9.5_
 
-  - [ ] 27.4 Implement real-time schedule updates
+  - [x] 27.4 Implement real-time schedule updates
     - Subscribe to location-specific WebSocket rooms
     - Update calendar view on shift:created, shift:updated, shift:deleted events
     - Update calendar view on assignment:changed events

@@ -110,3 +110,28 @@ export function useRealtimeJobEvents(onJobCompleted?: (data: any) => void) {
     };
   }, [socket, isConnected, onJobCompleted]);
 }
+
+export interface RealtimeEventsCallbacks {
+  onShiftCreated?: (data: any) => void;
+  onShiftUpdated?: (data: any) => void;
+  onShiftDeleted?: (data: any) => void;
+  onAssignmentChanged?: (data: any) => void;
+  onSwapCreated?: (data: any) => void;
+  onSwapUpdated?: (data: any) => void;
+  onConflictDetected?: (data: any) => void;
+  onCalloutReported?: (data: any) => void;
+  onJobCompleted?: (data: any) => void;
+}
+
+export function useRealtimeEvents(callbacks: RealtimeEventsCallbacks) {
+  useRealtimeShiftEvents(
+    callbacks.onShiftCreated,
+    callbacks.onShiftUpdated,
+    callbacks.onShiftDeleted
+  );
+  useRealtimeAssignmentEvents(callbacks.onAssignmentChanged);
+  useRealtimeSwapEvents(callbacks.onSwapCreated, callbacks.onSwapUpdated);
+  useRealtimeConflictEvents(callbacks.onConflictDetected);
+  useRealtimeCalloutEvents(callbacks.onCalloutReported);
+  useRealtimeJobEvents(callbacks.onJobCompleted);
+}
