@@ -368,11 +368,11 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test getSchedule with timezone conversion
     - Test cache invalidation on updates
 
-- [ ] 12. Checkpoint - Schedule Service complete
+- [x] 12. Checkpoint - Schedule Service complete
   - Ensure Schedule Service creates shifts, assigns staff with full validation, and handles timezones correctly. Run all tests. Ask the user if questions arise.
 
 - [ ] 13. Implement Swap Workflow Manager service
-  - [ ] 13.1 Create Swap Service with request creation
+  - [x] 13.1 Create Swap Service with request creation
     - Implement createSwapRequest with validation
     - Verify requestor is assigned to the specified shift
     - Verify target staff has required skills for shift
@@ -401,7 +401,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - **Property 19: Swap Request Initial Status**
     - **Validates: Requirements 7.5**
 
-  - [ ] 13.7 Implement swap approval workflow
+  - [x] 13.7 Implement swap approval workflow
     - Implement approveSwap method with re-validation
     - Re-validate all scheduling constraints for target staff (skills, certification, overlap, rest period)
     - Use database transaction for atomic assignment update
@@ -419,7 +419,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - **Property 21: Swap Approval Atomic Assignment Update**
     - **Validates: Requirements 8.4**
 
-  - [ ] 13.10 Implement swap rejection workflow
+  - [x] 13.10 Implement swap rejection workflow
     - Implement rejectSwap method with reason parameter
     - Update swap request status to "rejected"
     - Store rejection reason
@@ -430,7 +430,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - **Property 22: Swap Actions Create Audit Logs**
     - **Validates: Requirements 8.5**
 
-  - [ ] 13.12 Implement swap query methods
+  - [x] 13.12 Implement swap query methods
     - Implement getPendingSwaps for manager view
     - Implement getSwapsByStaff for staff view
     - Filter by location authorization for managers
