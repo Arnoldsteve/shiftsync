@@ -723,11 +723,11 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test coverage gap notifications
     - Test dashboard data updates
 
-- [ ] 20. Checkpoint - Real-time and callout features complete
+- [x] 20. Checkpoint - Real-time and callout features complete
   - Ensure background jobs, WebSocket communication, and callout management are working correctly. Run all tests. Ask the user if questions arise.
 
 - [ ] 21. Implement Configuration Management
-  - [ ] 21.1 Create configuration service
+  - [x] 21.1 Create configuration service
     - Implement methods to get and update location configuration
     - Support daily limit, weekly limit, consecutive days limit configuration
     - Support premium shift criteria configuration
@@ -752,7 +752,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test cache invalidation
 
 - [ ] 22. Implement CSV Schedule Import/Export
-  - [ ] 22.1 Create CSV parser for schedule import
+  - [x] 22.1 Create CSV parser for schedule import
     - Define CSV schema (shift ID, location, start time, end time, staff ID, skills)
     - Implement CSV parsing with validation
     - Validate all required fields present
@@ -767,7 +767,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - **Property 69: CSV Required Fields Validation**
     - **Validates: Requirements 28.2**
 
-  - [ ] 22.4 Implement CSV export functionality
+  - [x] 22.4 Implement CSV export functionality
     - Format schedule data according to CSV schema
     - Include all required fields
     - Support date range filtering

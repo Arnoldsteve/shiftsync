@@ -19,6 +19,8 @@ import { FairnessModule } from './modules/fairness/fairness.module';
 import { QueueModule } from './modules/queue/queue.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
 import { CalloutModule } from './modules/callout/callout.module';
+import { ConfigModule as AppConfigModule } from './modules/config/config.module';
+import { CsvModule } from './modules/csv/csv.module';
 
 // Module imports will be added as we build services
 
@@ -75,6 +77,8 @@ import { CalloutModule } from './modules/callout/callout.module';
     QueueModule,
     RealtimeModule,
     CalloutModule,
+    AppConfigModule,
+    CsvModule,
     // ScheduleModule,
     // SwapModule,
     // OvertimeModule,
