@@ -444,7 +444,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test getPendingSwaps filtering
 
 - [ ] 14. Implement Overtime Tracker service
-  - [ ] 14.1 Create Overtime Service with hour calculation
+  - [x] 14.1 Create Overtime Service with hour calculation
     - Implement calculateHours for staff member and date range
     - Sum all assigned shift durations in the period
     - Use rolling 7-day window for overtime calculation
@@ -459,7 +459,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - **Property 24: Overtime Flagging Above 40 Hours**
     - **Validates: Requirements 9.3**
 
-  - [ ] 14.4 Implement overtime warning for new assignments
+  - [x] 14.4 Implement overtime warning for new assignments
     - Implement checkOvertimeWarning to calculate projected overtime
     - Calculate current hours in 7-day window from new shift start
     - Add new shift hours to current total
@@ -470,7 +470,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - **Property 25: Overtime Warning Generation**
     - **Validates: Requirements 9.5**
 
-  - [ ] 14.6 Implement overtime reporting
+  - [x] 14.6 Implement overtime reporting
     - Implement getOvertimeReport for location and week
     - Return report with regular and overtime hours for each staff member
     - Implement generatePayPeriodReport as background job (placeholder for now)

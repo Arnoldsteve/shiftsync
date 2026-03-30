@@ -14,9 +14,9 @@ import { ConflictModule } from './modules/conflict/conflict.module';
 import { ComplianceModule } from './modules/compliance/compliance.module';
 import { ScheduleModule } from './modules/schedule/schedule.module';
 import { SwapModule } from './modules/swap/swap.module';
+import { OvertimeModule } from './modules/overtime/overtime.module';
 
 // Module imports will be added as we build services
-// import { OvertimeModule } from './modules/overtime/overtime.module';
 // import { FairnessModule } from './modules/fairness/fairness.module';
 
 @Module({
@@ -67,6 +67,7 @@ import { SwapModule } from './modules/swap/swap.module';
     UserModule,
     ScheduleModule,
     SwapModule,
+    OvertimeModule,
     // ScheduleModule,
     // SwapModule,
     // OvertimeModule,
