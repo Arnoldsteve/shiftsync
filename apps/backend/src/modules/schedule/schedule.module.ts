@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ScheduleService } from './schedule.service';
+import { ScheduleController } from './schedule.controller';
 import { ScheduleRepository } from './repositories/schedule.repository';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { AuditModule } from '../audit/audit.module';
@@ -17,6 +18,7 @@ import { RealtimeModule } from '../realtime/realtime.module';
     ComplianceModule,
     RealtimeModule,
   ],
+  controllers: [ScheduleController],
   providers: [ScheduleService, ScheduleRepository],
   exports: [ScheduleService],
 })

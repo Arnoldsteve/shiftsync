@@ -4,6 +4,7 @@ import { BullBoardModule } from '@bull-board/nestjs';
 import { ExpressAdapter } from '@bull-board/express';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { QueueService } from './queue.service';
+import { QueueController } from './queue.controller';
 import { FairnessReportProcessor } from './processors/fairness-report.processor';
 import { OvertimeReportProcessor } from './processors/overtime-report.processor';
 import { queueConfig } from './queue.config';
@@ -45,6 +46,7 @@ import { CacheModule } from '../cache/cache.module';
     OvertimeModule,
     CacheModule,
   ],
+  controllers: [QueueController],
   providers: [QueueService, FairnessReportProcessor, OvertimeReportProcessor],
   exports: [QueueService],
 })

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { SwapService } from './swap.service';
+import { SwapController } from './swap.controller';
 import { SwapRepository } from './repositories/swap.repository';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { AuditModule } from '../audit/audit.module';
@@ -17,6 +18,7 @@ import { RealtimeModule } from '../realtime/realtime.module';
     ComplianceModule,
     RealtimeModule,
   ],
+  controllers: [SwapController],
   providers: [SwapService, SwapRepository],
   exports: [SwapService],
 })

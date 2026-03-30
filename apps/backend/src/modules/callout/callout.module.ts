@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { CalloutService } from './callout.service';
+import { CalloutController } from './callout.controller';
 import { CalloutReportingService } from './services/callout-reporting.service';
 import { CoverageGapService } from './services/coverage-gap.service';
 import { DashboardService } from './services/dashboard.service';
@@ -14,6 +15,7 @@ import { ConflictModule } from '../conflict/conflict.module';
 
 @Module({
   imports: [PrismaModule, AuditModule, RealtimeModule, ComplianceModule, ConflictModule],
+  controllers: [CalloutController],
   providers: [
     // Main service
     CalloutService,

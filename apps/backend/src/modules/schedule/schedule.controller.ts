@@ -1,0 +1,122 @@
+import {
+  Controller,
+  Post,
+  Get,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ScheduleService } from './schedule.service';
+import { JwtAuthGuard } from '../user/guards/jwt-auth.guard';
+import { PoliciesGuard } from '../user/casl/policies.guard';
+import { CheckPolicies } from '../user/decorators/check-policies.decorator';
+import { CurrentUser } from '../user/decorators/current-user.decorator';
+import { Action } from '../user/casl/types';
+
+@ApiTags('Schedule')
+@ApiBearerAuth()
+@Controller('api')
+@UseGuards(JwtAuthGuard, PoliciesGuard)
+export class ScheduleController {
+  constructor(private readonly scheduleService: ScheduleService) {}
+
+  /**
+   * Create shift - Manager only
+   * Requirements: 3.1, 3.2, 3.3, 3.4, 3.5
+   */
+  @Post('shifts')
+  @CheckPolicies((ability) => ability.can(Action.Create, 'Shift'))
+  @ApiOperation({ summary: 'Create a new shift' })
+  async createShift(
+    @Body()
+    data: {
+      locationId: string;
+      startTime: string;
+      endTime: string;
+      requiredSkillIds: string[];
+    },
+    @CurrentUser('id') managerId: string
+  ) {
+    return this.scheduleService.createShift(
+      data.locationId,
+      new Date(data.startTime),
+      new Date(data.endTime),
+      data.requiredSkillIds,
+      managerId
+    );
+  }
+
+  /**
+   * Get shifts by location and date range
+   * Requirements: 17.1, 17.4
+   */
+  @Get('shifts')
+  @CheckPolicies((ability) => ability.can(Action.Read, 'Shift'))
+  @ApiOperation({ summary: 'Get shifts by location and date range' })
+  async getShifts(
+    @Query('locationId') locationId: string,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string
+  ) {
+    return this.scheduleService.getSchedule(
+      locationId,
+      new Date(startDate),
+      new Date(endDate),
+      page ? parseInt(page) : 1,
+      pageSize ? parseInt(pageSize) : 50
+    );
+  }
+
+  /**
+   * Get staff schedule
+   * Requirements: 17.4
+   */
+  @Get('staff/:id/shifts')
+  @CheckPolicies((ability) => ability.can(Action.Read, 'Shift'))
+  @ApiOperation({ summary: 'Get staff schedule' })
+  async getStaffSchedule(
+    @Param('id') staffId: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string
+  ) {
+    return this.scheduleService.getStaffSchedule(
+      staffId,
+      startDate ? new Date(startDate) : undefined,
+      endDate ? new Date(endDate) : undefined
+    );
+  }
+
+  /**
+   * Assign staff to shift - Manager only
+   * Requirements: 4.1, 4.2, 4.3, 4.4, 4.5
+   */
+  @Post('shifts/:id/assign')
+  @CheckPolicies((ability) => ability.can(Action.Create, 'Assignment'))
+  @ApiOperation({ summary: 'Assign staff to shift' })
+  async assignStaff(
+    @Param('id') shiftId: string,
+    @Body() data: { staffId: string },
+    @CurrentUser('id') assignedBy: string
+  ) {
+    return this.scheduleService.assignStaff(shiftId, data.staffId, assignedBy);
+  }
+
+  /**
+   * Unassign staff from shift - Manager only
+   * Requirements: 8.4
+   */
+  @Delete('assignments/:id')
+  @CheckPolicies((ability) => ability.can(Action.Delete, 'Assignment'))
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Unassign staff from shift' })
+  async unassignStaff(@Param('id') shiftId: string, @CurrentUser('id') unassignedBy: string) {
+    await this.scheduleService.unassignStaff(shiftId, unassignedBy);
+  }
+}

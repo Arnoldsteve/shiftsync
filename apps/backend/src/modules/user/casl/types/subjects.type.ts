@@ -1,1 +1,10 @@
-export type Subjects = 'User' | 'Skill' | 'UserSkill' | 'LocationCertification' | 'all';
+export type Subjects =
+  | 'User'
+  | 'Skill'
+  | 'UserSkill'
+  | 'LocationCertification'
+  | 'Shift'
+  | 'Assignment'
+  | 'SwapRequest'
+  | 'Overtime'
+  | 'all';

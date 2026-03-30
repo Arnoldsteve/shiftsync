@@ -809,7 +809,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - **Property 74: Unauthorized Action Forbidden Response**
     - **Validates: Requirements 30.5**
 
-  - [ ] 23.5 Create Schedule Management API endpoints
+  - [x] 23.5 Create Schedule Management API endpoints
     - POST /api/shifts - Create shift (Manager)
     - GET /api/shifts - Get shifts by location and date range
     - GET /api/staff/:id/shifts - Get staff schedule
@@ -821,7 +821,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Document all endpoints with Swagger/Scalar decorators
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 4.1, 4.2, 4.3, 4.4, 4.5, 17.1, 17.5_
 
-  - [ ] 23.6 Create Swap Workflow API endpoints
+  - [x] 23.6 Create Swap Workflow API endpoints
     - POST /api/swaps - Create swap request (Staff)
     - GET /api/swaps/pending - Get pending swaps (Manager)
     - GET /api/staff/:id/swaps - Get swaps by staff (Staff)
@@ -831,7 +831,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Add input validation with DTOs
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 8.1, 8.2, 8.3, 8.4, 8.5_
 
-  - [ ] 23.7 Create Overtime and Fairness API endpoints
+  - [x] 23.7 Create Overtime and Fairness API endpoints
     - GET /api/overtime/:staffId - Calculate overtime for staff
     - GET /api/overtime/report/:locationId - Get overtime report for location
     - GET /api/fairness/:locationId/hours - Get hour distribution
@@ -840,7 +840,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Add authentication and authorization guards
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 13.1, 13.2, 13.3, 13.4, 13.5, 14.1, 14.2, 14.3, 14.4, 24.2, 24.3_
 
-  - [ ] 23.8 Create Callout and Coverage API endpoints
+  - [x] 23.8 Create Callout and Coverage API endpoints
     - POST /api/callouts - Report callout (Staff)
     - GET /api/dashboard/coverage - Get current coverage for all locations (Manager/Admin)
     - GET /api/dashboard/upcoming - Get upcoming shifts in next 24 hours (Manager/Admin)
@@ -849,7 +849,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Add authentication and authorization guards
     - _Requirements: 21.1, 21.2, 21.3, 21.4, 21.5, 22.1, 22.2, 22.3, 22.4, 23.1, 23.2, 23.3, 23.4, 23.5_
 
-  - [ ] 23.9 Create Configuration and Audit API endpoints
+  - [x] 23.9 Create Configuration and Audit API endpoints
     - GET /api/locations/:id/config - Get location configuration (Manager/Admin)
     - PUT /api/locations/:id/config - Update location configuration (Admin)
     - GET /api/audit - Query audit logs (Admin)
@@ -859,7 +859,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Add authentication and authorization guards
     - _Requirements: 19.1, 19.2, 19.3, 19.4, 19.5, 20.1, 20.2, 20.3, 20.4, 20.5, 27.1, 27.2, 27.3, 27.4, 27.5, 28.1, 28.2, 28.3, 28.4, 28.5_
 
-  - [ ] 23.10 Create Job Queue API endpoints
+  - [x] 23.10 Create Job Queue API endpoints
     - GET /api/jobs - Get job status list (Admin)
     - GET /api/jobs/:id - Get specific job status
     - POST /api/jobs/:id/retry - Retry failed job (Admin)
