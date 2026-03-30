@@ -300,7 +300,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test validateAll with multiple violations
 
 - [ ] 11. Implement Schedule Service with shift management
-  - [ ] 11.1 Create Schedule Service with shift CRUD operations
+  - [x] 11.1 Create Schedule Service with shift CRUD operations
     - Implement createShift with validation (end time after start time, required fields)
     - Store shift times in UTC with location timezone context
     - Support overnight shift creation (spans midnight)
@@ -324,7 +324,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - **Property 10: Manager Shift Creation Authorization**
     - **Validates: Requirements 3.5**
 
-  - [ ] 11.6 Implement staff assignment with constraint validation
+  - [x] 11.6 Implement staff assignment with constraint validation
     - Implement assignStaff method with skill and certification checks
     - Verify staff has all required skills for shift
     - Verify staff has location certification
@@ -343,13 +343,13 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - **Property 12: Staff Assignment Requires Location Certification**
     - **Validates: Requirements 4.2**
 
-  - [ ] 11.9 Implement unassignStaff method
+  - [x] 11.9 Implement unassignStaff method
     - Remove assignment record with optimistic locking check
     - Integrate with Audit Logger for assignment removal
     - Invalidate cache for affected staff and schedule
     - _Requirements: 8.4, 26.1_
 
-  - [ ] 11.10 Implement schedule query methods
+  - [x] 11.10 Implement schedule query methods
     - Implement getSchedule to retrieve shifts for location and date range
     - Convert shift times to location timezone for display
     - Implement getStaffSchedule to retrieve shifts for staff member
