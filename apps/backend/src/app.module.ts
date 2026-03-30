@@ -11,12 +11,12 @@ import { AuditModule } from './modules/audit/audit.module';
 import { CacheModule } from './modules/cache/cache.module';
 import { LockModule } from './modules/lock/lock.module';
 import { ConflictModule } from './modules/conflict/conflict.module';
+import { ComplianceModule } from './modules/compliance/compliance.module';
 
 // Module imports will be added as we build services
 // import { ScheduleModule } from './modules/schedule/schedule.module';
 // import { SwapModule } from './modules/swap/swap.module';
 // import { OvertimeModule } from './modules/overtime/overtime.module';
-// import { ComplianceModule } from './modules/compliance/compliance.module';
 // import { FairnessModule } from './modules/fairness/fairness.module';
 
 @Module({
@@ -61,6 +61,7 @@ import { ConflictModule } from './modules/conflict/conflict.module';
     CacheModule,
     LockModule,
     ConflictModule,
+    ComplianceModule,
 
     // Feature modules
     UserModule,

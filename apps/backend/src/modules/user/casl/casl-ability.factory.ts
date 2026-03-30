@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { AbilityBuilder, createMongoAbility } from '@casl/ability';
 import { User, Role } from '@prisma/client';
-import { Action, Subjects, AppAbility } from './types';
+import { Action, AppAbility } from './types';
 
 @Injectable()
 export class CaslAbilityFactory {

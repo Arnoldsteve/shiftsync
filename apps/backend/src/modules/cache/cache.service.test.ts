@@ -12,7 +12,7 @@ describe('CacheService', () => {
     mockRedisClient = {
       get: vi.fn(),
       setex: vi.fn(),
-      del: vi.fn(),
+      del: vi.fn() as any,
       keys: vi.fn(),
     };
 

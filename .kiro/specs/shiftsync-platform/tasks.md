@@ -228,7 +228,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
   - Ensure User Service, Audit Logger, Cache Manager, Lock Manager, and Conflict Detector are working correctly. Run all tests. Ask the user if questions arise.
 
 - [ ] 10. Implement Compliance Monitor service
-  - [ ] 10.1 Create Compliance Monitor with rest period validation
+  - [x] 10.1 Create Compliance Monitor with rest period validation
     - Implement validateRestPeriod to check 10-hour minimum gap before and after new shift
     - Convert shift times to UTC for accurate comparison across timezones
     - Query for adjacent shifts (previous and next) for the staff member
@@ -239,7 +239,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - **Property 14: Rest Period Enforcement**
     - **Validates: Requirements 4.4, 6.3, 6.5**
 
-  - [ ] 10.3 Implement daily limit validation
+  - [x] 10.3 Implement daily limit validation
     - Implement validateDailyLimit to check configured daily hour limit
     - Use rolling 24-hour window from shift start time
     - Query location config for daily limit settings
@@ -255,7 +255,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - **Property 28: Daily Limit Not Enforced When Unconfigured**
     - **Validates: Requirements 11.5**
 
-  - [ ] 10.6 Implement weekly limit validation
+  - [x] 10.6 Implement weekly limit validation
     - Implement validateWeeklyLimit to check 40-hour weekly limit
     - Use rolling 7-day window from shift start date
     - Query location config for weekly limit settings (default enabled, 40 hours)
@@ -266,7 +266,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - **Property 26: Weekly Limit Enforcement When Enabled**
     - **Validates: Requirements 10.1**
 
-  - [ ] 10.8 Implement consecutive days limit validation
+  - [x] 10.8 Implement consecutive days limit validation
     - Implement validateConsecutiveDays to check configured consecutive days limit
     - Count calendar days in staff user's primary location timezone
     - Reset counter when a calendar day has no shifts
