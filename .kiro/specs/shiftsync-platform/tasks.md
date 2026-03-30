@@ -172,8 +172,8 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test hash generation consistency
     - Test integrity verification with tampered records
 
-- [ ] 6. Implement Cache Manager with Redis
-  - [ ] 6.1 Create Cache Manager service
+- [x] 6. Implement Cache Manager with Redis
+  - [x] 6.1 Create Cache Manager service
     - Implement get, set, delete methods with TTL support
     - Configure TTL values: user data (15 min), schedule data (5 min), config (1 hour)
     - Implement cache key generation: `{entity}:{id}` or `{entity}:query:{hash}`
@@ -187,8 +187,8 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test graceful degradation when Redis connection fails
     - Test cache key generation consistency
 
-- [ ] 7. Implement Distributed Lock Manager with Redlock
-  - [ ] 7.1 Create Lock Manager service using Redlock
+- [x] 7. Implement Distributed Lock Manager with Redlock
+  - [x] 7.1 Create Lock Manager service using Redlock
     - Install and configure redlock library with Redis client
     - Implement acquireLock with 5-second default timeout
     - Implement releaseLock with error handling

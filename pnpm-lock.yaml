@@ -132,7 +132,7 @@ importers:
         specifier: ^11.0.0
         version: 11.3.0
       redlock:
-        specifier: ^5.0.0-beta.2
+        specifier: 5.0.0-beta.2
         version: 5.0.0-beta.2
       reflect-metadata:
         specifier: ^0.2.2

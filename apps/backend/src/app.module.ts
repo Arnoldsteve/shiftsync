@@ -7,6 +7,9 @@ import { validateEnv } from './config/env.validation';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { UserModule } from './modules/user/user.module';
+import { AuditModule } from './modules/audit/audit.module';
+import { CacheModule } from './modules/cache/cache.module';
+import { LockModule } from './modules/lock/lock.module';
 
 // Module imports will be added as we build services
 // import { ScheduleModule } from './modules/schedule/schedule.module';
@@ -14,7 +17,6 @@ import { UserModule } from './modules/user/user.module';
 // import { OvertimeModule } from './modules/overtime/overtime.module';
 // import { ComplianceModule } from './modules/compliance/compliance.module';
 // import { FairnessModule } from './modules/fairness/fairness.module';
-// import { AuditModule } from './modules/audit/audit.module';
 
 @Module({
   imports: [
@@ -53,6 +55,11 @@ import { UserModule } from './modules/user/user.module';
     // Redis
     RedisModule,
 
+    // Infrastructure modules
+    AuditModule,
+    CacheModule,
+    LockModule,
+
     // Feature modules
     UserModule,
     // ScheduleModule,
@@ -60,7 +67,6 @@ import { UserModule } from './modules/user/user.module';
     // OvertimeModule,
     // ComplianceModule,
     // FairnessModule,
-    // AuditModule,
   ],
   controllers: [AppController],
   providers: [AppService],

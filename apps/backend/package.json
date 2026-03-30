@@ -54,7 +54,7 @@
     "pino": "^9.0.0",
     "pino-http": "^10.1.0",
     "pino-pretty": "^11.0.0",
-    "redlock": "^5.0.0-beta.2",
+    "redlock": "5.0.0-beta.2",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "socket.io": "^4.7.5",
