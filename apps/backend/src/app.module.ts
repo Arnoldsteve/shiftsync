@@ -6,9 +6,9 @@ import { AppService } from './app.service';
 import { validateEnv } from './config/env.validation';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
+import { UserModule } from './modules/user/user.module';
 
 // Module imports will be added as we build services
-// import { UserModule } from './modules/user/user.module';
 // import { ScheduleModule } from './modules/schedule/schedule.module';
 // import { SwapModule } from './modules/swap/swap.module';
 // import { OvertimeModule } from './modules/overtime/overtime.module';
@@ -53,8 +53,8 @@ import { RedisModule } from './redis/redis.module';
     // Redis
     RedisModule,
 
-    // Feature modules will be added here
-    // UserModule,
+    // Feature modules
+    UserModule,
     // ScheduleModule,
     // SwapModule,
     // OvertimeModule,

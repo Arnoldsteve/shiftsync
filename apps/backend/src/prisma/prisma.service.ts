@@ -1,12 +1,26 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
+import { Pool, PoolConfig } from 'pg';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaService.name);
 
   constructor() {
+    const poolConfig: PoolConfig = {
+      connectionString: process.env.DATABASE_URL,
+      max: 30,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 2000,
+      maxUses: 7500,
+    };
+
+    const pool = new Pool(poolConfig);
+    const adapter = new PrismaPg(pool);
+
     super({
+      adapter,
       log: [
         { emit: 'event', level: 'query' },
         { emit: 'event', level: 'error' },
@@ -37,7 +51,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   async onModuleInit() {
     try {
       await this.$connect();
-      this.logger.log('✅ Database connected successfully');
+      this.logger.log('✅ Database connected successfully via Neon PgBouncer');
     } catch (error) {
       this.logger.error('❌ Failed to connect to database', error);
       throw error;
@@ -57,7 +71,10 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       throw new Error('Cannot clean database in production');
     }
 
-    const models = Reflect.ownKeys(this).filter((key) => key[0] !== '_' && key !== 'constructor');
+    const models = Reflect.ownKeys(this).filter((key) => {
+      const keyStr = String(key);
+      return keyStr[0] !== '_' && keyStr !== 'constructor';
+    });
 
     return Promise.all(
       models.map((modelKey) => {

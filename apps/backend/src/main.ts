@@ -27,7 +27,7 @@ async function bootstrap() {
     })
   );
 
-  // Swagger/Scalar API documentation
+  // Scalar API documentation
   const config = new DocumentBuilder()
     .setTitle('ShiftSync API')
     .setDescription('Multi-location staff scheduling platform API')
@@ -45,14 +45,29 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+
+  // Use Scalar for API documentation UI
+  const { apiReference } = await import('@scalar/nestjs-api-reference');
+
+  app.use(
+    '/api/docs',
+    apiReference({
+      spec: {
+        content: document,
+      },
+      theme: 'purple',
+      layout: 'modern',
+      darkMode: true,
+      showSidebar: true,
+    })
+  );
 
   const port = process.env.API_PORT || 3001;
   await app.listen(port);
 
   const logger = app.get(Logger);
   logger.log(`🚀 ShiftSync API running on http://localhost:${port}`);
-  logger.log(`📚 API Documentation available at http://localhost:${port}/api/docs`);
+  logger.log(`📚 API Documentation (Scalar) available at http://localhost:${port}/api/docs`);
 }
 
 bootstrap();

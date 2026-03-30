@@ -187,7 +187,8 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       await this.client.ping();
       return { status: 'healthy' };
     } catch (error) {
-      return { status: 'unhealthy', message: error.message };
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return { status: 'unhealthy', message };
     }
   }
 }

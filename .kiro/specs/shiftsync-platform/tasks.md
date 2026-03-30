@@ -62,45 +62,45 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - _Requirements: 16.1, 16.5, 25.4, 29.2_
 
 - [ ] 2. Implement data models and database layer
-  - [ ] 2.1 Create Prisma models for user management
+  - [x] 2.1 Create Prisma models for user management
     - Implement User, Role, Skill, UserSkill, Location, LocationCertification, ManagerLocation models
     - Add all required indexes for query optimization
     - Implement unique constraints for data integrity
     - Add cascade delete rules for referential integrity
     - _Requirements: 1.1, 1.2, 1.3, 2.1, 2.2, 2.3, 2.4, 2.5_
 
-  - [ ] 2.2 Create Prisma models for scheduling
+  - [x] 2.2 Create Prisma models for scheduling
     - Implement Shift, ShiftSkill, Assignment models with timezone support
     - Add indexes for common query patterns (location, time range, staff)
     - Implement optimistic locking with version field on Assignment
     - Add UTC timestamp storage with timezone context preservation
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 4.1, 4.2, 17.1, 17.2, 18.1_
 
-  - [ ] 2.3 Create Prisma models for swap workflow and callouts
+  - [x] 2.3 Create Prisma models for swap workflow and callouts
     - Implement SwapRequest model with status enum and approval tracking
     - Implement Callout model with shift and staff references
     - Add indexes for filtering by status and date
     - _Requirements: 7.1, 7.5, 8.1, 22.1, 22.3_
 
-  - [ ] 2.4 Create Prisma models for configuration and audit
+  - [x] 2.4 Create Prisma models for configuration and audit
     - Implement LocationConfig and PremiumShiftCriteria models
     - Implement AuditLog model with hash field for integrity verification
     - Add indexes for audit log queries (entity type, user, timestamp, action)
     - Configure append-only behavior for audit logs
     - _Requirements: 10.1, 11.1, 12.1, 14.1, 19.1, 19.2, 19.3, 19.4, 20.1, 20.3, 27.1, 27.2, 27.3_
 
-  - [ ] 2.5 Run database migrations and verify schema
+  - [x] 2.5 Run database migrations and verify schema
     - Generate and apply all Prisma migrations
     - Verify all tables, indexes, and constraints created correctly
     - Seed development database with test data (4 locations, skills, users)
     - Test database connection and basic CRUD operations
     - _Requirements: Foundation for all data operations_
 
-- [ ] 3. Checkpoint - Database layer complete
+- [x] 3. Checkpoint - Database layer complete
   - Ensure all migrations applied successfully, Prisma Client generates without errors, and test data seeded correctly. Ask the user if questions arise.
 
-- [ ] 4. Implement User Service with authentication
-  - [ ] 4.1 Create User Service with CRUD operations
+- [x] 4. Implement User Service with authentication
+  - [x] 4.1 Create User Service with CRUD operations
     - Implement createUser with password hashing using Argon2
     - Implement role assignment with location authorization for managers
     - Implement getUsersByLocation with role-based filtering
@@ -116,7 +116,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - **Property 2: Manager Role Requires Location Authorization**
     - **Validates: Requirements 1.3**
 
-  - [ ] 4.4 Implement JWT authentication with Passport.js
+  - [x] 4.4 Implement JWT authentication with Passport.js
     - Set up Passport JWT strategy with secret key from environment
     - Implement authenticate method returning JWT token and user
     - Implement validateToken method for JWT verification
@@ -128,7 +128,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - **Property 72: JWT Token Expiration Time**
     - **Validates: Requirements 30.2**
 
-  - [ ] 4.6 Implement role-based authorization guards
+  - [x] 4.6 Implement role-based authorization guards
     - Create RolesGuard decorator for endpoint protection
     - Implement permission checking for resource access
     - Add location-scoped authorization for managers
