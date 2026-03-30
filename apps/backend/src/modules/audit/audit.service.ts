@@ -1,0 +1,169 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { createHash } from 'crypto';
+import { AuditLog } from '@prisma/client';
+import { AuditRepository } from './repositories/audit.repository';
+import { AuditAction, AuditEntityType } from './types';
+import { AuditRecordData, AuditQueryFilters } from './interfaces';
+
+@Injectable()
+export class AuditService {
+  constructor(private readonly auditRepository: AuditRepository) {}
+
+  /**
+   * Log shift changes (create, update, delete)
+   * Requirements: 19.1, 20.1, 20.3
+   */
+  async logShiftChange(
+    action: AuditAction,
+    shiftId: string,
+    userId: string,
+    changes: { previousState?: any; newState?: any }
+  ): Promise<AuditLog> {
+    return this.createAuditRecord({
+      action,
+      entityType: 'SHIFT',
+      entityId: shiftId,
+      userId,
+      timestamp: new Date(),
+      previousState: changes.previousState,
+      newState: changes.newState,
+    });
+  }
+
+  /**
+   * Log assignment changes (create, update, delete)
+   * Requirements: 19.2, 20.1, 20.3
+   */
+  async logAssignmentChange(
+    action: AuditAction,
+    assignmentId: string,
+    userId: string,
+    changes: { previousState?: any; newState?: any }
+  ): Promise<AuditLog> {
+    return this.createAuditRecord({
+      action,
+      entityType: 'ASSIGNMENT',
+      entityId: assignmentId,
+      userId,
+      timestamp: new Date(),
+      previousState: changes.previousState,
+      newState: changes.newState,
+    });
+  }
+
+  /**
+   * Log swap request actions (create, approve, reject)
+   * Requirements: 19.3, 20.1, 20.3
+   */
+  async logSwapAction(
+    action: AuditAction,
+    swapRequestId: string,
+    userId: string,
+    decision?: { previousState?: any; newState?: any }
+  ): Promise<AuditLog> {
+    return this.createAuditRecord({
+      action,
+      entityType: 'SWAP_REQUEST',
+      entityId: swapRequestId,
+      userId,
+      timestamp: new Date(),
+      previousState: decision?.previousState,
+      newState: decision?.newState,
+    });
+  }
+
+  /**
+   * Log user account changes (role, skills, certifications)
+   * Requirements: 19.4, 20.1, 20.3
+   */
+  async logUserChange(
+    action: AuditAction,
+    targetUserId: string,
+    actorUserId: string,
+    changes: { previousState?: any; newState?: any }
+  ): Promise<AuditLog> {
+    return this.createAuditRecord({
+      action,
+      entityType: 'USER',
+      entityId: targetUserId,
+      userId: actorUserId,
+      timestamp: new Date(),
+      previousState: changes.previousState,
+      newState: changes.newState,
+    });
+  }
+
+  /**
+   * Query audit logs with filtering
+   * Requirements: 19.5
+   */
+  async queryAuditLog(filters: AuditQueryFilters): Promise<AuditLog[]> {
+    return this.auditRepository.query(filters);
+  }
+
+  /**
+   * Verify integrity of an audit record by recomputing hash
+   * Requirements: 20.4, 20.5
+   */
+  async verifyIntegrity(recordId: string): Promise<boolean> {
+    const record = await this.auditRepository.findById(recordId);
+
+    if (!record) {
+      throw new NotFoundException('Audit record not found');
+    }
+
+    const recomputedHash = this.generateHash({
+      action: record.action as AuditAction,
+      entityType: record.entityType as AuditEntityType,
+      entityId: record.entityId,
+      userId: record.userId,
+      timestamp: record.timestamp,
+      previousState: record.previousState,
+      newState: record.newState,
+    });
+
+    return recomputedHash === record.hash;
+  }
+
+  /**
+   * Create audit record with hash generation
+   * Requirements: 20.1, 20.3
+   * @private
+   */
+  private async createAuditRecord(data: AuditRecordData): Promise<AuditLog> {
+    const hash = this.generateHash(data);
+
+    return this.auditRepository.create({
+      action: data.action,
+      entityType: data.entityType,
+      entityId: data.entityId,
+      timestamp: data.timestamp,
+      previousState: data.previousState,
+      newState: data.newState,
+      hash,
+      user: {
+        connect: { id: data.userId },
+      },
+    });
+  }
+
+  /**
+   * Generate SHA-256 hash for audit record integrity
+   * Hash = SHA-256(action + entityType + entityId + userId + timestamp + previousState + newState)
+   * Requirements: 20.3
+   * @private
+   */
+  private generateHash(data: AuditRecordData): string {
+    const hashInput = [
+      data.action,
+      data.entityType,
+      data.entityId,
+      data.userId,
+      data.timestamp.toISOString(),
+      JSON.stringify(data.previousState || null),
+      JSON.stringify(data.newState || null),
+    ].join('|');
+
+    return createHash('sha256').update(hashInput).digest('hex');
+  }
+}

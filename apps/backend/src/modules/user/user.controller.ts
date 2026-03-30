@@ -21,10 +21,9 @@ import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { PoliciesGuard } from './casl/policies.guard';
 import { Public } from './decorators/public.decorator';
-import { Roles } from './decorators/roles.decorator';
 import { CheckPolicies } from './decorators/check-policies.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
-import { Action } from './casl/casl-ability.factory';
+import { Action } from './casl/types';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, PoliciesGuard)
@@ -46,21 +45,21 @@ export class UserController {
   }
 
   /**
-   * Create user - Admin only
+   * Create user - Admin only (PBAC)
    * Requirements: 1.1, 1.2, 1.3, 1.4
    */
   @Post()
-  @Roles(Role.ADMIN)
+  @CheckPolicies((ability) => ability.can(Action.Create, 'User'))
   async createUser(@Body() data: CreateUserDto) {
     return this.userService.createUser(data);
   }
 
   /**
-   * Assign role to user - Admin only
+   * Assign role to user - Admin only (PBAC)
    * Requirements: 1.2, 1.3
    */
   @Post(':id/role')
-  @Roles(Role.ADMIN)
+  @CheckPolicies((ability) => ability.can(Action.Update, 'User'))
   async assignRole(@Param('id') userId: string, @Body() data: AssignRoleDto) {
     return this.userService.assignRole(userId, data);
   }
@@ -108,29 +107,31 @@ export class UserController {
   }
 
   /**
-   * Get user by ID
+   * Get user by ID - PBAC: All authenticated users can read
    * Requirements: 1.5
    */
   @Get(':id')
+  @CheckPolicies((ability) => ability.can(Action.Read, 'User'))
   async getUserById(@Param('id') userId: string) {
     return this.userService.getUserById(userId);
   }
 
   /**
-   * Get current user profile
+   * Get current user profile - PBAC: All authenticated users can read their own profile
    * Requirements: 30.4
    */
   @Get('me')
+  @CheckPolicies((ability) => ability.can(Action.Read, 'User'))
   async getCurrentUser(@CurrentUser('id') userId: string) {
     return this.userService.getUserById(userId);
   }
 
   /**
-   * Get users by location - Admin or Manager
+   * Get users by location - PBAC: Admin or Manager can read users
    * Requirements: 2.5
    */
   @Get('location/:locationId')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @CheckPolicies((ability) => ability.can(Action.Read, 'User'))
   async getUsersByLocation(@Param('locationId') locationId: string) {
     return this.userService.getUsersByLocation(locationId);
   }

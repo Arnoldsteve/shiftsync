@@ -1,20 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { AbilityBuilder, createMongoAbility, MongoAbility } from '@casl/ability';
+import { AbilityBuilder, createMongoAbility } from '@casl/ability';
 import { User, Role } from '@prisma/client';
-
-// Define actions
-export enum Action {
-  Manage = 'manage', // All actions
-  Create = 'create',
-  Read = 'read',
-  Update = 'update',
-  Delete = 'delete',
-}
-
-// Define subject types as strings
-export type Subjects = 'User' | 'Skill' | 'UserSkill' | 'LocationCertification' | 'all';
-
-export type AppAbility = MongoAbility<[Action, Subjects]>;
+import { Action, Subjects, AppAbility } from './types';
 
 @Injectable()
 export class CaslAbilityFactory {

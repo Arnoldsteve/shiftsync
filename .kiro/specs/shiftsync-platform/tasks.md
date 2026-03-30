@@ -145,8 +145,8 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test skill and certification assignment with timestamps
     - Test getUsersByLocation filtering
 
-- [ ] 5. Implement Audit Logger service
-  - [ ] 5.1 Create Audit Service with logging methods
+- [x] 5. Implement Audit Logger service
+  - [x] 5.1 Create Audit Service with logging methods
     - Implement logShiftChange, logAssignmentChange, logSwapAction, logUserChange methods
     - Generate SHA-256 hash for each audit record (action + entityType + entityId + userId + timestamp + states)
     - Store audit records with hash in append-only fashion
