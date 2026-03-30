@@ -35,11 +35,11 @@ import { CacheModule } from '../cache/cache.module';
     }),
     BullBoardModule.forFeature({
       name: 'fairness-report',
-      adapter: BullMQAdapter,
+      adapter: BullMQAdapter as any,
     }),
     BullBoardModule.forFeature({
       name: 'overtime-report',
-      adapter: BullMQAdapter,
+      adapter: BullMQAdapter as any,
     }),
     // Import required modules
     FairnessModule,
