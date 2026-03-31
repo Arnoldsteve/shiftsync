@@ -74,7 +74,7 @@ export class ScheduleService {
         },
       });
 
-      await this.cacheService.delete(`schedule:location:${locationId}`);
+      await this.cacheService.invalidateSchedule(locationId);
 
       // Emit real-time event
       this.realtimeGateway.emitShiftCreated(locationId, shift);

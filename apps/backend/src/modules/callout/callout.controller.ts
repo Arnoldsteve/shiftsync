@@ -18,7 +18,7 @@ export class CalloutController {
    * Report callout - Staff
    * Requirements: 22.1, 22.2, 22.3, 22.4
    */
-  @Post('callouts')
+  @Post()
   @CheckPolicies((ability) => ability.can(Action.Create, 'User'))
   @ApiOperation({ summary: 'Report callout for a shift' })
   async reportCallout(

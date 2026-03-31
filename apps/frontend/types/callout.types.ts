@@ -29,12 +29,12 @@ export interface CoverageStatus {
 }
 
 export interface AvailableStaff {
-  id: string;
-  name: string;
+  staffId: string;
+  staffName: string;
   currentHours: number;
   skills: string[];
   certifications: string[];
-  constraintViolations: string[];
+  constraintViolations?: string[];
 }
 
 export interface UpcomingShift {

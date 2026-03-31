@@ -19,10 +19,14 @@ import { useScheduleRealtime } from '@/hooks/use-schedule-realtime';
 import { useLocations } from '@/hooks/use-locations';
 import { WeekCalendar } from '@/components/schedule/week-calendar';
 import { CreateShiftDialog } from '@/components/schedule/create-shift-dialog';
+import { AssignStaffDialog } from '@/components/schedule/assign-staff-dialog';
+import type { Shift } from '@/types/shift.types';
 
 export default function SchedulePage() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedLocationId, setSelectedLocationId] = useState('');
+  const [selectedShift, setSelectedShift] = useState<Shift | null>(null);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
 
   const startDate = new Date(selectedDate);
   startDate.setDate(startDate.getDate() - startDate.getDay());
@@ -53,6 +57,11 @@ export default function SchedulePage() {
 
   const goToToday = () => {
     setSelectedDate(new Date());
+  };
+
+  const handleShiftClick = (shift: Shift) => {
+    setSelectedShift(shift);
+    setAssignDialogOpen(true);
   };
 
   return (
@@ -107,6 +116,7 @@ export default function SchedulePage() {
               onPreviousWeek={goToPreviousWeek}
               onNextWeek={goToNextWeek}
               onToday={goToToday}
+              onShiftClick={handleShiftClick}
             />
           ) : (
             <div className="text-center py-8 text-muted-foreground">
@@ -115,6 +125,12 @@ export default function SchedulePage() {
           )}
         </CardContent>
       </Card>
+
+      <AssignStaffDialog
+        shift={selectedShift}
+        open={assignDialogOpen}
+        onOpenChange={setAssignDialogOpen}
+      />
     </div>
   );
 }

@@ -1,262 +1,304 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { formatInTimeZone } from 'date-fns-tz';
 import {
+  Calendar as CalendarIcon,
+  Clock,
+  MapPin,
+  Users,
+  AlertCircle,
+  Filter,
+  MoreHorizontal,
+  Star,
+  CheckCircle2,
+} from 'lucide-react';
+
+import {
+  Label,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  Badge,
+  Button,
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  Button,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Label,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from '@shiftsync/ui';
-import { Calendar, Clock, MapPin, Users, AlertCircle } from 'lucide-react';
+
 import { useLocations } from '@/hooks/use-locations';
+import { useShifts } from '@/hooks/use-shifts';
+import { CreateShiftDialog } from '@/components/schedule/create-shift-dialog';
+import type { Shift } from '@/types/shift.types';
 
 export default function ShiftsPage() {
   const router = useRouter();
   const [locationFilter, setLocationFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'assigned' | 'uncovered'>('all');
+
+  // Next 7 days window
+  const startDate = new Date();
+  const endDate = new Date();
+  endDate.setDate(endDate.getDate() + 7);
 
   const { data: locations, isLoading: isLoadingLocations } = useLocations();
-
-  // Mock data - in real app, fetch from API
-  const shifts = [
-    {
-      id: 'shift-1',
-      location: 'Downtown',
-      locationId: 'loc1',
-      startTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
-      endTime: new Date(Date.now() + 10 * 60 * 60 * 1000).toISOString(),
-      requiredStaff: 3,
-      assignedStaff: 3,
-      status: 'covered',
-      skills: ['Cashier', 'Customer Service'],
-    },
-    {
-      id: 'shift-2',
-      location: 'Uptown',
-      locationId: 'loc2',
-      startTime: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
-      endTime: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
-      requiredStaff: 2,
-      assignedStaff: 1,
-      status: 'partial',
-      skills: ['Manager', 'Inventory'],
-    },
-    {
-      id: 'shift-3',
-      location: 'Westside',
-      locationId: 'loc3',
-      startTime: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
-      endTime: new Date(Date.now() + 14 * 60 * 60 * 1000).toISOString(),
-      requiredStaff: 4,
-      assignedStaff: 0,
-      status: 'uncovered',
-      skills: ['Cashier', 'Stock', 'Customer Service'],
-    },
-  ];
-
-  const filteredShifts = shifts.filter((shift) => {
-    if (locationFilter !== 'all' && shift.locationId !== locationFilter) return false;
-    if (statusFilter !== 'all' && shift.status !== statusFilter) return false;
-    return true;
+  const { data: shifts, isLoading: isLoadingShifts } = useShifts({
+    locationId: locationFilter !== 'all' ? locationFilter : undefined,
+    startDate: startDate.toISOString(),
+    endDate: endDate.toISOString(),
+    status: statusFilter !== 'all' ? statusFilter : undefined,
   });
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'covered':
-        return 'bg-green-100 text-green-700';
-      case 'partial':
-        return 'bg-orange-100 text-orange-700';
-      case 'uncovered':
-        return 'bg-red-100 text-red-700';
-      default:
-        return 'bg-gray-100 text-gray-700';
-    }
+  // Map for location metadata (Timezone + Name)
+  const locationMap = useMemo(() => {
+    const map = new Map();
+    locations?.forEach((loc) => map.set(loc.id, { name: loc.name, tz: loc.timezone }));
+    return map;
+  }, [locations]);
+
+  // Logic: Is this a "Premium" shift? (Requirement #5: Fri/Sat night)
+  const isPremiumShift = (dateStr: string, tz: string) => {
+    const localDate = new Date(dateStr);
+    const day = parseInt(formatInTimeZone(localDate, tz, 'i')); // 1-7
+    const hour = parseInt(formatInTimeZone(localDate, tz, 'H'));
+    // Friday (5) or Saturday (6) after 4 PM (16:00)
+    return (day === 5 || day === 6) && hour >= 16;
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'covered':
-        return 'Fully Covered';
-      case 'partial':
-        return 'Partially Covered';
-      case 'uncovered':
-        return 'Uncovered';
-      default:
-        return status;
-    }
-  };
+  const isLoading = isLoadingLocations || isLoadingShifts;
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">Shifts</h1>
-        <p className="text-muted-foreground">View and manage all shifts across locations</p>
+    <div className="flex flex-col gap-6 p-8">
+      {/* Header Area */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Shift Operations</h1>
+          <p className="text-muted-foreground">
+            Monitor coverage and labor distribution across Coastal Eats.
+          </p>
+        </div>
+        <CreateShiftDialog />
       </div>
 
-      {/* Filters */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Filters</CardTitle>
-          <CardDescription>Filter shifts by location and coverage status</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="grid gap-2">
-              <Label htmlFor="location">Location</Label>
-              <Select value={locationFilter} onValueChange={setLocationFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All locations" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All locations</SelectItem>
-                  {isLoadingLocations ? (
-                    <SelectItem value="loading" disabled>
-                      Loading locations...
-                    </SelectItem>
-                  ) : locations && locations.length > 0 ? (
-                    locations.map((location) => (
-                      <SelectItem key={location.id} value={location.id}>
-                        {location.name}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="none" disabled>
-                      No locations available
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="status">Status</Label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All statuses</SelectItem>
-                  <SelectItem value="covered">Fully Covered</SelectItem>
-                  <SelectItem value="partial">Partially Covered</SelectItem>
-                  <SelectItem value="uncovered">Uncovered</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+      {/* Modern Filter Bar */}
+      <Card className="bg-slate-50/50 border-none shadow-none">
+        <CardContent className="p-4 flex flex-wrap gap-4 items-end">
+          <div className="space-y-1.5">
+            <Label className="text-xs uppercase font-bold text-muted-foreground flex items-center gap-1">
+              <MapPin className="h-3 w-3" /> Location Context
+            </Label>
+            <Select value={locationFilter} onValueChange={setLocationFilter}>
+              <SelectTrigger className="w-[220px] bg-white">
+                <SelectValue placeholder="All Locations" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Global (All Locations)</SelectItem>
+                {locations?.map((loc) => (
+                  <SelectItem key={loc.id} value={loc.id}>
+                    {loc.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs uppercase font-bold text-muted-foreground flex items-center gap-1">
+              <Filter className="h-3 w-3" /> Coverage Status
+            </Label>
+            <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
+              <SelectTrigger className="w-[180px] bg-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Shifts</SelectItem>
+                <SelectItem value="assigned">Fully Covered</SelectItem>
+                <SelectItem value="uncovered">Needs Attention</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Button
+            variant="ghost"
+            className="h-10 text-slate-500"
+            onClick={() => {
+              setLocationFilter('all');
+              setStatusFilter('all');
+            }}
+          >
+            Reset Filters
+          </Button>
         </CardContent>
       </Card>
 
-      {/* Shifts List */}
-      <div className="grid gap-4">
-        {filteredShifts.length > 0 ? (
-          filteredShifts.map((shift) => (
-            <Card key={shift.id}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <CardTitle className="flex items-center gap-2">
-                      <MapPin className="h-5 w-5 text-muted-foreground" />
-                      {shift.location}
-                    </CardTitle>
-                    <CardDescription className="flex items-center gap-4">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        {new Date(shift.startTime).toLocaleDateString()}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        {new Date(shift.startTime).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}{' '}
-                        -{' '}
-                        {new Date(shift.endTime).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </span>
-                    </CardDescription>
-                  </div>
-                  <span
-                    className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusBadge(
-                      shift.status
-                    )}`}
-                  >
-                    {getStatusText(shift.status)}
-                  </span>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">
-                        <strong>
-                          {shift.assignedStaff}/{shift.requiredStaff}
-                        </strong>{' '}
-                        staff assigned
-                      </span>
-                    </div>
-                  </div>
+      {/* Main Table Content */}
+      <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+        <Table>
+          <TableHeader className="bg-slate-50">
+            <TableRow>
+              <TableHead className="w-[100px]">Status</TableHead>
+              <TableHead>Shift Timing (Local)</TableHead>
+              <TableHead>Location</TableHead>
+              <TableHead>Required Skills</TableHead>
+              <TableHead>Assignment</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={6} className="h-32 text-center text-muted-foreground italic">
+                  Syncing with schedule engine...
+                </TableCell>
+              </TableRow>
+            ) : shifts?.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
+                  No shifts found for this criteria.
+                </TableCell>
+              </TableRow>
+            ) : (
+              shifts?.map((shift: Shift) => {
+                const locData = locationMap.get(shift.locationId);
+                const tz = locData?.tz || 'UTC';
+                const isPremium = isPremiumShift(shift.startTime, tz);
+                const isUncovered = !shift.assignment;
 
-                  <div>
-                    <div className="text-sm font-medium mb-2">Required Skills</div>
-                    <div className="flex flex-wrap gap-2">
-                      {shift.skills.map((skill) => (
-                        <span
-                          key={skill}
-                          className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs"
+                return (
+                  <TableRow key={shift.id} className="group transition-colors hover:bg-slate-50/50">
+                    <TableCell>
+                      {isUncovered ? (
+                        <Badge
+                          variant="destructive"
+                          className="flex gap-1 items-center px-2 py-0.5"
                         >
-                          {skill}
+                          <AlertCircle className="h-3 w-3" /> Uncovered
+                        </Badge>
+                      ) : (
+                        <Badge
+                          variant="secondary"
+                          className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50 border-emerald-200 flex gap-1 items-center px-2 py-0.5"
+                        >
+                          <CheckCircle2 className="h-3 w-3" /> Covered
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-slate-900">
+                          {formatInTimeZone(new Date(shift.startTime), tz, 'EEE, MMM d')}
                         </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  {shift.status === 'uncovered' && (
-                    <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                      <AlertCircle className="h-4 w-4 text-red-600" />
-                      <span className="text-sm text-red-700">
-                        This shift needs coverage urgently
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => router.push(`/shifts/${shift.id}/coverage`)}
-                    >
-                      View Coverage
-                    </Button>
-                    {shift.status !== 'covered' && (
-                      <Button onClick={() => router.push(`/shifts/${shift.id}/coverage`)}>
-                        Find Staff
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        ) : (
-          <Card>
-            <CardContent className="py-8">
-              <div className="text-center text-muted-foreground">
-                No shifts found for the selected filters
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                        <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                          <Clock className="h-3 w-3" />
+                          {formatInTimeZone(new Date(shift.startTime), tz, 'h:mm a')} -{' '}
+                          {formatInTimeZone(new Date(shift.endTime), tz, 'h:mm a')}
+                          <span className="ml-1 text-[10px] font-bold uppercase text-slate-400">
+                            ({formatInTimeZone(new Date(shift.startTime), tz, 'zzz')})
+                          </span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-medium text-slate-700">
+                          {locData?.name || 'Unknown'}
+                        </span>
+                        {isPremium && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="flex items-center gap-1 text-[10px] font-bold text-amber-600 uppercase tracking-wider">
+                                  <Star className="h-3 w-3 fill-amber-500 text-amber-500" /> Premium
+                                  Shift
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                High-value shift: Friday/Saturday night
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {shift.requiredSkills?.map((skill) => (
+                          <Badge
+                            key={skill}
+                            variant="outline"
+                            className="text-[10px] px-1.5 py-0 border-slate-200 text-slate-600 uppercase"
+                          >
+                            {skill}
+                          </Badge>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {shift.assignment ? (
+                        <div className="flex items-center gap-2">
+                          <div className="h-7 w-7 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600 border border-slate-200">
+                            {shift.assignment.staffName.charAt(0)}
+                          </div>
+                          <span className="text-sm font-medium text-slate-700">
+                            {shift.assignment.staffName}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-xs italic text-slate-400">
+                          Waiting for assignment...
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-slate-400 hover:text-slate-900"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuLabel>Shift Options</DropdownMenuLabel>
+                          <DropdownMenuItem
+                            onClick={() => router.push(`/shifts/${shift.id}/coverage`)}
+                          >
+                            <Users className="mr-2 h-4 w-4" /> Manage Coverage
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <CalendarIcon className="mr-2 h-4 w-4" /> Edit Details
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-red-600">Delete Shift</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
       </div>
     </div>
   );

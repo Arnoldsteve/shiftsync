@@ -14,21 +14,21 @@ export const calloutService = {
   },
 
   async getCurrentCoverage(): Promise<CoverageStatus[]> {
-    const response = await apiClient.get('/dashboard/coverage');
+    const response = await apiClient.get('/callouts/dashboard/coverage');
     return response.data as CoverageStatus[];
   },
 
   async getUpcomingShifts(): Promise<UpcomingShift[]> {
-    const response = await apiClient.get('/dashboard/upcoming');
+    const response = await apiClient.get('/callouts/dashboard/upcoming');
     return response.data as UpcomingShift[];
   },
 
   async getAvailableStaff(shiftId: string): Promise<AvailableStaff[]> {
-    const response = await apiClient.get(`/shifts/${shiftId}/available-staff`);
+    const response = await apiClient.get(`/callouts/shifts/${shiftId}/available-staff`);
     return response.data as AvailableStaff[];
   },
 
   async sendShiftOffer(shiftId: string, staffId: string): Promise<void> {
-    await apiClient.post(`/shifts/${shiftId}/offer`, { staffId });
+    await apiClient.post(`/callouts/shifts/${shiftId}/offer`, { staffId });
   },
 };

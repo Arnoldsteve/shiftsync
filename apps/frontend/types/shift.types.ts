@@ -22,7 +22,7 @@ export interface CreateShiftDto {
   locationId: string;
   startTime: string;
   endTime: string;
-  requiredSkills: string[];
+  requiredSkillIds: string[];
 }
 
 export interface UpdateShiftDto {

@@ -31,7 +31,8 @@ export function useCreateShift() {
   return useMutation({
     mutationFn: (data: CreateShiftDto) => shiftService.createShift(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.shifts.all });
+      // Refetch all shift queries to immediately show the new shift
+      queryClient.refetchQueries({ queryKey: queryKeys.shifts.all });
       toast.success('Shift created successfully');
     },
     onError: (error: any) => {

@@ -64,9 +64,9 @@ export default function LoginPage() {
   // Quick login helpers for demo
   const quickLogin = (role: 'admin' | 'manager' | 'staff') => {
     const credentials = {
-      admin: { email: 'admin@shiftsync.com', password: 'Admin123!@#' },
-      manager: { email: 'manager1@shiftsync.com', password: 'Manager123!@#' },
-      staff: { email: 'sarah@shiftsync.com', password: 'Staff123!@#' },
+      admin: { email: 'admin@coastaleats.com', password: 'Admin123!@#' },
+      manager: { email: 'john.manager@coastaleats.com', password: 'Manager123!@#' },
+      staff: { email: 'alex.bartender@coastaleats.com', password: 'Staff123!@#' },
     };
 
     const creds = credentials[role];

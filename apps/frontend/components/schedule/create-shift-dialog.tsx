@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { format } from 'date-fns';
-import { CalendarIcon, Clock } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -19,17 +18,12 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-  Calendar,
+  DatePicker,
 } from '@shiftsync/ui';
-import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCreateShift } from '@/hooks/use-shifts';
 import { useLocations } from '@/hooks/use-locations';
 import type { CreateShiftDto } from '@/types/shift.types';
-import { cn } from '@shiftsync/ui';
 
 export function CreateShiftDialog() {
   const [isOpen, setIsOpen] = useState(false);
@@ -38,17 +32,28 @@ export function CreateShiftDialog() {
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('17:00');
   const [locationId, setLocationId] = useState('');
-  const [startDateOpen, setStartDateOpen] = useState(false);
-  const [endDateOpen, setEndDateOpen] = useState(false);
 
   const createShift = useCreateShift();
   const { data: locations, isLoading: isLoadingLocations } = useLocations();
+
+  const resetForm = () => {
+    setStartDate(undefined);
+    setEndDate(undefined);
+    setStartTime('09:00');
+    setEndTime('17:00');
+    setLocationId('');
+  };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!startDate || !endDate) {
       toast.error('Please select start and end dates');
+      return;
+    }
+
+    if (!locationId) {
+      toast.error('Please select a location');
       return;
     }
 
@@ -71,40 +76,46 @@ export function CreateShiftDialog() {
       locationId,
       startTime: startDateTime.toISOString(),
       endTime: endDateTime.toISOString(),
-      requiredSkills: [],
+      requiredSkillIds: [],
     };
 
     createShift.mutate(formData, {
       onSuccess: () => {
         setIsOpen(false);
-        setStartDate(undefined);
-        setEndDate(undefined);
-        setStartTime('09:00');
-        setEndTime('17:00');
-        setLocationId('');
+        resetForm();
       },
     });
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        setIsOpen(open);
+        if (!open) resetForm();
+      }}
+    >
       <DialogTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
           Create Shift
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[550px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Create New Shift</DialogTitle>
             <DialogDescription>Add a new shift to the schedule</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+
+          <div className="grid gap-6 py-4">
+            {/* Location */}
             <div className="grid gap-2">
-              <Label htmlFor="location">Location</Label>
-              <Select value={locationId} onValueChange={setLocationId}>
-                <SelectTrigger>
+              <Label htmlFor="location" className="text-sm font-medium">
+                Location
+              </Label>
+              <Select value={locationId} onValueChange={setLocationId} required>
+                <SelectTrigger id="location" className="w-full">
                   <SelectValue placeholder="Select location" />
                 </SelectTrigger>
                 <SelectContent>
@@ -127,92 +138,59 @@ export function CreateShiftDialog() {
               </Select>
             </div>
 
+            {/* Start Date & Time */}
             <div className="grid gap-2">
-              <Label>Start Date & Time</Label>
+              <Label className="text-sm font-medium">Start Date & Time</Label>
               <div className="flex gap-2">
-                <Popover open={startDateOpen} onOpenChange={setStartDateOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        'flex-1 justify-start text-left font-normal',
-                        !startDate && 'text-muted-foreground'
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {startDate ? format(startDate, 'PPP') : <span>Pick date</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={startDate}
-                      onSelect={(date) => {
-                        setStartDate(date);
-                        setStartDateOpen(false);
-                      }}
-                      captionLayout="dropdown"
-                      defaultMonth={startDate}
-                    />
-                  </PopoverContent>
-                </Popover>
-                <div className="relative w-32">
-                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <div className="flex-1">
+                  <DatePicker
+                    value={startDate}
+                    onChange={setStartDate}
+                    placeholder="Select start date"
+                  />
+                </div>
+                <div className="w-32">
                   <Input
                     type="time"
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
-                    className="pl-10 appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden"
+                    className="appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                     required
                   />
                 </div>
               </div>
             </div>
 
+            {/* End Date & Time */}
             <div className="grid gap-2">
-              <Label>End Date & Time</Label>
+              <Label className="text-sm font-medium">End Date & Time</Label>
               <div className="flex gap-2">
-                <Popover open={endDateOpen} onOpenChange={setEndDateOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        'flex-1 justify-start text-left font-normal',
-                        !endDate && 'text-muted-foreground'
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {endDate ? format(endDate, 'PPP') : <span>Pick date</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={endDate}
-                      onSelect={(date) => {
-                        setEndDate(date);
-                        setEndDateOpen(false);
-                      }}
-                      captionLayout="dropdown"
-                      defaultMonth={endDate}
-                    />
-                  </PopoverContent>
-                </Popover>
-                <div className="relative w-32">
-                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <div className="flex-1">
+                  <DatePicker value={endDate} onChange={setEndDate} placeholder="Select end date" />
+                </div>
+                <div className="w-32">
                   <Input
                     type="time"
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
-                    className="pl-10 appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden"
+                    className="appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                     required
                   />
                 </div>
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
+
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setIsOpen(false);
+                resetForm();
+              }}
+              disabled={createShift.isPending}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={createShift.isPending || !locationId}>
