@@ -1096,8 +1096,8 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test CSV import error handling
     - Test CSV export functionality
 
-- [ ] 32. Implement frontend job queue monitoring
-  - [ ] 32.1 Create job status dashboard (Admin)
+- [x] 32. Implement frontend job queue monitoring
+  - [x] 32.1 Create job status dashboard (Admin)
     - Build job list showing queued, processing, completed, failed jobs
     - Display job details (type, data, status, error messages)
     - Implement job retry functionality for failed jobs
@@ -1110,7 +1110,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test job retry functionality
     - Test real-time job status updates
 
-- [ ] 33. Checkpoint - Frontend features complete
+- [x] 33. Checkpoint - Frontend features complete
   - Ensure all frontend pages and components are working correctly with real-time updates. Test user flows end-to-end. Ask the user if questions arise.
 
 - [ ] 34. Set up property-based testing infrastructure
