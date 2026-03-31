@@ -980,14 +980,14 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test real-time update handling
 
 - [ ] 28. Implement frontend swap workflow features
-  - [ ] 28.1 Create swap request interface (Staff)
+  - [x] 28.1 Create swap request interface (Staff)
     - Build swap request form with shift selection and target staff selection
     - Display validation errors (missing skills, certification)
     - Show list of staff's own shifts available for swapping
     - Display swap request status (pending, approved, rejected)
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
-  - [ ] 28.2 Create swap approval interface (Manager)
+  - [x] 28.2 Create swap approval interface (Manager)
     - Build pending swaps list with filtering
     - Display swap details (original assignment, proposed assignment, validation results)
     - Implement approve and reject actions with reason input for rejection
@@ -995,7 +995,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Update list on swap:updated events via WebSocket
     - _Requirements: 8.1, 8.2, 8.3, 8.5_
 
-  - [ ] 28.3 Implement real-time swap notifications
+  - [x] 28.3 Implement real-time swap notifications
     - Subscribe to staff-specific WebSocket rooms
     - Display notifications on swap:created and swap:updated events
     - Show toast notifications using Sonner for swap approvals and rejections
@@ -1007,7 +1007,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test real-time notification handling
 
 - [ ] 29. Implement frontend overtime and fairness features
-  - [ ] 29.1 Create overtime dashboard
+  - [x] 29.1 Create overtime dashboard
     - Build overtime summary view for location
     - Display staff list with regular and overtime hours
     - Implement date range filtering (week, pay period)
@@ -1015,7 +1015,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Export overtime report to CSV
     - _Requirements: 9.1, 9.2, 9.3, 9.4_
 
-  - [ ] 29.2 Create fairness analytics dashboard
+  - [x] 29.2 Create fairness analytics dashboard
     - Build hour distribution chart showing mean and outliers
     - Build premium shift distribution chart
     - Use TanStack Table for staff list with complex sorting/filtering by hours, deviations, premium shifts
