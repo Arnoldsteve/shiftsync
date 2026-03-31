@@ -57,7 +57,7 @@ async function bootstrap() {
       },
       theme: 'purple',
       layout: 'modern',
-      darkMode: true,
+      darkMode: false,
       showSidebar: true,
     })
   );

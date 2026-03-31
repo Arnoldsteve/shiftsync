@@ -1,0 +1,23 @@
+/**
+ * Queue Names
+ * Centralized registry for all background processing domains.
+ */
+export enum QUEUES {
+  FAIRNESS_REPORT = 'FAIRNESS_REPORT',
+  OVERTIME_REPORT = 'OVERTIME_REPORT',
+}
+
+/**
+ * Job names within specific queues to keep workers organized.
+ * SOLID Principle: Single Source of Truth for all background tasks.
+ */
+export enum JOB_NAMES {
+  // --- FAIRNESS ANALYTICS JOBS ---
+  GENERATE_FAIRNESS_REPORT = 'GENERATE_FAIRNESS_REPORT',
+  CALCULATE_HOUR_DISTRIBUTION = 'CALCULATE_HOUR_DISTRIBUTION',
+  CALCULATE_PREMIUM_SHIFT_DISTRIBUTION = 'CALCULATE_PREMIUM_SHIFT_DISTRIBUTION',
+
+  // --- OVERTIME TRACKING JOBS ---
+  GENERATE_OVERTIME_REPORT = 'GENERATE_OVERTIME_REPORT',
+  CALCULATE_PAY_PERIOD_OVERTIME = 'CALCULATE_PAY_PERIOD_OVERTIME',
+}

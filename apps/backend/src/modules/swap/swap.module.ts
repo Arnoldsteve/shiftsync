@@ -8,6 +8,7 @@ import { CacheModule } from '../cache/cache.module';
 import { ConflictModule } from '../conflict/conflict.module';
 import { ComplianceModule } from '../compliance/compliance.module';
 import { RealtimeModule } from '../realtime/realtime.module';
+import { UserModule } from '../user/user.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { RealtimeModule } from '../realtime/realtime.module';
     ConflictModule,
     ComplianceModule,
     RealtimeModule,
+    UserModule,
   ],
   controllers: [SwapController],
   providers: [SwapService, SwapRepository],

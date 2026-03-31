@@ -3,9 +3,10 @@ import { AuditService } from './audit.service';
 import { AuditController } from './audit.controller';
 import { AuditRepository } from './repositories/audit.repository';
 import { PrismaModule } from '../../prisma/prisma.module';
+import { UserModule } from '../user/user.module';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, UserModule],
   controllers: [AuditController],
   providers: [AuditService, AuditRepository],
   exports: [AuditService],

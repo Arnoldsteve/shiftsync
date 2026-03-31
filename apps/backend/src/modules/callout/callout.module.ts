@@ -12,9 +12,17 @@ import { AuditModule } from '../audit/audit.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { ComplianceModule } from '../compliance/compliance.module';
 import { ConflictModule } from '../conflict/conflict.module';
+import { UserModule } from '../user/user.module';
 
 @Module({
-  imports: [PrismaModule, AuditModule, RealtimeModule, ComplianceModule, ConflictModule],
+  imports: [
+    PrismaModule,
+    AuditModule,
+    RealtimeModule,
+    ComplianceModule,
+    ConflictModule,
+    UserModule,
+  ],
   controllers: [CalloutController],
   providers: [
     // Main service

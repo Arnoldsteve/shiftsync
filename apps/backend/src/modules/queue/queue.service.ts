@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, Job } from 'bullmq';
+import { QUEUES, JOB_NAMES } from './queue.constants';
 import { FairnessReportJobData, OvertimeReportJobData } from './interfaces';
 
 @Injectable()
@@ -8,9 +9,9 @@ export class QueueService {
   private readonly logger = new Logger(QueueService.name);
 
   constructor(
-    @InjectQueue('fairness-report')
+    @InjectQueue(QUEUES.FAIRNESS_REPORT)
     private readonly fairnessReportQueue: Queue<FairnessReportJobData>,
-    @InjectQueue('overtime-report')
+    @InjectQueue(QUEUES.OVERTIME_REPORT)
     private readonly overtimeReportQueue: Queue<OvertimeReportJobData>
   ) {}
 
@@ -27,7 +28,7 @@ export class QueueService {
       `Queueing fairness report for location ${locationId} from ${startDate} to ${endDate}`
     );
 
-    return this.fairnessReportQueue.add('generate-fairness-report', {
+    return this.fairnessReportQueue.add(JOB_NAMES.GENERATE_FAIRNESS_REPORT, {
       locationId,
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
@@ -46,7 +47,7 @@ export class QueueService {
       `Queueing overtime report for location ${locationId} with ${payPeriods.length} pay periods`
     );
 
-    return this.overtimeReportQueue.add('generate-overtime-report', {
+    return this.overtimeReportQueue.add(JOB_NAMES.GENERATE_OVERTIME_REPORT, {
       locationId,
       payPeriods: payPeriods.map((p) => ({
         weekStart: p.weekStart.toISOString(),
@@ -59,7 +60,7 @@ export class QueueService {
    * Requirements: 24.5
    */
   async getJobStatus(
-    queueName: 'fairness-report' | 'overtime-report',
+    queueName: QUEUES,
     jobId: string
   ): Promise<{
     id: string;
@@ -69,7 +70,7 @@ export class QueueService {
     failedReason?: string;
   }> {
     const queue =
-      queueName === 'fairness-report' ? this.fairnessReportQueue : this.overtimeReportQueue;
+      queueName === QUEUES.FAIRNESS_REPORT ? this.fairnessReportQueue : this.overtimeReportQueue;
 
     const job = await queue.getJob(jobId);
 
@@ -96,11 +97,11 @@ export class QueueService {
    * Requirements: 24.5
    */
   async getJobsByState(
-    queueName: 'fairness-report' | 'overtime-report',
+    queueName: QUEUES,
     state: 'waiting' | 'active' | 'completed' | 'failed'
   ): Promise<Job[]> {
     const queue =
-      queueName === 'fairness-report' ? this.fairnessReportQueue : this.overtimeReportQueue;
+      queueName === QUEUES.FAIRNESS_REPORT ? this.fairnessReportQueue : this.overtimeReportQueue;
 
     switch (state) {
       case 'waiting':
@@ -120,9 +121,9 @@ export class QueueService {
    * Retry a failed job
    * Requirements: 24.5
    */
-  async retryJob(queueName: 'fairness-report' | 'overtime-report', jobId: string): Promise<void> {
+  async retryJob(queueName: QUEUES, jobId: string): Promise<void> {
     const queue =
-      queueName === 'fairness-report' ? this.fairnessReportQueue : this.overtimeReportQueue;
+      queueName === QUEUES.FAIRNESS_REPORT ? this.fairnessReportQueue : this.overtimeReportQueue;
 
     const job = await queue.getJob(jobId);
 

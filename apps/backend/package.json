@@ -4,7 +4,7 @@
   "description": "ShiftSync NestJS Backend API",
   "scripts": {
     "build": "nest build",
-    "dev": "ts-node-dev --respawn --transpile-only src/main.ts",
+    "dev": "ts-node-dev --respawn --transpile-only -r dotenv/config src/main.ts",
     "start": "node dist/main.js",
     "start:debug": "nest start --debug --watch",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
