@@ -1,7 +1,14 @@
-import { PrismaClient, Role } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
-import * as argon2 from 'argon2';
+
+// Import seed modules
+import { seedSkills } from './seeds/skills.seed';
+import { seedLocations } from './seeds/locations.seed';
+import { seedUsers } from './seeds/users.seed';
+import { seedManagerAssignments } from './seeds/manager-assignments.seed';
+import { seedAssignments } from './seeds/assignments.seed';
+import { seedShifts } from './seeds/shifts.seed';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -15,234 +22,83 @@ const prisma = new PrismaClient({
 });
 
 async function main() {
-  console.log('🌱 Seeding database...');
+  console.log('🌱 Starting Coastal Eats database seeding...\n');
 
-  // Create skills
-  const skills = await Promise.all([
-    prisma.skill.upsert({
-      where: { name: 'Bartending' },
-      update: {},
-      create: { name: 'Bartending', description: 'Mixing and serving drinks' },
-    }),
-    prisma.skill.upsert({
-      where: { name: 'Line Cook' },
-      update: {},
-      create: { name: 'Line Cook', description: 'Preparing food in the kitchen' },
-    }),
-    prisma.skill.upsert({
-      where: { name: 'Server' },
-      update: {},
-      create: { name: 'Server', description: 'Taking orders and serving customers' },
-    }),
-    prisma.skill.upsert({
-      where: { name: 'Host' },
-      update: {},
-      create: { name: 'Host', description: 'Greeting and seating customers' },
-    }),
-    prisma.skill.upsert({
-      where: { name: 'Dishwasher' },
-      update: {},
-      create: { name: 'Dishwasher', description: 'Cleaning dishes and kitchen equipment' },
-    }),
-  ]);
+  // 1. Seed skills
+  const skills = await seedSkills(prisma);
 
-  console.log(`✅ Created ${skills.length} skills`);
+  // 2. Seed locations
+  const locations = await seedLocations(prisma);
 
-  // Create locations (4 locations across 2 time zones)
-  const locations = await Promise.all([
-    prisma.location.upsert({
-      where: { id: '00000000-0000-0000-0000-000000000001' },
-      update: {},
-      create: {
-        id: '00000000-0000-0000-0000-000000000001',
-        name: 'Downtown Location',
-        timezone: 'America/New_York',
-        address: '123 Main St, New York, NY 10001',
-      },
-    }),
-    prisma.location.upsert({
-      where: { id: '00000000-0000-0000-0000-000000000002' },
-      update: {},
-      create: {
-        id: '00000000-0000-0000-0000-000000000002',
-        name: 'Uptown Location',
-        timezone: 'America/New_York',
-        address: '456 Broadway, New York, NY 10012',
-      },
-    }),
-    prisma.location.upsert({
-      where: { id: '00000000-0000-0000-0000-000000000003' },
-      update: {},
-      create: {
-        id: '00000000-0000-0000-0000-000000000003',
-        name: 'West Coast Location',
-        timezone: 'America/Los_Angeles',
-        address: '789 Ocean Ave, Los Angeles, CA 90001',
-      },
-    }),
-    prisma.location.upsert({
-      where: { id: '00000000-0000-0000-0000-000000000004' },
-      update: {},
-      create: {
-        id: '00000000-0000-0000-0000-000000000004',
-        name: 'Beach Location',
-        timezone: 'America/Los_Angeles',
-        address: '321 Beach Blvd, San Diego, CA 92101',
-      },
-    }),
-  ]);
+  // 3. Seed users (admin, managers, staff)
+  const { admin, managers, staffMembers } = await seedUsers(prisma);
 
-  console.log(`✅ Created ${locations.length} locations`);
+  // 4. Assign managers to locations
+  await seedManagerAssignments(prisma, { managers, locations });
 
-  // Create location configs
-  for (const location of locations) {
-    await prisma.locationConfig.upsert({
-      where: { locationId: location.id },
-      update: {},
-      create: {
-        locationId: location.id,
-        dailyLimitEnabled: true,
-        dailyLimitHours: 12,
-        weeklyLimitEnabled: true,
-        weeklyLimitHours: 40,
-        consecutiveDaysEnabled: true,
-        consecutiveDaysLimit: 6,
-      },
-    });
-  }
+  // 5. Assign skills and location certifications to staff
+  await seedAssignments(prisma, { admin, managers, staffMembers, skills, locations });
 
-  console.log('✅ Created location configs');
+  // 6. Seed shifts and assignments
+  await seedShifts(prisma, { managers, staffMembers, skills, locations });
 
-  // Create admin user
-  const adminPassword = await argon2.hash('Admin123!@#');
-  const admin = await prisma.user.upsert({
-    where: { email: 'admin@shiftsync.com' },
-    update: {},
-    create: {
-      email: 'admin@shiftsync.com',
-      passwordHash: adminPassword,
-      role: Role.ADMIN,
-      firstName: 'Admin',
-      lastName: 'User',
-    },
-  });
+  console.log('\n🎉 Seeding completed successfully!\n');
+  console.log('═══════════════════════════════════════════════════════════');
+  console.log('📝 TEST CREDENTIALS');
+  console.log('═══════════════════════════════════════════════════════════\n');
 
-  console.log('✅ Created admin user (admin@shiftsync.com / Admin123!@#)');
+  console.log('👤 ADMIN (Corporate Oversight)');
+  console.log('   Email: admin@coastaleats.com');
+  console.log('   Password: Admin123!@#');
+  console.log('   Access: All locations\n');
 
-  // Create manager users
-  const managerPassword = await argon2.hash('Manager123!@#');
-  const managers = await Promise.all([
-    prisma.user.upsert({
-      where: { email: 'manager1@shiftsync.com' },
-      update: {},
-      create: {
-        email: 'manager1@shiftsync.com',
-        passwordHash: managerPassword,
-        role: Role.MANAGER,
-        firstName: 'John',
-        lastName: 'Manager',
-      },
-    }),
-    prisma.user.upsert({
-      where: { email: 'manager2@shiftsync.com' },
-      update: {},
-      create: {
-        email: 'manager2@shiftsync.com',
-        passwordHash: managerPassword,
-        role: Role.MANAGER,
-        firstName: 'Jane',
-        lastName: 'Manager',
-      },
-    }),
-  ]);
+  console.log('👔 MANAGERS');
+  console.log('   John Martinez (Eastern Time Zone)');
+  console.log('   Email: john.manager@coastaleats.com');
+  console.log('   Password: Manager123!@#');
+  console.log('   Locations: Downtown & Midtown\n');
 
-  // Assign managers to locations
-  await prisma.managerLocation.createMany({
-    data: [
-      { managerId: managers[0].id, locationId: locations[0].id },
-      { managerId: managers[0].id, locationId: locations[1].id },
-      { managerId: managers[1].id, locationId: locations[2].id },
-      { managerId: managers[1].id, locationId: locations[3].id },
-    ],
-    skipDuplicates: true,
-  });
+  console.log('   Sarah Chen (Pacific Time Zone)');
+  console.log('   Email: sarah.manager@coastaleats.com');
+  console.log('   Password: Manager123!@#');
+  console.log('   Locations: Santa Monica & La Jolla\n');
 
-  console.log(
-    '✅ Created 2 managers (manager1@shiftsync.com, manager2@shiftsync.com / Manager123!@#)'
-  );
+  console.log('👥 STAFF (Password: Staff123!@# for all)');
+  console.log('   Bartenders:');
+  console.log('   - alex.bartender@coastaleats.com (Downtown, Midtown)');
+  console.log('   - maria.bartender@coastaleats.com (Santa Monica, La Jolla)\n');
 
-  // Create staff users
-  const staffPassword = await argon2.hash('Staff123!@#');
-  const staffMembers = await Promise.all([
-    prisma.user.create({
-      data: {
-        email: 'sarah@shiftsync.com',
-        passwordHash: staffPassword,
-        role: Role.STAFF,
-        firstName: 'Sarah',
-        lastName: 'Johnson',
-      },
-    }),
-    prisma.user.create({
-      data: {
-        email: 'mike@shiftsync.com',
-        passwordHash: staffPassword,
-        role: Role.STAFF,
-        firstName: 'Mike',
-        lastName: 'Smith',
-      },
-    }),
-    prisma.user.create({
-      data: {
-        email: 'emily@shiftsync.com',
-        passwordHash: staffPassword,
-        role: Role.STAFF,
-        firstName: 'Emily',
-        lastName: 'Davis',
-      },
-    }),
-  ]);
+  console.log('   Line Cooks:');
+  console.log('   - james.cook@coastaleats.com (Downtown, Santa Monica)');
+  console.log('   - lisa.cook@coastaleats.com (Midtown, La Jolla)\n');
 
-  // Assign skills to staff
-  await prisma.userSkill.createMany({
-    data: [
-      { userId: staffMembers[0].id, skillId: skills[0].id, assignedBy: admin.id }, // Sarah - Bartending
-      { userId: staffMembers[0].id, skillId: skills[2].id, assignedBy: admin.id }, // Sarah - Server
-      { userId: staffMembers[1].id, skillId: skills[1].id, assignedBy: admin.id }, // Mike - Line Cook
-      { userId: staffMembers[1].id, skillId: skills[4].id, assignedBy: admin.id }, // Mike - Dishwasher
-      { userId: staffMembers[2].id, skillId: skills[2].id, assignedBy: admin.id }, // Emily - Server
-      { userId: staffMembers[2].id, skillId: skills[3].id, assignedBy: admin.id }, // Emily - Host
-    ],
-    skipDuplicates: true,
-  });
+  console.log('   Servers:');
+  console.log('   - emily.server@coastaleats.com (Downtown, Midtown)');
+  console.log('   - michael.server@coastaleats.com (Santa Monica, La Jolla)');
+  console.log('   - jessica.server@coastaleats.com (All locations)');
+  console.log('   - david.server@coastaleats.com (Downtown, Santa Monica)\n');
 
-  // Assign location certifications to staff
-  await prisma.locationCertification.createMany({
-    data: [
-      { userId: staffMembers[0].id, locationId: locations[0].id, certifiedBy: admin.id },
-      { userId: staffMembers[0].id, locationId: locations[1].id, certifiedBy: admin.id },
-      { userId: staffMembers[1].id, locationId: locations[0].id, certifiedBy: admin.id },
-      { userId: staffMembers[1].id, locationId: locations[2].id, certifiedBy: admin.id },
-      { userId: staffMembers[2].id, locationId: locations[2].id, certifiedBy: admin.id },
-      { userId: staffMembers[2].id, locationId: locations[3].id, certifiedBy: admin.id },
-    ],
-    skipDuplicates: true,
-  });
+  console.log('   Hosts:');
+  console.log('   - sophia.host@coastaleats.com (Midtown, La Jolla)');
+  console.log('   - ryan.host@coastaleats.com (Downtown, Santa Monica)\n');
 
-  console.log(`✅ Created ${staffMembers.length} staff members with skills and certifications`);
-  console.log('   - sarah@shiftsync.com (Bartending, Server)');
-  console.log('   - mike@shiftsync.com (Line Cook, Dishwasher)');
-  console.log('   - emily@shiftsync.com (Server, Host)');
-  console.log('   - Password for all staff: Staff123!@#');
+  console.log('   Multi-Skilled:');
+  console.log('   - olivia.multi@coastaleats.com (All locations, multiple skills)');
+  console.log('   - daniel.multi@coastaleats.com (Downtown, Santa Monica)\n');
 
-  console.log('\n🎉 Seeding completed successfully!');
-  console.log('\n📝 Test Credentials:');
-  console.log('   Admin: admin@shiftsync.com / Admin123!@#');
-  console.log('   Manager 1: manager1@shiftsync.com / Manager123!@#');
-  console.log('   Manager 2: manager2@shiftsync.com / Manager123!@#');
-  console.log(
-    '   Staff: sarah@shiftsync.com, mike@shiftsync.com, emily@shiftsync.com / Staff123!@#'
-  );
+  console.log('═══════════════════════════════════════════════════════════');
+  console.log('🧪 TEST SCENARIOS INCLUDED');
+  console.log('═══════════════════════════════════════════════════════════\n');
+
+  console.log('✓ Cross-timezone staff certifications');
+  console.log('✓ Premium Friday/Saturday night shifts');
+  console.log('✓ Overnight shifts (11pm-3am)');
+  console.log('✓ Consecutive day assignments (overtime trap scenario)');
+  console.log('✓ Unassigned shifts for coverage testing');
+  console.log('✓ Multi-location staff for swap scenarios');
+  console.log('✓ Compliance rules configured per location\n');
+
+  console.log('═══════════════════════════════════════════════════════════\n');
 }
 
 main()

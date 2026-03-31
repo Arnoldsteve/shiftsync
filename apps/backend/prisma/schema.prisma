@@ -239,6 +239,7 @@ model LocationConfig {
   weeklyLimitHours       Float   @default(40)
   consecutiveDaysEnabled Boolean @default(false)
   consecutiveDaysLimit   Int?
+  restPeriodHours        Float   @default(10) // Minimum hours between shifts
 
   // Relations
   location              Location               @relation(fields: [locationId], references: [id], onDelete: Cascade)

@@ -1,4 +1,5 @@
 export { Button, buttonVariants } from './components/button';
+export { Calendar } from './components/calendar';
 export {
   Card,
   CardHeader,
