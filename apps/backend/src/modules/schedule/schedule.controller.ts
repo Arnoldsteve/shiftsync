@@ -10,13 +10,20 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { ScheduleService } from './schedule.service';
 import { JwtAuthGuard } from '../user/guards/jwt-auth.guard';
 import { PoliciesGuard } from '../user/casl/policies.guard';
 import { CheckPolicies } from '../user/decorators/check-policies.decorator';
 import { CurrentUser } from '../user/decorators/current-user.decorator';
 import { Action } from '../user/casl/types';
+import {
+  ApiCreateShiftDocs,
+  ApiAssignStaffDocs,
+  ApiGetShiftsDocs,
+  ApiGetStaffScheduleDocs,
+  ApiUnassignStaffDocs,
+} from './schedule.docs';
 
 @ApiTags('Schedule')
 @ApiBearerAuth()
@@ -31,7 +38,7 @@ export class ScheduleController {
    */
   @Post('shifts')
   @CheckPolicies((ability) => ability.can(Action.Create, 'Shift'))
-  @ApiOperation({ summary: 'Create a new shift' })
+  @ApiCreateShiftDocs()
   async createShift(
     @Body()
     data: {
@@ -57,7 +64,7 @@ export class ScheduleController {
    */
   @Get('shifts')
   @CheckPolicies((ability) => ability.can(Action.Read, 'Shift'))
-  @ApiOperation({ summary: 'Get shifts by location and date range' })
+  @ApiGetShiftsDocs()
   async getShifts(
     @Query('locationId') locationId: string,
     @Query('startDate') startDate: string,
@@ -80,7 +87,7 @@ export class ScheduleController {
    */
   @Get('staff/:id/shifts')
   @CheckPolicies((ability) => ability.can(Action.Read, 'Shift'))
-  @ApiOperation({ summary: 'Get staff schedule' })
+  @ApiGetStaffScheduleDocs()
   async getStaffSchedule(
     @Param('id') staffId: string,
     @Query('startDate') startDate?: string,
@@ -99,7 +106,7 @@ export class ScheduleController {
    */
   @Post('shifts/:id/assign')
   @CheckPolicies((ability) => ability.can(Action.Create, 'Assignment'))
-  @ApiOperation({ summary: 'Assign staff to shift' })
+  @ApiAssignStaffDocs()
   async assignStaff(
     @Param('id') shiftId: string,
     @Body() data: { staffId: string },
@@ -115,7 +122,7 @@ export class ScheduleController {
   @Delete('assignments/:id')
   @CheckPolicies((ability) => ability.can(Action.Delete, 'Assignment'))
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Unassign staff from shift' })
+  @ApiUnassignStaffDocs()
   async unassignStaff(@Param('id') shiftId: string, @CurrentUser('id') unassignedBy: string) {
     await this.scheduleService.unassignStaff(shiftId, unassignedBy);
   }

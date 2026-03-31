@@ -1,11 +1,18 @@
 import { Controller, Post, Get, Put, Body, Param, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { SwapService } from './swap.service';
 import { JwtAuthGuard } from '../user/guards/jwt-auth.guard';
 import { PoliciesGuard } from '../user/casl/policies.guard';
 import { CheckPolicies } from '../user/decorators/check-policies.decorator';
 import { CurrentUser } from '../user/decorators/current-user.decorator';
 import { Action } from '../user/casl/types';
+import {
+  ApiCreateSwapRequestDocs,
+  ApiApproveSwapDocs,
+  ApiRejectSwapDocs,
+  ApiGetPendingSwapsDocs,
+  ApiGetSwapsByStaffDocs,
+} from './swap.docs';
 
 @ApiTags('Swaps')
 @ApiBearerAuth()
@@ -20,7 +27,7 @@ export class SwapController {
    */
   @Post()
   @CheckPolicies((ability) => ability.can(Action.Create, 'SwapRequest'))
-  @ApiOperation({ summary: 'Create swap request' })
+  @ApiCreateSwapRequestDocs()
   async createSwapRequest(
     @Body() data: { shiftId: string; targetStaffId: string },
     @CurrentUser('id') requestorId: string
@@ -34,7 +41,7 @@ export class SwapController {
    */
   @Get('pending')
   @CheckPolicies((ability) => ability.can(Action.Read, 'SwapRequest'))
-  @ApiOperation({ summary: 'Get pending swap requests' })
+  @ApiGetPendingSwapsDocs()
   async getPendingSwaps() {
     return this.swapService.getPendingSwaps();
   }
@@ -45,7 +52,7 @@ export class SwapController {
    */
   @Get('staff/:id')
   @CheckPolicies((ability) => ability.can(Action.Read, 'SwapRequest'))
-  @ApiOperation({ summary: 'Get swaps by staff' })
+  @ApiGetSwapsByStaffDocs()
   async getSwapsByStaff(@Param('id') staffId: string) {
     return this.swapService.getSwapsByStaff(staffId);
   }
@@ -56,7 +63,7 @@ export class SwapController {
    */
   @Put(':id/approve')
   @CheckPolicies((ability) => ability.can(Action.Update, 'SwapRequest'))
-  @ApiOperation({ summary: 'Approve swap request' })
+  @ApiApproveSwapDocs()
   async approveSwap(@Param('id') swapRequestId: string, @CurrentUser('id') approverId: string) {
     return this.swapService.approveSwap(swapRequestId, approverId);
   }
@@ -67,7 +74,7 @@ export class SwapController {
    */
   @Put(':id/reject')
   @CheckPolicies((ability) => ability.can(Action.Update, 'SwapRequest'))
-  @ApiOperation({ summary: 'Reject swap request' })
+  @ApiRejectSwapDocs()
   async rejectSwap(
     @Param('id') swapRequestId: string,
     @Body() data: { reason: string },

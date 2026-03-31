@@ -1,5 +1,5 @@
 import { Controller, Post, Get, Body, Param, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { CreateUserDto, AssignRoleDto, AddSkillDto, AddCertificationDto } from '@shiftsync/shared';
 import { UserService } from './user.service';
@@ -8,6 +8,15 @@ import { PoliciesGuard } from './casl/policies.guard';
 import { CheckPolicies } from './decorators/check-policies.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Action } from './casl/types';
+import {
+  ApiCreateUserDocs,
+  ApiAssignRoleDocs,
+  ApiAddSkillDocs,
+  ApiAddCertificationDocs,
+  ApiGetUserByIdDocs,
+  ApiGetCurrentUserDocs,
+  ApiGetUsersByLocationDocs,
+} from './user.docs';
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -22,9 +31,7 @@ export class UserController {
    */
   @Post()
   @CheckPolicies((ability) => ability.can(Action.Create, 'User'))
-  @ApiOperation({ summary: 'Create a new user' })
-  @ApiResponse({ status: 201, description: 'User created successfully' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Admin only' })
+  @ApiCreateUserDocs()
   async createUser(@Body() data: CreateUserDto) {
     return this.userService.createUser(data);
   }
@@ -35,9 +42,7 @@ export class UserController {
    */
   @Post(':id/role')
   @CheckPolicies((ability) => ability.can(Action.Update, 'User'))
-  @ApiOperation({ summary: 'Assign role to user' })
-  @ApiResponse({ status: 200, description: 'Role assigned successfully' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Admin only' })
+  @ApiAssignRoleDocs()
   async assignRole(@Param('id') userId: string, @Body() data: AssignRoleDto) {
     return this.userService.assignRole(userId, data);
   }
@@ -49,9 +54,7 @@ export class UserController {
    */
   @Post(':id/skills')
   @CheckPolicies((ability) => ability.can(Action.Create, 'UserSkill'))
-  @ApiOperation({ summary: 'Add skill to user' })
-  @ApiResponse({ status: 201, description: 'Skill added successfully' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
+  @ApiAddSkillDocs()
   async addSkill(
     @Param('id') userId: string,
     @Body() data: AddSkillDto,
@@ -73,9 +76,7 @@ export class UserController {
    */
   @Post(':id/certifications')
   @CheckPolicies((ability) => ability.can(Action.Create, 'LocationCertification'))
-  @ApiOperation({ summary: 'Add location certification to user' })
-  @ApiResponse({ status: 201, description: 'Certification added successfully' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
+  @ApiAddCertificationDocs()
   async addCertification(
     @Param('id') userId: string,
     @Body() data: AddCertificationDto,
@@ -96,9 +97,7 @@ export class UserController {
    */
   @Get(':id')
   @CheckPolicies((ability) => ability.can(Action.Read, 'User'))
-  @ApiOperation({ summary: 'Get user by ID' })
-  @ApiResponse({ status: 200, description: 'User found' })
-  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiGetUserByIdDocs()
   async getUserById(@Param('id') userId: string) {
     return this.userService.getUserById(userId);
   }
@@ -109,8 +108,7 @@ export class UserController {
    */
   @Get('me')
   @CheckPolicies((ability) => ability.can(Action.Read, 'User'))
-  @ApiOperation({ summary: 'Get current user profile' })
-  @ApiResponse({ status: 200, description: 'Current user profile' })
+  @ApiGetCurrentUserDocs()
   async getCurrentUser(@CurrentUser('id') userId: string) {
     return this.userService.getUserById(userId);
   }
@@ -121,8 +119,7 @@ export class UserController {
    */
   @Get('location/:locationId')
   @CheckPolicies((ability) => ability.can(Action.Read, 'User'))
-  @ApiOperation({ summary: 'Get users by location' })
-  @ApiResponse({ status: 200, description: 'Users found' })
+  @ApiGetUsersByLocationDocs()
   async getUsersByLocation(@Param('locationId') locationId: string) {
     return this.userService.getUsersByLocation(locationId);
   }
