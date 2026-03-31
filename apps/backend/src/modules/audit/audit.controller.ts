@@ -9,7 +9,7 @@ import { AuditQueryFilters } from './interfaces';
 
 @ApiTags('Audit')
 @ApiBearerAuth()
-@Controller('api/audit')
+@Controller('audit')
 @UseGuards(JwtAuthGuard, PoliciesGuard)
 export class AuditController {
   constructor(private readonly auditService: AuditService) {}

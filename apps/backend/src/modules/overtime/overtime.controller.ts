@@ -8,7 +8,7 @@ import { Action } from '../user/casl/types';
 
 @ApiTags('Overtime')
 @ApiBearerAuth()
-@Controller('api/overtime')
+@Controller('overtime')
 @UseGuards(JwtAuthGuard, PoliciesGuard)
 export class OvertimeController {
   constructor(private readonly overtimeService: OvertimeService) {}

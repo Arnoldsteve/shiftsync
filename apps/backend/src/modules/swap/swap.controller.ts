@@ -16,7 +16,7 @@ import {
 
 @ApiTags('Swaps')
 @ApiBearerAuth()
-@Controller('api/swaps')
+@Controller('swaps')
 @UseGuards(JwtAuthGuard, PoliciesGuard)
 export class SwapController {
   constructor(private readonly swapService: SwapService) {}

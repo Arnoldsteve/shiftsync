@@ -41,13 +41,13 @@ export class UserService {
     // Hash password using Argon2
     const passwordHash = await argon2.hash(data.password);
 
-    // Create user
+    // Create user with explicit role casting
     const user = await this.userRepository.create({
       email: data.email,
       passwordHash,
       firstName: data.firstName,
       lastName: data.lastName,
-      role: data.role as Role,
+      role: data.role as unknown as Role,
     });
 
     // If manager, assign location authorizations
@@ -78,8 +78,8 @@ export class UserService {
       throw new BadRequestException('Manager role requires at least one authorized location');
     }
 
-    // Update user role
-    const updatedUser = await this.userRepository.updateRole(userId, data.role as Role);
+    // Update user role with explicit casting
+    const updatedUser = await this.userRepository.updateRole(userId, data.role as unknown as Role);
 
     // If manager, update location authorizations
     if (data.role === 'MANAGER' && data.locationIds) {
@@ -195,6 +195,14 @@ export class UserService {
       throw new NotFoundException('User not found');
     }
     return user;
+  }
+
+  /**
+   * Get all users
+   * Requirements: 1.5
+   */
+  async getAllUsers() {
+    return this.userRepository.findAll();
   }
 
   /**

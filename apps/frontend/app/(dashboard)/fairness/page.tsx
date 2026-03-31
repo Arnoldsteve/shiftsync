@@ -27,6 +27,7 @@ import {
 } from '@tanstack/react-table';
 import { ArrowUpDown, Play } from 'lucide-react';
 import { useFairnessReport, useGenerateFairnessReport } from '@/hooks/use-fairness';
+import { useLocations } from '@/hooks/use-locations';
 import type { HourDistribution } from '@/types/fairness.types';
 
 export default function FairnessPage() {
@@ -40,6 +41,8 @@ export default function FairnessPage() {
     startDate,
     endDate,
   });
+
+  const { data: locations, isLoading: isLoadingLocations } = useLocations();
 
   const generateReport = useGenerateFairnessReport();
 
@@ -146,9 +149,21 @@ export default function FairnessPage() {
                   <SelectValue placeholder="Select location" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="loc1">Downtown</SelectItem>
-                  <SelectItem value="loc2">Uptown</SelectItem>
-                  <SelectItem value="loc3">Westside</SelectItem>
+                  {isLoadingLocations ? (
+                    <SelectItem value="loading" disabled>
+                      Loading locations...
+                    </SelectItem>
+                  ) : locations && locations.length > 0 ? (
+                    locations.map((location) => (
+                      <SelectItem key={location.id} value={location.id}>
+                        {location.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="none" disabled>
+                      No locations available
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>

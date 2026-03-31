@@ -9,7 +9,7 @@ import { Action } from '../user/casl/types';
 
 @ApiTags('Fairness')
 @ApiBearerAuth()
-@Controller('api/fairness')
+@Controller('fairness')
 @UseGuards(JwtAuthGuard, PoliciesGuard)
 export class FairnessController {
   constructor(

@@ -9,7 +9,7 @@ import { Action } from '../user/casl/types';
 
 @ApiTags('Callouts')
 @ApiBearerAuth()
-@Controller('api')
+@Controller('callouts')
 @UseGuards(JwtAuthGuard, PoliciesGuard)
 export class CalloutController {
   constructor(private readonly calloutService: CalloutService) {}

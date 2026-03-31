@@ -92,14 +92,13 @@ export class UserController {
   }
 
   /**
-   * Get user by ID - PBAC: All authenticated users can read
+   * Get all users - PBAC: Admin or Manager can read users
    * Requirements: 1.5
    */
-  @Get(':id')
+  @Get()
   @CheckPolicies((ability) => ability.can(Action.Read, 'User'))
-  @ApiGetUserByIdDocs()
-  async getUserById(@Param('id') userId: string) {
-    return this.userService.getUserById(userId);
+  async getAllUsers() {
+    return this.userService.getAllUsers();
   }
 
   /**
@@ -110,6 +109,17 @@ export class UserController {
   @CheckPolicies((ability) => ability.can(Action.Read, 'User'))
   @ApiGetCurrentUserDocs()
   async getCurrentUser(@CurrentUser('id') userId: string) {
+    return this.userService.getUserById(userId);
+  }
+
+  /**
+   * Get user by ID - PBAC: All authenticated users can read
+   * Requirements: 1.5
+   */
+  @Get(':id')
+  @CheckPolicies((ability) => ability.can(Action.Read, 'User'))
+  @ApiGetUserByIdDocs()
+  async getUserById(@Param('id') userId: string) {
     return this.userService.getUserById(userId);
   }
 

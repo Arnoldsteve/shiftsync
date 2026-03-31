@@ -8,7 +8,7 @@ import { Action } from '../user/casl/types';
 
 @ApiTags('Job Queue')
 @ApiBearerAuth()
-@Controller('api/jobs')
+@Controller('jobs')
 @UseGuards(JwtAuthGuard, PoliciesGuard)
 export class QueueController {
   constructor(private readonly queueService: QueueService) {}

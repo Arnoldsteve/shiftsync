@@ -24,6 +24,7 @@ import {
 } from '@shiftsync/ui';
 import { Download } from 'lucide-react';
 import { useOvertimeReport } from '@/hooks/use-overtime';
+import { useLocations } from '@/hooks/use-locations';
 
 export default function OvertimePage() {
   const [locationId, setLocationId] = useState('');
@@ -35,6 +36,8 @@ export default function OvertimePage() {
     startDate,
     endDate,
   });
+
+  const { data: locations, isLoading: isLoadingLocations } = useLocations();
 
   const handleExport = () => {
     if (!report) return;
@@ -83,9 +86,21 @@ export default function OvertimePage() {
                   <SelectValue placeholder="Select location" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="loc1">Downtown</SelectItem>
-                  <SelectItem value="loc2">Uptown</SelectItem>
-                  <SelectItem value="loc3">Westside</SelectItem>
+                  {isLoadingLocations ? (
+                    <SelectItem value="loading" disabled>
+                      Loading locations...
+                    </SelectItem>
+                  ) : locations && locations.length > 0 ? (
+                    locations.map((location) => (
+                      <SelectItem key={location.id} value={location.id}>
+                        {location.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="none" disabled>
+                      No locations available
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>

@@ -22,6 +22,7 @@ import { RealtimeModule } from './modules/realtime/realtime.module';
 import { CalloutModule } from './modules/callout/callout.module';
 import { ConfigModule as AppConfigModule } from './modules/config/config.module';
 import { CsvModule } from './modules/csv/csv.module';
+import { LocationModule } from './modules/location/location.module';
 
 @Module({
   imports: [
@@ -70,6 +71,7 @@ import { CsvModule } from './modules/csv/csv.module';
     // Feature modules
     AuthModule, // Authentication (login, JWT)
     UserModule, // User management (CRUD, roles, skills)
+    LocationModule, // Location management
     ScheduleModule,
     SwapModule,
     OvertimeModule,

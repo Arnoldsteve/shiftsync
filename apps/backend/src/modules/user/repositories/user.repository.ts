@@ -33,6 +33,31 @@ export class UserRepository {
     });
   }
 
+  async findAll(): Promise<User[]> {
+    return this.prisma.user.findMany({
+      include: {
+        skills: {
+          include: {
+            skill: true,
+          },
+        },
+        certifications: {
+          include: {
+            location: true,
+          },
+        },
+        managerLocations: {
+          include: {
+            location: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
   async findByEmail(email: string): Promise<User | null> {
     return this.prisma.user.findUnique({
       where: { email },

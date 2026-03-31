@@ -27,7 +27,7 @@ import {
 
 @ApiTags('Schedule')
 @ApiBearerAuth()
-@Controller('api')
+@Controller('schedule')
 @UseGuards(JwtAuthGuard, PoliciesGuard)
 export class ScheduleController {
   constructor(private readonly scheduleService: ScheduleService) {}

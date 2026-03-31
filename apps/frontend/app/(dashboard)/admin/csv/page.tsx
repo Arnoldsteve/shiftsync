@@ -18,6 +18,7 @@ import {
 } from '@shiftsync/ui';
 import { Upload, Download, FileText, AlertCircle } from 'lucide-react';
 import { useImportSchedule, useExportSchedule } from '@/hooks/use-csv';
+import { useLocations } from '@/hooks/use-locations';
 
 export default function CSVPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -30,6 +31,7 @@ export default function CSVPage() {
 
   const importCSV = useImportSchedule();
   const exportCSV = useExportSchedule();
+  const { data: locations, isLoading: isLoadingLocations } = useLocations();
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -172,9 +174,21 @@ export default function CSVPage() {
                     <SelectValue placeholder="Select location" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="loc1">Downtown</SelectItem>
-                    <SelectItem value="loc2">Uptown</SelectItem>
-                    <SelectItem value="loc3">Westside</SelectItem>
+                    {isLoadingLocations ? (
+                      <SelectItem value="loading" disabled>
+                        Loading locations...
+                      </SelectItem>
+                    ) : locations && locations.length > 0 ? (
+                      locations.map((location) => (
+                        <SelectItem key={location.id} value={location.id}>
+                          {location.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="none" disabled>
+                        No locations available
+                      </SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>

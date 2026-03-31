@@ -18,6 +18,7 @@ import {
 } from '@shiftsync/ui';
 import { Save } from 'lucide-react';
 import { useLocationConfig, useUpdateLocationConfig } from '@/hooks/use-config';
+import { useLocations } from '@/hooks/use-locations';
 import type { UpdateLocationConfigDto } from '@/types/config.types';
 
 export default function ConfigPage() {
@@ -26,6 +27,7 @@ export default function ConfigPage() {
 
   const { data: config, isLoading } = useLocationConfig(locationId);
   const updateConfig = useUpdateLocationConfig();
+  const { data: locations, isLoading: isLoadingLocations } = useLocations();
 
   useEffect(() => {
     if (config) {
@@ -67,9 +69,21 @@ export default function ConfigPage() {
               <SelectValue placeholder="Select location" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="loc1">Downtown</SelectItem>
-              <SelectItem value="loc2">Uptown</SelectItem>
-              <SelectItem value="loc3">Westside</SelectItem>
+              {isLoadingLocations ? (
+                <SelectItem value="loading" disabled>
+                  Loading locations...
+                </SelectItem>
+              ) : locations && locations.length > 0 ? (
+                locations.map((location) => (
+                  <SelectItem key={location.id} value={location.id}>
+                    {location.name}
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem value="none" disabled>
+                  No locations available
+                </SelectItem>
+              )}
             </SelectContent>
           </Select>
         </CardContent>

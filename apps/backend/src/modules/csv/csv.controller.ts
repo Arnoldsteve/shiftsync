@@ -8,7 +8,7 @@ import { Action } from '../user/casl/types';
 
 @ApiTags('CSV Import/Export')
 @ApiBearerAuth()
-@Controller('api')
+@Controller('csv')
 @UseGuards(JwtAuthGuard, PoliciesGuard)
 export class CsvController {
   constructor(private readonly csvService: CsvService) {}
@@ -17,7 +17,7 @@ export class CsvController {
    * Import schedule from CSV - Manager
    * Requirements: 28.1, 28.2, 28.3
    */
-  @Post('import/csv')
+  @Post('import')
   @CheckPolicies((ability) => ability.can(Action.Create, 'User'))
   @ApiOperation({ summary: 'Import schedule from CSV' })
   async importSchedule(@Body() data: { csvContent: string }) {
@@ -42,7 +42,7 @@ export class CsvController {
    * Export schedule to CSV - Manager
    * Requirements: 28.4
    */
-  @Get('export/csv')
+  @Get('export')
   @CheckPolicies((ability) => ability.can(Action.Read, 'User'))
   @ApiOperation({ summary: 'Export schedule to CSV' })
   async exportSchedule(

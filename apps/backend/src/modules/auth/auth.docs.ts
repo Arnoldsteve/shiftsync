@@ -27,7 +27,7 @@ export function ApiLoginDocs() {
           summary: 'Admin login',
           value: {
             email: 'admin@shiftsync.com',
-            password: 'password123',
+            password: 'Admin123!@#',
           },
         },
         manager: {

@@ -6,9 +6,8 @@ import { usePermissions } from '@/hooks/use-permissions';
 import { Can } from '@/components/auth/can';
 import { Action } from '@/lib/ability';
 import { useRouter } from 'next/navigation';
-import { ProtectedRoute } from '@/components/auth/protected-route';
 
-function DashboardContent() {
+export default function DashboardPage() {
   const { user } = useAuth();
   const { isAdmin, isManager, isStaff } = usePermissions();
   const router = useRouter();
@@ -200,13 +199,5 @@ function DashboardContent() {
         </Can>
       </div>
     </div>
-  );
-}
-
-export default function DashboardPage() {
-  return (
-    <ProtectedRoute>
-      <DashboardContent />
-    </ProtectedRoute>
   );
 }

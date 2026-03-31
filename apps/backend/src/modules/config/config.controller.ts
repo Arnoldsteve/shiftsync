@@ -10,7 +10,7 @@ import { LocationConfigUpdate } from './interfaces';
 
 @ApiTags('Configuration')
 @ApiBearerAuth()
-@Controller('api/locations')
+@Controller('locations')
 @UseGuards(JwtAuthGuard, PoliciesGuard)
 export class ConfigController {
   constructor(private readonly configService: ConfigService) {}

@@ -16,6 +16,7 @@ import {
 } from '@shiftsync/ui';
 import { useShifts } from '@/hooks/use-shifts';
 import { useScheduleRealtime } from '@/hooks/use-schedule-realtime';
+import { useLocations } from '@/hooks/use-locations';
 import { WeekCalendar } from '@/components/schedule/week-calendar';
 import { CreateShiftDialog } from '@/components/schedule/create-shift-dialog';
 
@@ -33,6 +34,8 @@ export default function SchedulePage() {
     startDate: startDate.toISOString(),
     endDate: endDate.toISOString(),
   });
+
+  const { data: locations, isLoading: isLoadingLocations } = useLocations();
 
   useScheduleRealtime();
 
@@ -73,9 +76,21 @@ export default function SchedulePage() {
                   <SelectValue placeholder="Select location" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="loc1">Downtown</SelectItem>
-                  <SelectItem value="loc2">Uptown</SelectItem>
-                  <SelectItem value="loc3">Westside</SelectItem>
+                  {isLoadingLocations ? (
+                    <SelectItem value="loading" disabled>
+                      Loading locations...
+                    </SelectItem>
+                  ) : locations && locations.length > 0 ? (
+                    locations.map((location) => (
+                      <SelectItem key={location.id} value={location.id}>
+                        {location.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="none" disabled>
+                      No locations available
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>

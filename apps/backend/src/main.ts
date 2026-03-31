@@ -27,6 +27,9 @@ async function bootstrap() {
     })
   );
 
+  // Set global API prefix
+  app.setGlobalPrefix('api');
+
   // Scalar API documentation
   const config = new DocumentBuilder()
     .setTitle('ShiftSync API')
