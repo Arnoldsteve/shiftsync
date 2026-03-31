@@ -35,6 +35,7 @@ export class ScheduleController {
   /**
    * Create shift - Manager only
    * Requirements: 3.1, 3.2, 3.3, 3.4, 3.5
+   * PBAC: Verified at service level via managerLocationIds
    */
   @Post('shifts')
   @CheckPolicies((ability) => ability.can(Action.Create, 'Shift'))
@@ -47,42 +48,46 @@ export class ScheduleController {
       endTime: string;
       requiredSkillIds: string[];
     },
-    @CurrentUser('id') managerId: string
+    @CurrentUser() user: any
   ) {
     return this.scheduleService.createShift(
       data.locationId,
       new Date(data.startTime),
       new Date(data.endTime),
       data.requiredSkillIds,
-      managerId
+      user.id,
+      user.managedLocationIds // Pass authorized IDs for immediate validation
     );
   }
 
   /**
    * Get shifts by location and date range
-   * Requirements: 17.1, 17.4
+   * Senior Refactor: locationId is now optional to support "Global" (All) view.
+   * Requirements: 17.1, 17.4, 25.4 (High-Capacity Monitoring)
    */
   @Get('shifts')
   @CheckPolicies((ability) => ability.can(Action.Read, 'Shift'))
   @ApiGetShiftsDocs()
   async getShifts(
-    @Query('locationId') locationId: string,
-    @Query('startDate') startDate: string,
-    @Query('endDate') endDate: string,
+    @CurrentUser() user: any, // Pass the full user object for PBAC filtering
+    @Query('locationId') locationId?: string, // Now optional (?)
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string
   ) {
     return this.scheduleService.getSchedule(
+      user,
       locationId,
-      new Date(startDate),
-      new Date(endDate),
+      startDate ? new Date(startDate) : undefined,
+      endDate ? new Date(endDate) : undefined,
       page ? parseInt(page) : 1,
       pageSize ? parseInt(pageSize) : 50
     );
   }
 
   /**
-   * Get staff schedule
+   * Get specific staff member's schedule
    * Requirements: 17.4
    */
   @Get('staff/:id/shifts')
@@ -103,6 +108,7 @@ export class ScheduleController {
   /**
    * Assign staff to shift - Manager only
    * Requirements: 4.1, 4.2, 4.3, 4.4, 4.5
+   * Triggers ConflictService & ComplianceService checks
    */
   @Post('shifts/:id/assign')
   @CheckPolicies((ability) => ability.can(Action.Create, 'Assignment'))
@@ -123,7 +129,10 @@ export class ScheduleController {
   @CheckPolicies((ability) => ability.can(Action.Delete, 'Assignment'))
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiUnassignStaffDocs()
-  async unassignStaff(@Param('id') shiftId: string, @CurrentUser('id') unassignedBy: string) {
+  async unassignStaff(
+    @Param('id') shiftId: string, 
+    @CurrentUser('id') unassignedBy: string
+  ) {
     await this.scheduleService.unassignStaff(shiftId, unassignedBy);
   }
 }

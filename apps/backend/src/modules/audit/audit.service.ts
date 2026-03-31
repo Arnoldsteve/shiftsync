@@ -97,8 +97,32 @@ export class AuditService {
    * Query audit logs with filtering
    * Requirements: 19.5
    */
-  async queryAuditLog(filters: AuditQueryFilters): Promise<AuditLog[]> {
-    return this.auditRepository.query(filters);
+  async queryAuditLog(
+    filters: AuditQueryFilters
+  ): Promise<{ data: any[]; total: number; page: number; limit: number; totalPages: number }> {
+    const logs = await this.auditRepository.query(filters);
+
+    // Transform logs to include userName
+    const transformedLogs = logs.map((log: any) => ({
+      id: log.id,
+      action: log.action.toLowerCase(),
+      entityType: log.entityType.toLowerCase().replace('_', ' '),
+      entityId: log.entityId,
+      userId: log.userId,
+      userName: log.user ? `${log.user.firstName} ${log.user.lastName}` : 'Unknown',
+      previousState: log.previousState,
+      newState: log.newState,
+      hash: log.hash,
+      timestamp: log.timestamp.toISOString(),
+    }));
+
+    return {
+      data: transformedLogs,
+      total: transformedLogs.length,
+      page: 1,
+      limit: 50,
+      totalPages: 1,
+    };
   }
 
   /**
@@ -112,6 +136,17 @@ export class AuditService {
       throw new NotFoundException('Audit record not found');
     }
 
+    console.log('=== AUDIT VERIFICATION DEBUG ===');
+    console.log('Record ID:', recordId);
+    console.log('Action:', record.action);
+    console.log('Entity Type:', record.entityType);
+    console.log('Entity ID:', record.entityId);
+    console.log('User ID:', record.userId);
+    console.log('Timestamp:', record.timestamp.toISOString());
+    console.log('Previous State:', JSON.stringify(record.previousState));
+    console.log('New State:', JSON.stringify(record.newState));
+    console.log('Stored Hash:', record.hash);
+
     const recomputedHash = this.generateHash({
       action: record.action as AuditAction,
       entityType: record.entityType as AuditEntityType,
@@ -122,6 +157,10 @@ export class AuditService {
       newState: record.newState,
     });
 
+    console.log('Recomputed Hash:', recomputedHash);
+    console.log('Match:', recomputedHash === record.hash);
+    console.log('=== END DEBUG ===');
+
     return recomputedHash === record.hash;
   }
 
@@ -131,7 +170,13 @@ export class AuditService {
    * @private
    */
   private async createAuditRecord(data: AuditRecordData): Promise<AuditLog> {
+    console.log('=== CREATING AUDIT RECORD ===');
+    console.log('Data:', JSON.stringify(data, null, 2));
+
     const hash = this.generateHash(data);
+
+    console.log('Generated hash for new record:', hash);
+    console.log('=== END CREATE ===');
 
     return this.auditRepository.create({
       action: data.action,
@@ -164,6 +209,10 @@ export class AuditService {
       JSON.stringify(data.newState || null),
     ].join('|');
 
-    return createHash('sha256').update(hashInput).digest('hex');
+    console.log('Hash input:', hashInput);
+    const hash = createHash('sha256').update(hashInput).digest('hex');
+    console.log('Generated hash:', hash);
+
+    return hash;
   }
 }

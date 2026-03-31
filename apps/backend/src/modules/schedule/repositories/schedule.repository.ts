@@ -15,6 +15,7 @@ export class ScheduleRepository {
     return this.prisma.shift.findUnique({
       where: { id: shiftId },
       include: {
+        location: true, // Added to ensure timezone is available
         skills: {
           include: {
             skill: true,
@@ -25,22 +26,37 @@ export class ScheduleRepository {
     });
   }
 
+  /**
+   * Senior Refactor: findShifts
+   * Now accepts locationId as string OR string[] to support "Global" view.
+   * Dynamically builds the 'where' clause.
+   */
   async findShiftsByLocation(
-    locationId: string,
+    locationId: string | string[] | undefined,
     startDate: Date,
     endDate: Date,
     skip?: number,
     take?: number
   ): Promise<ShiftWithDetails[]> {
-    return this.prisma.shift.findMany({
-      where: {
-        locationId,
-        startTime: {
-          gte: startDate,
-          lte: endDate,
-        },
+    const where: Prisma.ShiftWhereInput = {
+      startTime: {
+        gte: startDate,
+        lte: endDate,
       },
+    };
+
+    // If locationId is provided (single or array), add to filter.
+    // If undefined (Admin viewing all), the filter is omitted.
+    if (locationId) {
+      where.locationId = Array.isArray(locationId) 
+        ? { in: locationId } 
+        : locationId;
+    }
+
+    return this.prisma.shift.findMany({
+      where,
       include: {
+        location: true, // CRITICAL: Included for per-shift timezone rendering
         skills: {
           include: {
             skill: true,
@@ -70,7 +86,11 @@ export class ScheduleRepository {
         },
       },
       include: {
-        shift: true,
+        shift: {
+          include: {
+            location: true // Ensure location data is available for staff view too
+          }
+        },
       },
       orderBy: {
         shift: {
@@ -105,5 +125,39 @@ export class ScheduleRepository {
     return this.prisma.location.findUnique({
       where: { id: locationId },
     });
+  }
+
+  /**
+   * Optimized: Get multiple locations at once for the Global view
+   */
+  async findLocationsByIds(locationIds: string[]): Promise<Location[]> {
+    return this.prisma.location.findMany({
+      where: { id: { in: locationIds } },
+    });
+  }
+
+  async findStaffById(staffId: string) {
+    return this.prisma.user.findUnique({
+      where: { id: staffId },
+      select: { id: true, firstName: true, lastName: true },
+    });
+  }
+
+  async findStaffByIds(staffIds: string[]): Promise<Map<string, string>> {
+    if (staffIds.length === 0) {
+      return new Map();
+    }
+
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: staffIds } },
+      select: { id: true, firstName: true, lastName: true },
+    });
+
+    const staffMap = new Map<string, string>();
+    users.forEach((user) => {
+      staffMap.set(user.id, `${user.firstName} ${user.lastName}`);
+    });
+
+    return staffMap;
   }
 }

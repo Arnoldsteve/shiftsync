@@ -9,14 +9,28 @@ import type {
   AssignStaffDto,
 } from '@/types/shift.types';
 
+/**
+ * Hook to fetch multiple shifts based on filters.
+ * Senior Refactor: Now allows 'locationId' to be optional to support the Global View.
+ * The query is enabled as long as a valid date range is provided.
+ */
 export function useShifts(filters?: ShiftFilters) {
   return useQuery({
+    // The queryKey includes the filters so that switching locations 
+    // or status triggers a fresh fetch from the server.
     queryKey: queryKeys.shifts.list(filters || {}),
     queryFn: () => shiftService.getShifts(filters),
-    enabled: !!filters?.locationId,
+    // Senior Logic: Only require dates. locationId is now handled 
+    // dynamically by the Backend's PBAC logic.
+    enabled: !!filters?.startDate && !!filters?.endDate,
+    refetchOnWindowFocus: false,
+    staleTime: 30000, // 30 seconds of freshness
   });
 }
 
+/**
+ * Hook to fetch a single shift by ID for detailed views or editing.
+ */
 export function useShift(id: string) {
   return useQuery({
     queryKey: queryKeys.shifts.detail(id),
@@ -25,22 +39,31 @@ export function useShift(id: string) {
   });
 }
 
+/**
+ * Hook to create a new shift.
+ * On success, it invalidates the shift list to ensure the UI shows the new data.
+ */
 export function useCreateShift() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (data: CreateShiftDto) => shiftService.createShift(data),
     onSuccess: () => {
-      // Refetch all shift queries to immediately show the new shift
-      queryClient.refetchQueries({ queryKey: queryKeys.shifts.all });
+      // Invalidate the entire shift cache to trigger a background refetch
+      queryClient.invalidateQueries({ queryKey: queryKeys.shifts.all });
       toast.success('Shift created successfully');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to create shift');
+      // Extraction of specific Backend Constraint Engine error messages
+      const message = error.response?.data?.message || 'Failed to create shift';
+      toast.error(message);
     },
   });
 }
 
+/**
+ * Hook to update an existing shift (e.g., changing times or skills).
+ */
 export function useUpdateShift() {
   const queryClient = useQueryClient();
 
@@ -57,6 +80,9 @@ export function useUpdateShift() {
   });
 }
 
+/**
+ * Hook to delete a shift.
+ */
 export function useDeleteShift() {
   const queryClient = useQueryClient();
 
@@ -72,6 +98,10 @@ export function useDeleteShift() {
   });
 }
 
+/**
+ * Hook to assign a staff member to a shift.
+ * This mutation triggers the Backend Constraint Engine (10h rest, skills, etc.)
+ */
 export function useAssignStaff() {
   const queryClient = useQueryClient();
 
@@ -82,11 +112,18 @@ export function useAssignStaff() {
       toast.success('Staff assigned successfully');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to assign staff');
+      // Crucial: This shows the "Why" John Doe couldn't be assigned
+      const message = error.response?.data?.message || 'Failed to assign staff';
+      toast.error(message, {
+        duration: 5000, // Show longer for complex error messages
+      });
     },
   });
 }
 
+/**
+ * Hook to remove a staff member from a shift.
+ */
 export function useUnassignStaff() {
   const queryClient = useQueryClient();
 

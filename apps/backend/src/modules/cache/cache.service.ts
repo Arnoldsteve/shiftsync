@@ -156,7 +156,7 @@ export class CacheService {
    * Requirements: 25.5
    */
   async invalidateSchedule(locationId: string): Promise<void> {
-    await this.deletePattern(`schedule:${locationId}:*`);
+    await this.deletePattern(`schedule:location:${locationId}:*`);
   }
 
   /**

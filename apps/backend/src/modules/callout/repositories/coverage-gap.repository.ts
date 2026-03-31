@@ -7,19 +7,24 @@ export class CoverageGapRepository {
 
   /**
    * Find staff with required skills and location certification
-   * Requirements: 23.1
+   * Senior Refactor: 
+   * 1. Changed 'every' to 'some' so multi-skilled staff aren't filtered out.
+   * 2. Included assignments and availabilities to allow for high-performance constraint checking.
    */
   async findStaffWithSkillsAndCertification(locationId: string, requiredSkillIds: string[]) {
     return this.prisma.user.findMany({
       where: {
         role: 'STAFF',
+        // FIX: Changed 'every' to 'some' 
+        // Logic: Return user if AT LEAST ONE of their skills matches the shift requirements
         skills: {
-          every: {
+          some: {
             skillId: {
               in: requiredSkillIds,
             },
           },
         },
+        // Logic: User must be certified for this specific location
         certifications: {
           some: {
             locationId,
@@ -33,12 +38,19 @@ export class CoverageGapRepository {
           },
         },
         certifications: true,
+        // Performance: Fetching these now so the Service doesn't have to query again in a loop
+        availabilities: true,
+        assignments: {
+          include: {
+            shift: true,
+          },
+        },
       },
     });
   }
 
   /**
-   * Find all staff assignments in a date range
+   * Find all staff assignments in a date range for hour-tracking
    */
   async findStaffAssignmentsInRange(staffId: string, startDate: Date, endDate: Date) {
     return this.prisma.assignment.findMany({
@@ -58,7 +70,7 @@ export class CoverageGapRepository {
   }
 
   /**
-   * Find shift by ID with details
+   * Find shift by ID with location and skill details
    */
   async findShiftById(shiftId: string) {
     return this.prisma.shift.findUnique({

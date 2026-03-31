@@ -28,12 +28,15 @@ import type { AuditFilters } from '@/types/audit.types';
 
 export default function AuditLogPage() {
   const [filters, setFilters] = useState<AuditFilters>({
-    startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    endDate: new Date().toISOString().split('T')[0],
+    // Temporarily remove date filters to see all audit logs
+    // startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    // endDate: new Date().toISOString().split('T')[0],
   });
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
 
   const { data: auditData, isLoading } = useAuditLogs(filters);
+
+  console.log('Audit log', auditData);
   const verifyRecord = useVerifyAuditRecord();
 
   const logs = auditData?.data;

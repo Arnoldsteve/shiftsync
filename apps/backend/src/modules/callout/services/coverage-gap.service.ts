@@ -4,7 +4,8 @@ import { CalloutRepository } from '../repositories/callout.repository';
 import { ComplianceService } from '../../compliance/compliance.service';
 import { ConflictService } from '../../conflict/conflict.service';
 import { RealtimeGateway } from '../../realtime/realtime.gateway';
-import { AvailableStaff } from '../interfaces';
+import { AvailableStaff } from '../interfaces/available-staff.interface';
+import { differenceInHours, startOfWeek, endOfWeek } from 'date-fns';
 
 @Injectable()
 export class CoverageGapService {
@@ -20,7 +21,8 @@ export class CoverageGapService {
 
   /**
    * Find available staff for an uncovered shift
-   * Requirements: 23.1, 23.2, 23.3
+   * Senior Refactor: Implements Hard Block vs Soft Warning logic.
+   * Requirements: 2.7 (Rule Explanation), 23.1 (Skills/Certs), 23.2 (Ranking)
    */
   async findAvailableStaff(shiftId: string): Promise<AvailableStaff[]> {
     try {
@@ -29,10 +31,10 @@ export class CoverageGapService {
         throw new NotFoundException('Shift not found');
       }
 
-      // Get required skills for the shift
       const requiredSkillIds = shift.skills.map((s) => s.skillId);
+      const shiftTz = shift.location?.timezone || 'UTC';
 
-      // Find staff with required skills and location certification
+      // 1. Fetch Qualified Pool (Repository uses 'some' instead of 'every')
       const qualifiedStaff = await this.coverageGapRepository.findStaffWithSkillsAndCertification(
         shift.locationId,
         requiredSkillIds
@@ -40,40 +42,47 @@ export class CoverageGapService {
 
       const availableStaff: AvailableStaff[] = [];
 
-      // Filter out staff who would violate scheduling constraints
       for (const staff of qualifiedStaff) {
-        // Check for conflicts
-        const hasConflict = await this.conflictService.hasOverlap(
+        const violations: string[] = [];
+
+        // --- 1. HARD BLOCK: Double Booking (Overlap) ---
+        const hasOverlap = await this.conflictService.hasOverlap(
           staff.id,
           shift.startTime,
           shift.endTime
         );
-
-        if (hasConflict) {
-          continue;
+        
+        if (hasOverlap) {
+          // Absolute block: User cannot be in two places at once.
+          continue; 
         }
 
-        // Check compliance constraints
-        const location = shift.location;
-        const staffTimezone = location?.timezone || 'UTC';
-
+        // --- 2. COMPLIANCE ENGINE: Hard vs Soft Rules ---
         const complianceResults = await this.complianceService.validateAll(
           shift.locationId,
           staff.id,
           shift.startTime,
           shift.endTime,
-          staffTimezone
+          shiftTz
         );
 
-        const hasViolation = complianceResults.some((result) => !result.isValid);
-        if (hasViolation) {
-          continue;
+        // Check for absolute Hard Blocks (e.g., 12h Daily Limit)
+        const hasHardBlock = complianceResults.some(r => !r.isValid && r.isHardBlock);
+        if (hasHardBlock) {
+          // If the user literally cannot work this shift legally, skip them.
+          continue; 
         }
 
-        // Calculate current hours for ranking
-        const weekStart = new Date(shift.startTime);
-        weekStart.setDate(weekStart.getDate() - 7);
-        const weekEnd = new Date(shift.startTime);
+        // Collect Soft Warnings (e.g., 10h rest violation, 40h weekly limit, 7th day)
+        // We keep these users in the list but tell the manager WHY they are a risk.
+        complianceResults
+          .filter(r => !r.isValid)
+          .forEach(r => violations.push(r.message));
+
+        // --- 3. RANKING LOGIC: Weekly Hours (Requirement 23.2) ---
+        // We calculate hours for the specific payroll week (Mon-Sun) containing the shift
+        const weekStart = startOfWeek(shift.startTime, { weekStartsOn: 1 });
+        const weekEnd = endOfWeek(shift.startTime, { weekStartsOn: 1 });
 
         const assignments = await this.coverageGapRepository.findStaffAssignmentsInRange(
           staff.id,
@@ -83,22 +92,27 @@ export class CoverageGapService {
 
         let currentHours = 0;
         for (const assignment of assignments) {
-          const durationMs =
-            assignment.shift.endTime.getTime() - assignment.shift.startTime.getTime();
-          const durationHours = durationMs / (1000 * 60 * 60);
-          currentHours += durationHours;
+          const duration = differenceInHours(
+            assignment.shift.endTime, 
+            assignment.shift.startTime
+          );
+          currentHours += duration;
         }
 
+        // 4. Build AvailableStaff object with annotations
         availableStaff.push({
           staffId: staff.id,
           staffName: `${staff.firstName} ${staff.lastName}`,
           currentHours,
           skills: staff.skills.map((s) => s.skill.name),
           certifications: staff.certifications.map((c) => c.locationId),
+          // We pass the violations to the UI to fulfill Requirement 2.7
+          constraintViolations: violations.length > 0 ? violations : undefined,
         });
       }
 
-      // Rank by current hours (ascending - staff with fewer hours first)
+      // 5. Final Ranking: Ascending order of current hours
+      // Policy: Give the work to the person with the fewest hours this week first.
       availableStaff.sort((a, b) => a.currentHours - b.currentHours);
 
       return availableStaff;
@@ -110,7 +124,7 @@ export class CoverageGapService {
 
   /**
    * Send shift offer to specific staff
-   * Requirements: 23.4, 23.5
+   * Requirements: 23.4, 23.5, 7.1 (Notifications)
    */
   async sendShiftOffer(shiftId: string, staffId: string): Promise<void> {
     try {
@@ -119,19 +133,26 @@ export class CoverageGapService {
         throw new NotFoundException('Shift not found');
       }
 
-      // TODO: Implement actual notification mechanism (email, SMS, push notification)
-      this.logger.log(`Would send shift offer for shift ${shiftId} to staff ${staffId}`);
+      this.logger.log(`Dispatching Shift Offer: Shift[${shiftId}] to Staff[${staffId}]`);
 
-      // Emit real-time event to staff
-      this.realtimeGateway.server.to(`staff:${staffId}`).emit('shift:offer', {
-        shiftId,
-        shift: {
-          id: shift.id,
+      // 1. Persist the notification in the DB (implied by Req 7.4)
+      // TODO: await this.notificationService.create(...)
+
+      // 2. Emit real-time event via Socket.io
+      this.realtimeGateway.server.to(`user:${staffId}`).emit('notification', {
+        type: 'SHIFT_OFFER',
+        title: 'New Shift Available',
+        message: `A shift is available at ${shift.location.name}. Would you like to pick it up?`,
+        data: {
+          shiftId,
+          locationName: shift.location.name,
           startTime: shift.startTime,
           endTime: shift.endTime,
-          locationId: shift.locationId,
         },
       });
+
+      // 3. Log the action for Audit Trail
+      this.logger.log(`Offer notification sent successfully to user:${staffId}`);
     } catch (error) {
       this.logger.error(`Error sending shift offer:`, error);
       throw error;
@@ -140,34 +161,32 @@ export class CoverageGapService {
 
   /**
    * Notify managers and available staff about coverage gap
-   * Requirements: 23.4
+   * Triggered when a callout is reported.
    */
   async notifyCoverageGap(shiftId: string): Promise<void> {
     try {
       const shift = await this.coverageGapRepository.findShiftById(shiftId);
-      if (!shift) {
-        throw new NotFoundException('Shift not found');
-      }
+      if (!shift) return;
 
       const availableStaff = await this.findAvailableStaff(shiftId);
 
-      // Notify managers
+      // Notify Managers: "Shift is uncovered, here are X potential candidates"
       const managers = await this.calloutRepository.findManagersForLocation(shift.locationId);
       for (const manager of managers) {
-        this.logger.log(
-          `Would notify manager ${manager.email} about coverage gap for shift ${shiftId} with ${availableStaff.length} available staff`
-        );
-        // TODO: Send actual notification with shift details and available staff list
+        this.realtimeGateway.server.to(`user:${manager.id}`).emit('notification', {
+          type: 'COVERAGE_GAP',
+          message: `URGENT: Shift at ${shift.location.name} is uncovered. ${availableStaff.length} staff members are eligible.`,
+          data: { shiftId }
+        });
       }
 
-      // Notify available staff
-      for (const staff of availableStaff) {
-        this.logger.log(`Would notify staff ${staff.staffName} about available shift ${shiftId}`);
-        // TODO: Send actual notification
-      }
+      // Notify Top 3 Available Staff: "A shift just opened up!"
+      availableStaff.slice(0, 3).forEach(staff => {
+        this.sendShiftOffer(shiftId, staff.staffId);
+      });
+
     } catch (error) {
       this.logger.error(`Error notifying coverage gap:`, error);
-      throw error;
     }
   }
 }

@@ -4,4 +4,5 @@ export interface AvailableStaff {
   currentHours: number;
   skills: string[];
   certifications: string[];
+  constraintViolations?: string[]; 
 }
