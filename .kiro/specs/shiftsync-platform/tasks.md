@@ -1031,14 +1031,14 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test date range filtering
     - Test background job status display
 
-- [ ] 30. Implement frontend callout and coverage features
-  - [ ] 30.1 Create callout reporting interface (Staff)
+- [x] 30. Implement frontend callout and coverage features
+  - [x] 30.1 Create callout reporting interface (Staff)
     - Build callout form with shift selection and reason input
     - Display staff's upcoming shifts
     - Show confirmation message on successful callout
     - _Requirements: 22.1, 22.4_
 
-  - [ ] 30.2 Create central workforce visibility dashboard (Manager/Admin)
+  - [x] 30.2 Create central workforce visibility dashboard (Manager/Admin)
     - Build dashboard showing current coverage for all locations
     - Highlight uncovered shifts with visual indicators
     - Display available staff count per location
@@ -1046,7 +1046,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Update dashboard on callout:reported events via WebSocket
     - _Requirements: 21.1, 21.2, 21.3, 21.4, 21.5, 22.2, 22.3_
 
-  - [ ] 30.3 Create coverage gap resolution interface (Manager)
+  - [x] 30.3 Create coverage gap resolution interface (Manager)
     - Build available staff list for uncovered shift
     - Display staff ranked by current hours
     - Show staff skills and certifications
@@ -1054,7 +1054,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Display constraint violations for unavailable staff
     - _Requirements: 23.1, 23.2, 23.3, 23.4, 23.5_
 
-  - [ ] 30.4 Implement real-time callout notifications
+  - [x] 30.4 Implement real-time callout notifications
     - Subscribe to location-specific WebSocket rooms
     - Display toast notifications using Sonner on callout:reported events
     - Update dashboard and coverage views in real-time
@@ -1066,8 +1066,8 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test available staff list and ranking
     - Test real-time notification handling
 
-- [ ] 31. Implement frontend configuration and audit features
-  - [ ] 31.1 Create location configuration interface (Admin)
+- [x] 31. Implement frontend configuration and audit features
+  - [x] 31.1 Create location configuration interface (Admin)
     - Build configuration form for daily, weekly, consecutive days limits
     - Build premium shift criteria configuration interface
     - Display current configuration values
@@ -1075,7 +1075,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Show success/error messages
     - _Requirements: 27.1, 27.2, 27.3, 27.4_
 
-  - [ ] 31.2 Create audit log viewer (Admin)
+  - [x] 31.2 Create audit log viewer (Admin)
     - Build audit log list with filtering by date, user, entity type, action
     - Display audit record details (timestamp, user, previous/new state)
     - Implement pagination for large result sets
@@ -1083,7 +1083,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Display verification results
     - _Requirements: 19.5, 20.5_
 
-  - [ ] 31.3 Create CSV import/export interface (Manager)
+  - [x] 31.3 Create CSV import/export interface (Manager)
     - Build CSV upload form with file selection
     - Display parsing errors with row numbers
     - Show import success summary
