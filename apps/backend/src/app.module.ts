@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { validateEnv } from './config/env.validation';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
+import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/user/user.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { CacheModule } from './modules/cache/cache.module';
@@ -21,8 +22,6 @@ import { RealtimeModule } from './modules/realtime/realtime.module';
 import { CalloutModule } from './modules/callout/callout.module';
 import { ConfigModule as AppConfigModule } from './modules/config/config.module';
 import { CsvModule } from './modules/csv/csv.module';
-
-// Module imports will be added as we build services
 
 @Module({
   imports: [
@@ -69,7 +68,8 @@ import { CsvModule } from './modules/csv/csv.module';
     ComplianceModule,
 
     // Feature modules
-    UserModule,
+    AuthModule, // Authentication (login, JWT)
+    UserModule, // User management (CRUD, roles, skills)
     ScheduleModule,
     SwapModule,
     OvertimeModule,
@@ -79,11 +79,6 @@ import { CsvModule } from './modules/csv/csv.module';
     CalloutModule,
     AppConfigModule,
     CsvModule,
-    // ScheduleModule,
-    // SwapModule,
-    // OvertimeModule,
-    // ComplianceModule,
-    // FairnessModule,
   ],
   controllers: [AppController],
   providers: [AppService],

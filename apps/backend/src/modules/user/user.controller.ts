@@ -1,48 +1,20 @@
-import {
-  Controller,
-  Post,
-  Get,
-  Body,
-  Param,
-  UseGuards,
-  HttpCode,
-  HttpStatus,
-} from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
-import {
-  CreateUserDto,
-  AssignRoleDto,
-  AddSkillDto,
-  AddCertificationDto,
-  LoginDto,
-} from '@shiftsync/shared';
+import { CreateUserDto, AssignRoleDto, AddSkillDto, AddCertificationDto } from '@shiftsync/shared';
 import { UserService } from './user.service';
-import { AuthService } from './auth.service';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PoliciesGuard } from './casl/policies.guard';
-import { Public } from './decorators/public.decorator';
 import { CheckPolicies } from './decorators/check-policies.decorator';
-import { CurrentUser } from './decorators/current-user.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Action } from './casl/types';
 
+@ApiTags('users')
+@ApiBearerAuth()
 @Controller('users')
 @UseGuards(JwtAuthGuard, PoliciesGuard)
 export class UserController {
-  constructor(
-    private readonly userService: UserService,
-    private readonly authService: AuthService
-  ) {}
-
-  /**
-   * Login endpoint - public
-   * Requirements: 30.1, 30.2
-   */
-  @Public()
-  @Post('login')
-  @HttpCode(HttpStatus.OK)
-  async login(@Body() data: LoginDto) {
-    return this.authService.authenticate(data);
-  }
+  constructor(private readonly userService: UserService) {}
 
   /**
    * Create user - Admin only (PBAC)
@@ -50,6 +22,9 @@ export class UserController {
    */
   @Post()
   @CheckPolicies((ability) => ability.can(Action.Create, 'User'))
+  @ApiOperation({ summary: 'Create a new user' })
+  @ApiResponse({ status: 201, description: 'User created successfully' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin only' })
   async createUser(@Body() data: CreateUserDto) {
     return this.userService.createUser(data);
   }
@@ -60,6 +35,9 @@ export class UserController {
    */
   @Post(':id/role')
   @CheckPolicies((ability) => ability.can(Action.Update, 'User'))
+  @ApiOperation({ summary: 'Assign role to user' })
+  @ApiResponse({ status: 200, description: 'Role assigned successfully' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin only' })
   async assignRole(@Param('id') userId: string, @Body() data: AssignRoleDto) {
     return this.userService.assignRole(userId, data);
   }
@@ -71,6 +49,9 @@ export class UserController {
    */
   @Post(':id/skills')
   @CheckPolicies((ability) => ability.can(Action.Create, 'UserSkill'))
+  @ApiOperation({ summary: 'Add skill to user' })
+  @ApiResponse({ status: 201, description: 'Skill added successfully' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
   async addSkill(
     @Param('id') userId: string,
     @Body() data: AddSkillDto,
@@ -92,6 +73,9 @@ export class UserController {
    */
   @Post(':id/certifications')
   @CheckPolicies((ability) => ability.can(Action.Create, 'LocationCertification'))
+  @ApiOperation({ summary: 'Add location certification to user' })
+  @ApiResponse({ status: 201, description: 'Certification added successfully' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
   async addCertification(
     @Param('id') userId: string,
     @Body() data: AddCertificationDto,
@@ -112,6 +96,9 @@ export class UserController {
    */
   @Get(':id')
   @CheckPolicies((ability) => ability.can(Action.Read, 'User'))
+  @ApiOperation({ summary: 'Get user by ID' })
+  @ApiResponse({ status: 200, description: 'User found' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async getUserById(@Param('id') userId: string) {
     return this.userService.getUserById(userId);
   }
@@ -122,6 +109,8 @@ export class UserController {
    */
   @Get('me')
   @CheckPolicies((ability) => ability.can(Action.Read, 'User'))
+  @ApiOperation({ summary: 'Get current user profile' })
+  @ApiResponse({ status: 200, description: 'Current user profile' })
   async getCurrentUser(@CurrentUser('id') userId: string) {
     return this.userService.getUserById(userId);
   }
@@ -132,6 +121,8 @@ export class UserController {
    */
   @Get('location/:locationId')
   @CheckPolicies((ability) => ability.can(Action.Read, 'User'))
+  @ApiOperation({ summary: 'Get users by location' })
+  @ApiResponse({ status: 200, description: 'Users found' })
   async getUsersByLocation(@Param('locationId') locationId: string) {
     return this.userService.getUsersByLocation(locationId);
   }

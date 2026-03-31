@@ -30,18 +30,32 @@ async function bootstrap() {
   // Scalar API documentation
   const config = new DocumentBuilder()
     .setTitle('ShiftSync API')
-    .setDescription('Multi-location staff scheduling platform API')
+    .setDescription(
+      'Multi-location staff scheduling platform API with real-time updates, constraint validation, and fairness analytics'
+    )
     .setVersion('1.0')
-    .addBearerAuth()
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'JWT-auth'
+    )
     .addTag('auth', 'Authentication endpoints')
     .addTag('users', 'User management')
-    .addTag('shifts', 'Shift scheduling')
-    .addTag('swaps', 'Shift swap workflow')
-    .addTag('overtime', 'Overtime tracking')
-    .addTag('fairness', 'Fairness analytics')
-    .addTag('callouts', 'Callout management')
-    .addTag('config', 'Configuration')
-    .addTag('audit', 'Audit logs')
+    .addTag('Schedule', 'Shift scheduling')
+    .addTag('Swaps', 'Shift swap workflow')
+    .addTag('Overtime', 'Overtime tracking')
+    .addTag('Fairness', 'Fairness analytics')
+    .addTag('Callouts', 'Callout management')
+    .addTag('Configuration', 'Location configuration')
+    .addTag('Audit', 'Audit logs')
+    .addTag('Job Queue', 'Background job monitoring')
+    .addTag('CSV Import/Export', 'Schedule import and export')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
