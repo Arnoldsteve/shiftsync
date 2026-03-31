@@ -3,6 +3,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { toast } from 'sonner';
+import { createAbility, AppAbility } from '@/lib/ability';
+import { createContextualCan } from '@casl/react';
 
 interface User {
   id: string;
@@ -10,10 +12,12 @@ interface User {
   firstName: string;
   lastName: string;
   role: string;
+  managerLocationIds?: string[];
 }
 
 interface AuthContextType {
   user: User | null;
+  ability: AppAbility | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
@@ -23,9 +27,23 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Create Can component for permission checks
+export const Can = createContextualCan(AuthContext.Consumer as any);
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUserState] = useState<User | null>(null);
+  const [ability, setAbility] = useState<AppAbility | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Custom setUser that also updates ability
+  const setUser = (userData: User | null) => {
+    setUserState(userData);
+    if (userData) {
+      setAbility(createAbility(userData.role, userData.managerLocationIds));
+    } else {
+      setAbility(null);
+    }
+  };
 
   useEffect(() => {
     // Check for stored user on mount
@@ -34,7 +52,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (storedUser && storedToken) {
       try {
-        setUser(JSON.parse(storedUser));
+        const userData = JSON.parse(storedUser);
+        setUser(userData);
       } catch (error) {
         console.error('Failed to parse stored user:', error);
         localStorage.removeItem('auth_user');
@@ -47,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await apiClient.post<{ token: string; user: User }>('/api/auth/login', {
+      const response = await apiClient.post<{ token: string; user: User }>('/auth/login', {
         email,
         password,
       });
@@ -59,7 +78,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('auth_user', JSON.stringify(userData));
 
       setUser(userData);
-      toast.success('Login successful');
     } catch (error: any) {
       const message = error.response?.data?.message || 'Login failed';
       toast.error(message);
@@ -76,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value: AuthContextType = {
     user,
+    ability,
     isLoading,
     isAuthenticated: !!user,
     login,

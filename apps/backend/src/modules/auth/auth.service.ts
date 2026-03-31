@@ -27,6 +27,12 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    // Get manager location IDs if user is a manager
+    let managerLocationIds: string[] | undefined;
+    if (user.role === 'MANAGER') {
+      managerLocationIds = await this.userService.getAuthorizedLocationIds(user.id);
+    }
+
     // Generate JWT token
     const payload: JwtPayload = {
       sub: user.id,
@@ -44,6 +50,7 @@ export class AuthService {
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,
+        ...(managerLocationIds && { managerLocationIds }),
       },
     };
   }
