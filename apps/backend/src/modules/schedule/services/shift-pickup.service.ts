@@ -53,12 +53,18 @@ export class ShiftPickupService {
         new Date() // Only future shifts
       );
 
+      // Requirement 42.5: Filter out fully covered shifts (where filled >= required headcount)
+      const availableUnassignedShifts = unassignedShifts.filter((shift) => {
+        const filledHeadcount = shift.assignments.length;
+        return filledHeadcount < shift.requiredHeadcount;
+      });
+
       // Get drop requests
       const dropRequests: any[] =
         await this.dropRequestRepository.findAvailableDropRequests(staffCertifiedLocationIds);
 
       // Filter unassigned shifts by staff qualifications
-      const qualifiedUnassignedShifts = unassignedShifts.filter((shift) => {
+      const qualifiedUnassignedShifts = availableUnassignedShifts.filter((shift) => {
         const requiredSkillIds = shift.skills.map((s) => s.skillId);
         return requiredSkillIds.every((skillId) => staffSkillIds.includes(skillId));
       });
@@ -125,6 +131,20 @@ export class ShiftPickupService {
       const existingAssignment = shift.assignments.find((a) => a.shiftId === shiftId);
       if (existingAssignment) {
         throw new BadRequestException('Shift is already assigned');
+      }
+
+      // Requirement 42.2: Check if headcount would be exceeded
+      const filledHeadcount = shift.assignments.length;
+      if (filledHeadcount >= shift.requiredHeadcount) {
+        throw new BadRequestException(
+          `Shift headcount limit reached (${shift.requiredHeadcount}/${shift.requiredHeadcount})`
+        );
+      }
+
+      // Check if this specific staff member is already assigned to this shift
+      const staffAlreadyAssigned = shift.assignments.find((a) => a.staffId === staffId);
+      if (staffAlreadyAssigned) {
+        throw new BadRequestException('You are already assigned to this shift');
       }
 
       // Get staff details with skills and certifications

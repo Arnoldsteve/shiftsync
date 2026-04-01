@@ -9,12 +9,13 @@ import { ScheduleRepository } from '../repositories/schedule.repository';
 import { AuditService } from '../../audit/audit.service';
 import { CacheService } from '../../cache/cache.service';
 import { RealtimeGateway } from '../../realtime/realtime.gateway';
+import { SwapService } from '../../swap/swap.service';
 import { Shift } from '@prisma/client';
 
 /**
  * Shift Management Service
  * Handles shift CRUD operations
- * Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 18.1
+ * Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 18.1, 36.1, 36.2, 36.3, 36.4, 36.5
  */
 @Injectable()
 export class ShiftManagementService {
@@ -24,7 +25,8 @@ export class ShiftManagementService {
     private readonly scheduleRepository: ScheduleRepository,
     private readonly auditService: AuditService,
     private readonly cacheService: CacheService,
-    private readonly realtimeGateway: RealtimeGateway
+    private readonly realtimeGateway: RealtimeGateway,
+    private readonly swapService: SwapService
   ) {}
 
   /**
@@ -200,5 +202,91 @@ export class ShiftManagementService {
     endDate?: Date
   ): Promise<any[]> {
     return this.scheduleRepository.findPublishedShiftsByStaff(staffId, startDate, endDate);
+  }
+
+  /**
+   * Update shift details and cancel pending swap requests
+   * Requirements: 36.1, 36.2, 36.3, 36.4, 36.5
+   */
+  async updateShift(
+    shiftId: string,
+    managerId: string,
+    updates: {
+      startTime?: Date;
+      endTime?: Date;
+      locationId?: string;
+      requiredHeadcount?: number;
+    },
+    managerLocationIds?: string[]
+  ): Promise<{ shift: Shift; cancelledSwapsCount: number }> {
+    try {
+      // Get existing shift
+      const existingShift = await this.scheduleRepository.findShiftById(shiftId);
+      if (!existingShift) {
+        throw new NotFoundException('Shift not found');
+      }
+
+      // PBAC: Check if manager is authorized for this location
+      if (managerLocationIds && !managerLocationIds.includes(existingShift.locationId)) {
+        throw new ForbiddenException('Manager not authorized to edit shifts for this location');
+      }
+
+      // Validate time changes if provided
+      if (updates.startTime || updates.endTime) {
+        const newStartTime = updates.startTime || existingShift.startTime;
+        const newEndTime = updates.endTime || existingShift.endTime;
+
+        if (newEndTime <= newStartTime) {
+          throw new BadRequestException('Shift end time must be after start time');
+        }
+      }
+
+      // Cancel all pending swap requests for this shift BEFORE updating
+      const cancelledSwapsCount = await this.swapService.cancelPendingSwapsForShift(
+        shiftId,
+        managerId
+      );
+
+      // Update the shift
+      const updatedShift = await this.scheduleRepository.updateShift(shiftId, updates);
+
+      // Log shift update
+      await this.auditService.logShiftChange('UPDATE', shiftId, managerId, {
+        previousState: {
+          startTime: existingShift.startTime.toISOString(),
+          endTime: existingShift.endTime.toISOString(),
+          locationId: existingShift.locationId,
+          requiredHeadcount: existingShift.requiredHeadcount,
+        },
+        newState: {
+          startTime: updatedShift.startTime.toISOString(),
+          endTime: updatedShift.endTime.toISOString(),
+          locationId: updatedShift.locationId,
+          requiredHeadcount: updatedShift.requiredHeadcount,
+          cancelledSwapsCount,
+        },
+      });
+
+      // Invalidate cache
+      await this.cacheService.invalidateSchedule(existingShift.locationId);
+      if (updates.locationId && updates.locationId !== existingShift.locationId) {
+        await this.cacheService.invalidateSchedule(updates.locationId);
+      }
+
+      // Emit real-time event
+      this.realtimeGateway.emitShiftUpdated(updatedShift.locationId, updatedShift);
+
+      this.logger.log(
+        `Shift ${shiftId} updated by manager ${managerId}. Cancelled ${cancelledSwapsCount} pending swap(s).`
+      );
+
+      return {
+        shift: updatedShift,
+        cancelledSwapsCount,
+      };
+    } catch (error) {
+      this.logger.error(`Error updating shift ${shiftId}:`, error);
+      throw error;
+    }
   }
 }

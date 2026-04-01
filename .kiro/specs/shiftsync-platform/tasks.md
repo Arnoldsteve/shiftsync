@@ -16,7 +16,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
 
 ## Tasks
 
-- [ ] 1. Project setup and infrastructure foundation
+- [x] 1. Project setup and infrastructure foundation
   - [x] 1.1 Initialize monorepo structure with Turborepo
     - Install and configure Turborepo for monorepo management
     - Create root package.json with workspaces for backend, frontend, and shared packages
@@ -61,7 +61,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Add Redis connection error handling and graceful degradation
     - _Requirements: 16.1, 16.5, 25.4, 29.2_
 
-- [ ] 2. Implement data models and database layer
+- [x] 2. Implement data models and database layer
   - [x] 2.1 Create Prisma models for user management
     - Implement User, Role, Skill, UserSkill, Location, LocationCertification, ManagerLocation models
     - Add all required indexes for query optimization
@@ -96,7 +96,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test database connection and basic CRUD operations
     - _Requirements: Foundation for all data operations_
 
-  - [ ] 2.6 Create Prisma models for new features (Requirements 31-42)
+  - [x] 2.6 Create Prisma models for new features (Requirements 31-42)
     - [x] 2.6.1 Add AvailabilityWindow and AvailabilityException models
       - Implement AvailabilityWindow with userId, dayOfWeek, startTime, endTime
       - Implement AvailabilityException with userId, date, startTime, endTime
@@ -278,7 +278,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test withLock helper for automatic cleanup
     - Test lock release failure handling
 
-- [-] 8. Implement Conflict Detector service
+- [x] 8. Implement Conflict Detector service
   - [x] 8.1 Create Conflict Detector with overlap checking
     - Implement checkOverlap method to find overlapping shifts for a staff member
     - Convert all shift times to UTC for cross-timezone comparison
@@ -298,7 +298,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test overnight shift overlap detection
     - Test excludeShiftId parameter for swap scenarios
 
-- [ ] 9. Checkpoint - Core infrastructure services complete
+- [x] 9. Checkpoint - Core infrastructure services complete
   - Ensure User Service, Audit Logger, Cache Manager, Lock Manager, and Conflict Detector are working correctly. Run all tests. Ask the user if questions arise.
 
 - [ ] 10. Implement Compliance Monitor service
@@ -360,7 +360,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - **Property 31: Consecutive Days Not Enforced When Unconfigured**
     - **Validates: Requirements 12.5**
 
-  - [ ] 10.12 Implement validateAll method combining all checks
+  - [x] 10.12 Implement validateAll method combining all checks
     - Call all validation methods (rest period, daily, weekly, consecutive days)
     - Return array of validation results
     - Short-circuit on first failure for performance
@@ -536,7 +536,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - **Property 90: Successful Pickup Assigns and Removes from Available**
     - **Validates: Requirements 34.4**
 
-  - [ ] 11.22 Implement alternative staff suggestions (Requirement 40)
+  - [x] 11.22 Implement alternative staff suggestions (Requirement 40)
     - Implement getAlternativeStaff for constraint violation scenarios
     - Verify candidates have required skills, certifications, and availability
     - Validate candidates would not violate scheduling constraints
@@ -564,7 +564,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - **Property 120: Alternative Staff Limited to Five**
     - **Validates: Requirements 40.5**
 
-  - [ ] 11.28 Implement headcount tracking (Requirement 42)
+  - [x] 11.28 Implement headcount tracking (Requirement 42)
     - Implement getShiftHeadcountStatus to return filled vs required headcount
     - Validate assignments don't exceed required headcount
     - Mark shifts as fully covered when headcount reached
@@ -702,7 +702,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - **Property 86: Drop Request Expiration Restores Assignment**
     - **Validates: Requirements 33.5**
 
-  - [ ] 13.20 Implement request limits (Requirement 35)
+  - [x] 13.20 Implement request limits (Requirement 35)
     - Implement getPendingRequestCount including swap and drop requests
     - Enforce maximum pending requests (configurable per location, default 3)
     - Reject new requests when at limit with descriptive error
@@ -721,7 +721,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - **Property 93: Pending Request Limit Configuration**
     - **Validates: Requirements 35.5**
 
-  - [ ] 13.24 Implement swap cancellation on shift edit (Requirement 36)
+  - [x] 13.24 Implement swap cancellation on shift edit (Requirement 36)
     - Detect pending swap requests when shift is edited
     - Automatically cancel all pending swaps for that shift
     - Notify requestor and target staff of cancellation
@@ -745,7 +745,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - **Property 97: Swap Cancellation Decrements Count**
     - **Validates: Requirements 36.5, 37.5**
 
-  - [ ] 13.29 Implement swap cancellation by requestor (Requirement 37)
+  - [x] 13.29 Implement swap cancellation by requestor (Requirement 37)
     - Implement cancelSwapRequest allowing staff to cancel own pending swaps
     - Update request status to "cancelled"
     - Notify target staff and manager of cancellation

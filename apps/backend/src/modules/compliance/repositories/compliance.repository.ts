@@ -123,4 +123,17 @@ export class ComplianceRepository {
       where: { locationId },
     });
   }
+
+  /**
+   * Get location by ID
+   * Requirements: 31.3
+   *
+   * @param locationId - Location ID
+   * @returns Location or null
+   */
+  async findLocationById(locationId: string) {
+    return this.prisma.location.findUnique({
+      where: { id: locationId },
+    });
+  }
 }

@@ -230,6 +230,24 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   }
 
   /**
+   * Broadcast swap request cancelled event
+   * Requirements: 36.2, 37.2
+   */
+  emitSwapCancelled(
+    locationId: string,
+    requestorId: string,
+    targetId: string,
+    swapRequestId: string,
+    reason: string
+  ) {
+    const payload = { swapRequestId, reason };
+    this.server.to(`location:${locationId}`).emit('swap:cancelled', payload);
+    this.server.to(`staff:${requestorId}`).emit('swap:cancelled', payload);
+    this.server.to(`staff:${targetId}`).emit('swap:cancelled', payload);
+    this.logger.log(`Broadcasted swap:cancelled to location:${locationId} (reason: ${reason})`);
+  }
+
+  /**
    * Broadcast conflict detected event
    * Requirements: 16.4
    */

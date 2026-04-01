@@ -82,4 +82,17 @@ export class SwapController {
   ) {
     return this.swapService.rejectSwap(swapRequestId, rejectedBy, data.reason);
   }
+
+  /**
+   * Cancel swap request - Staff (requestor only)
+   * Requirements: 37.1, 37.2, 37.3, 37.4, 37.5
+   */
+  @Put(':id/cancel')
+  @CheckPolicies((ability) => ability.can(Action.Update, 'SwapRequest'))
+  async cancelSwapRequest(
+    @Param('id') swapRequestId: string,
+    @CurrentUser('id') requestorId: string
+  ) {
+    return this.swapService.cancelSwapRequest(swapRequestId, requestorId);
+  }
 }

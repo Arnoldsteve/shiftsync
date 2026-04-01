@@ -1,9 +1,11 @@
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { SwapRepository } from '../repositories/swap.repository';
+import { DropRequestRepository } from '../repositories/drop-request.repository';
 import { AuditService } from '../../audit/audit.service';
 import { CacheService } from '../../cache/cache.service';
 import { ConflictService } from '../../conflict/conflict.service';
 import { ComplianceService } from '../../compliance/compliance.service';
+import { ConfigService } from '../../config/config.service';
 import { RealtimeGateway } from '../../realtime/realtime.gateway';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { SwapRequest } from '@prisma/client';
@@ -15,17 +17,19 @@ export class SwapRequestService {
 
   constructor(
     private readonly swapRepository: SwapRepository,
+    private readonly dropRequestRepository: DropRequestRepository,
     private readonly auditService: AuditService,
     private readonly cacheService: CacheService,
     private readonly conflictService: ConflictService,
     private readonly complianceService: ComplianceService,
+    private readonly configService: ConfigService,
     private readonly realtimeGateway: RealtimeGateway,
     private readonly prisma: PrismaService
   ) {}
 
   /**
    * Create a swap request
-   * Requirements: 7.1, 7.2, 7.3, 7.4, 7.5
+   * Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 35.1, 35.2, 35.3
    */
   async createSwapRequest(
     shiftId: string,
@@ -57,6 +61,17 @@ export class SwapRequestService {
 
       if (!shift) {
         throw new NotFoundException('Shift not found');
+      }
+
+      // Check pending request limit (Requirement 35.1, 35.2, 35.3)
+      const pendingCount = await this.getPendingRequestCount(requestorId);
+      const locationConfig = await this.configService.getLocationConfig(shift.locationId);
+      const maxPendingRequests = locationConfig.maxPendingRequests;
+
+      if (pendingCount >= maxPendingRequests) {
+        throw new BadRequestException(
+          `Cannot create swap request: you have reached the maximum of ${maxPendingRequests} pending requests. Please wait for existing requests to be processed.`
+        );
       }
 
       // TODO: Verify target staff has required skills (will implement with User Service integration)
@@ -300,6 +315,132 @@ export class SwapRequestService {
       return this.swapRepository.findSwapsByStaff(staffId);
     } catch (error) {
       this.logger.error(`Error getting swaps for staff ${staffId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get pending request count (swap + drop requests)
+   * Requirements: 35.2
+   */
+  async getPendingRequestCount(staffId: string): Promise<number> {
+    try {
+      const swapCount = await this.swapRepository.countPendingByRequestor(staffId);
+      const dropCount = await this.dropRequestRepository.countPendingByRequestor(staffId);
+      return swapCount + dropCount;
+    } catch (error) {
+      this.logger.error(`Error getting pending request count for staff ${staffId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Cancel all pending swap requests for a shift
+   * Requirements: 36.1, 36.2, 36.3, 36.4, 36.5
+   */
+  async cancelPendingSwapsForShift(shiftId: string, cancelledBy: string): Promise<number> {
+    try {
+      // Find all pending swap requests for this shift
+      const pendingSwaps = await this.swapRepository.findPendingSwapsByShift(shiftId);
+
+      if (pendingSwaps.length === 0) {
+        return 0;
+      }
+
+      // Cancel all pending swaps
+      const swapRequestIds = pendingSwaps.map((swap) => swap.id);
+      const cancelledCount = await this.swapRepository.cancelSwapRequests(swapRequestIds);
+
+      // Log each cancellation with reason "shift edited by manager"
+      for (const swap of pendingSwaps) {
+        await this.auditService.logSwapAction('CANCEL', swap.id, cancelledBy, {
+          previousState: {
+            status: 'PENDING',
+          },
+          newState: {
+            status: 'CANCELLED',
+            reason: 'shift edited by manager',
+          },
+        });
+
+        // Emit real-time notification to requestor and target staff
+        this.realtimeGateway.emitSwapCancelled(
+          swap.shift.locationId,
+          swap.requestorId,
+          swap.targetStaffId,
+          swap.id,
+          'shift edited by manager'
+        );
+      }
+
+      this.logger.log(
+        `Cancelled ${cancelledCount} pending swap request(s) for shift ${shiftId} due to shift edit`
+      );
+
+      return cancelledCount;
+    } catch (error) {
+      this.logger.error(`Error cancelling pending swaps for shift ${shiftId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Cancel a swap request by the requestor
+   * Requirements: 37.1, 37.2, 37.3, 37.4, 37.5
+   */
+  async cancelSwapRequest(swapRequestId: string, requestorId: string): Promise<SwapRequest> {
+    try {
+      // Find the swap request
+      const swapRequest = await this.swapRepository.findSwapRequestById(swapRequestId);
+      if (!swapRequest) {
+        throw new NotFoundException('Swap request not found');
+      }
+
+      // Validate requestor is the owner of the swap request
+      if (swapRequest.requestorId !== requestorId) {
+        throw new BadRequestException('You can only cancel your own swap requests');
+      }
+
+      // Validate swap request is in PENDING status
+      if (swapRequest.status !== 'PENDING') {
+        throw new BadRequestException(
+          `Cannot cancel swap request with status: ${swapRequest.status}`
+        );
+      }
+
+      // Update status to CANCELLED
+      const updatedSwapRequest = await this.swapRepository.updateSwapRequestStatus(
+        swapRequestId,
+        'CANCELLED',
+        requestorId
+      );
+
+      // Log cancellation with timestamp and requestor
+      await this.auditService.logSwapAction('CANCEL', swapRequestId, requestorId, {
+        previousState: {
+          status: 'PENDING',
+        },
+        newState: {
+          status: 'CANCELLED',
+          reason: 'cancelled by requestor',
+        },
+      });
+
+      // Emit real-time swap:cancelled event
+      this.realtimeGateway.emitSwapCancelled(
+        swapRequest.shift.locationId,
+        swapRequest.requestorId,
+        swapRequest.targetStaffId,
+        swapRequestId,
+        'cancelled by requestor'
+      );
+
+      this.logger.log(`Swap request ${swapRequestId} cancelled by requestor ${requestorId}`);
+
+      // Pending count will automatically decrement (CANCELLED excluded from PENDING count)
+      return updatedSwapRequest;
+    } catch (error) {
+      this.logger.error(`Error cancelling swap request ${swapRequestId}:`, error);
       throw error;
     }
   }

@@ -89,4 +89,41 @@ export class SwapRepository {
       },
     });
   }
+
+  /**
+   * Find all pending swap requests for a shift
+   * Requirements: 36.1
+   */
+  async findPendingSwapsByShift(shiftId: string): Promise<SwapRequestWithDetails[]> {
+    return this.prisma.swapRequest.findMany({
+      where: {
+        shiftId,
+        status: SwapStatus.PENDING,
+      },
+      include: {
+        requestor: true,
+        targetStaff: true,
+        shift: true,
+      },
+    });
+  }
+
+  /**
+   * Cancel multiple swap requests
+   * Requirements: 36.1, 36.2
+   */
+  async cancelSwapRequests(swapRequestIds: string[]): Promise<number> {
+    const result = await this.prisma.swapRequest.updateMany({
+      where: {
+        id: { in: swapRequestIds },
+        status: SwapStatus.PENDING,
+      },
+      data: {
+        status: SwapStatus.CANCELLED,
+        reviewedAt: new Date(),
+      },
+    });
+
+    return result.count;
+  }
 }

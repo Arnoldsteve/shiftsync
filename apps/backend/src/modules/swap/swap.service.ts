@@ -106,4 +106,24 @@ export class SwapService {
   async getPendingRequestCount(staffId: string): Promise<number> {
     return this.dropRequestService.getPendingRequestCount(staffId);
   }
+
+  // ============================================
+  // Swap Cancellation Operations
+  // ============================================
+
+  /**
+   * Cancel all pending swap requests for a shift (called when shift is edited)
+   * Requirements: 36.1, 36.2, 36.3, 36.4, 36.5
+   */
+  async cancelPendingSwapsForShift(shiftId: string, cancelledBy: string): Promise<number> {
+    return this.swapRequestService.cancelPendingSwapsForShift(shiftId, cancelledBy);
+  }
+
+  /**
+   * Cancel a swap request by the requestor
+   * Requirements: 37.1, 37.2, 37.3, 37.4, 37.5
+   */
+  async cancelSwapRequest(swapRequestId: string, requestorId: string): Promise<SwapRequest> {
+    return this.swapRequestService.cancelSwapRequest(swapRequestId, requestorId);
+  }
 }

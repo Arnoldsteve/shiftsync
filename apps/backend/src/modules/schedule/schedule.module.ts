@@ -4,6 +4,8 @@ import { ShiftManagementService } from './services/shift-management.service';
 import { StaffAssignmentService } from './services/staff-assignment.service';
 import { SchedulePublishingService } from './services/schedule-publishing.service';
 import { ShiftPickupService } from './services/shift-pickup.service';
+import { AlternativeStaffService } from './services/alternative-staff.service';
+import { HeadcountTrackingService } from './services/headcount-tracking.service';
 import { ScheduleController } from './schedule.controller';
 import { ScheduleRepository } from './repositories/schedule.repository';
 import { PrismaModule } from '../../prisma/prisma.module';
@@ -14,6 +16,7 @@ import { ComplianceModule } from '../compliance/compliance.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { UserModule } from '../user/user.module';
 import { SwapModule } from '../swap/swap.module';
+import { OvertimeModule } from '../overtime/overtime.module';
 
 @Module({
   imports: [
@@ -25,6 +28,7 @@ import { SwapModule } from '../swap/swap.module';
     RealtimeModule,
     UserModule,
     SwapModule,
+    OvertimeModule,
   ],
   controllers: [ScheduleController],
   providers: [
@@ -33,6 +37,8 @@ import { SwapModule } from '../swap/swap.module';
     StaffAssignmentService,
     SchedulePublishingService,
     ShiftPickupService,
+    AlternativeStaffService,
+    HeadcountTrackingService,
     ScheduleRepository,
   ],
   exports: [ScheduleService],

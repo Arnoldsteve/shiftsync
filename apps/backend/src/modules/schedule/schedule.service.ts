@@ -3,7 +3,10 @@ import { ShiftManagementService } from './services/shift-management.service';
 import { StaffAssignmentService } from './services/staff-assignment.service';
 import { SchedulePublishingService } from './services/schedule-publishing.service';
 import { ShiftPickupService } from './services/shift-pickup.service';
+import { AlternativeStaffService } from './services/alternative-staff.service';
+import { HeadcountTrackingService } from './services/headcount-tracking.service';
 import { Shift, Assignment } from '@prisma/client';
+import { StaffSuggestion, HeadcountStatus } from './interfaces';
 
 /**
  * Schedule Service (Orchestrator)
@@ -25,7 +28,9 @@ export class ScheduleService {
     private readonly shiftManagementService: ShiftManagementService,
     private readonly staffAssignmentService: StaffAssignmentService,
     private readonly schedulePublishingService: SchedulePublishingService,
-    private readonly shiftPickupService: ShiftPickupService
+    private readonly shiftPickupService: ShiftPickupService,
+    private readonly alternativeStaffService: AlternativeStaffService,
+    private readonly headcountTrackingService: HeadcountTrackingService
   ) {}
 
   // ==================== Shift Management ====================
@@ -78,6 +83,20 @@ export class ScheduleService {
     return this.shiftManagementService.getStaffSchedulePublished(staffId, startDate, endDate);
   }
 
+  async updateShift(
+    shiftId: string,
+    managerId: string,
+    updates: {
+      startTime?: Date;
+      endTime?: Date;
+      locationId?: string;
+      requiredHeadcount?: number;
+    },
+    managerLocationIds?: string[]
+  ): Promise<{ shift: Shift; cancelledSwapsCount: number }> {
+    return this.shiftManagementService.updateShift(shiftId, managerId, updates, managerLocationIds);
+  }
+
   // ==================== Staff Assignment ====================
 
   async assignStaff(shiftId: string, staffId: string, assignedBy: string): Promise<Assignment> {
@@ -126,5 +145,25 @@ export class ScheduleService {
 
   async pickupShift(shiftId: string, staffId: string): Promise<Assignment> {
     return this.shiftPickupService.pickupShift(shiftId, staffId);
+  }
+
+  // ==================== Alternative Staff Suggestions ====================
+
+  /**
+   * Get alternative staff suggestions for a shift
+   * Requirements: 40.1, 40.2, 40.3, 40.4, 40.5
+   */
+  async getAlternativeStaff(shiftId: string, excludeStaffId?: string): Promise<StaffSuggestion[]> {
+    return this.alternativeStaffService.getAlternativeStaff(shiftId, excludeStaffId);
+  }
+
+  // ==================== Headcount Tracking ====================
+
+  /**
+   * Get shift headcount status
+   * Requirements: 42.3, 42.4, 42.5
+   */
+  async getShiftHeadcountStatus(shiftId: string): Promise<HeadcountStatus> {
+    return this.headcountTrackingService.getShiftHeadcountStatus(shiftId);
   }
 }

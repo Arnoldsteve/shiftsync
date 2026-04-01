@@ -2,6 +2,7 @@ import { Injectable, Logger, BadRequestException, NotFoundException } from '@nes
 import { SwapRepository } from '../repositories/swap.repository';
 import { DropRequestRepository } from '../repositories/drop-request.repository';
 import { AuditService } from '../../audit/audit.service';
+import { ConfigService } from '../../config/config.service';
 import { RealtimeGateway } from '../../realtime/realtime.gateway';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { DropRequest, DropStatus } from '@prisma/client';
@@ -14,13 +15,14 @@ export class DropRequestService {
     private readonly swapRepository: SwapRepository,
     private readonly dropRequestRepository: DropRequestRepository,
     private readonly auditService: AuditService,
+    private readonly configService: ConfigService,
     private readonly realtimeGateway: RealtimeGateway,
     private readonly prisma: PrismaService
   ) {}
 
   /**
    * Create a drop request (shift offered to any qualified staff)
-   * Requirements: 33.1, 33.2, 33.3, 33.4, 33.5
+   * Requirements: 33.1, 33.2, 33.3, 33.4, 33.5, 35.1, 35.2, 35.3
    */
   async createDropRequest(
     shiftId: string,
@@ -48,6 +50,17 @@ export class DropRequestService {
 
       if (!shift) {
         throw new NotFoundException('Shift not found');
+      }
+
+      // Check pending request limit (Requirement 35.1, 35.2, 35.3)
+      const pendingCount = await this.getPendingRequestCount(requestorId);
+      const locationConfig = await this.configService.getLocationConfig(shift.locationId);
+      const maxPendingRequests = locationConfig.maxPendingRequests;
+
+      if (pendingCount >= maxPendingRequests) {
+        throw new BadRequestException(
+          `Cannot create drop request: you have reached the maximum of ${maxPendingRequests} pending requests. Please wait for existing requests to be processed.`
+        );
       }
 
       // Check if there's already a pending drop request for this shift

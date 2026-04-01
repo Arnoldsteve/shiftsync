@@ -25,14 +25,26 @@ export class StaffAssignmentService {
 
   /**
    * Assign staff to a shift with Conflict & Compliance checks
+   * Requirements: 42.2 - Allow multiple assignments up to required headcount
    */
   async assignStaff(shiftId: string, staffId: string, assignedBy: string): Promise<Assignment> {
     try {
       const shift = await this.scheduleRepository.findShiftById(shiftId);
       if (!shift) throw new NotFoundException('Shift not found');
 
-      const existingAssignment = shift.assignments.find((a) => a.shiftId === shiftId);
-      if (existingAssignment) throw new BadRequestException('Shift is already covered');
+      // Requirement 42.2: Check if headcount would be exceeded
+      const filledHeadcount = shift.assignments.length;
+      if (filledHeadcount >= shift.requiredHeadcount) {
+        throw new BadRequestException(
+          `Shift headcount limit reached (${shift.requiredHeadcount}/${shift.requiredHeadcount})`
+        );
+      }
+
+      // Check if this specific staff member is already assigned to this shift
+      const existingAssignment = shift.assignments.find((a) => a.staffId === staffId);
+      if (existingAssignment) {
+        throw new BadRequestException('Staff member is already assigned to this shift');
+      }
 
       // Double-booking check
       const conflictResult = await this.conflictService.checkOverlap(

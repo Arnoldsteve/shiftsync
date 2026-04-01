@@ -5,6 +5,7 @@ import { WeeklyLimitValidationService } from './services/weekly-limit-validation
 import { ConsecutiveDaysValidationService } from './services/consecutive-days-validation.service';
 import { AvailabilityValidationService } from './services/availability-validation.service';
 import { EnhancedComplianceValidationService } from './services/enhanced-compliance-validation.service';
+import { ComplianceRepository } from './repositories/compliance.repository';
 import { ValidationResult, GraduatedValidationResult } from './interfaces';
 
 @Injectable()
@@ -15,7 +16,8 @@ export class ComplianceService {
     private readonly weeklyLimitValidation: WeeklyLimitValidationService,
     private readonly consecutiveDaysValidation: ConsecutiveDaysValidationService,
     private readonly availabilityValidation: AvailabilityValidationService,
-    private readonly enhancedValidation: EnhancedComplianceValidationService
+    private readonly enhancedValidation: EnhancedComplianceValidationService,
+    private readonly complianceRepository: ComplianceRepository
   ) {}
 
   /**
@@ -83,17 +85,18 @@ export class ComplianceService {
     staffId: string,
     newShiftStart: Date,
     newShiftEnd: Date,
-    staffTimezone: string,
-    locationTimezone?: string
+    staffTimezone: string
   ): Promise<ValidationResult[]> {
     const results: ValidationResult[] = [];
 
+    // Validate rest period
     const restPeriodResult = await this.validateRestPeriod(staffId, newShiftStart, newShiftEnd);
     results.push(restPeriodResult);
     if (!restPeriodResult.isValid) {
       return results;
     }
 
+    // Validate daily limit
     const dailyLimitResult = await this.validateDailyLimit(
       locationId,
       staffId,
@@ -105,6 +108,7 @@ export class ComplianceService {
       return results;
     }
 
+    // Validate weekly limit
     const weeklyLimitResult = await this.validateWeeklyLimit(
       locationId,
       staffId,
@@ -116,6 +120,7 @@ export class ComplianceService {
       return results;
     }
 
+    // Validate consecutive days
     const consecutiveDaysResult = await this.validateConsecutiveDays(
       locationId,
       staffId,
@@ -127,15 +132,18 @@ export class ComplianceService {
       return results;
     }
 
-    // Validate availability if locationTimezone provided
-    if (locationTimezone) {
-      const availabilityResult = await this.validateAvailability(
-        staffId,
-        newShiftStart,
-        newShiftEnd,
-        locationTimezone
-      );
-      results.push(availabilityResult);
+    // Validate availability - fetch location timezone
+    const location = await this.complianceRepository.findLocationById(locationId);
+    const locationTimezone = location?.timezone || 'UTC';
+    const availabilityResult = await this.validateAvailability(
+      staffId,
+      newShiftStart,
+      newShiftEnd,
+      locationTimezone
+    );
+    results.push(availabilityResult);
+    if (!availabilityResult.isValid) {
+      return results;
     }
 
     return results;

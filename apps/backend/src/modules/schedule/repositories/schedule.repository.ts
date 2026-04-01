@@ -127,6 +127,25 @@ export class ScheduleRepository {
   }
 
   /**
+   * Update shift details
+   * Requirements: 36.1
+   */
+  async updateShift(
+    shiftId: string,
+    data: {
+      startTime?: Date;
+      endTime?: Date;
+      locationId?: string;
+      requiredHeadcount?: number;
+    }
+  ): Promise<Shift> {
+    return this.prisma.shift.update({
+      where: { id: shiftId },
+      data,
+    });
+  }
+
+  /**
    * Optimized: Get multiple locations at once for the Global view
    */
   async findLocationsByIds(locationIds: string[]): Promise<Location[]> {
@@ -245,8 +264,8 @@ export class ScheduleRepository {
   }
 
   /**
-   * Find unassigned shifts (no assignments)
-   * Requirements: 34.1
+   * Find unassigned shifts (no assignments) or partially filled shifts
+   * Requirements: 34.1, 42.5
    */
   async findUnassignedShifts(
     locationIds?: string[],
@@ -255,9 +274,6 @@ export class ScheduleRepository {
   ): Promise<ShiftWithDetails[]> {
     const where: Prisma.ShiftWhereInput = {
       isPublished: true,
-      assignments: {
-        none: {},
-      },
     };
 
     if (locationIds && locationIds.length > 0) {
@@ -272,6 +288,8 @@ export class ScheduleRepository {
       where.endTime = { lte: endDate };
     }
 
+    // Get all published shifts and filter by headcount in the service layer
+    // This allows us to check if filledHeadcount < requiredHeadcount
     return this.prisma.shift.findMany({
       where,
       include: {
