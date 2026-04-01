@@ -29,7 +29,7 @@ export type Subjects =
 export type AppAbility = MongoAbility<[Action, Subjects]>;
 
 // Create ability factory
-export function createAbility(role: string, managerLocationIds?: string[]): AppAbility {
+export function createAbility(role: string, _managerLocationIds?: string[]): AppAbility {
   const { can, cannot, build } = new AbilityBuilder<AppAbility>(createMongoAbility);
 
   if (role === 'ADMIN') {

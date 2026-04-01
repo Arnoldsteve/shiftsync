@@ -512,7 +512,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - **Property 81: Unpublish Cutoff Enforcement**
     - **Validates: Requirements 32.4**
 
-  - [ ] 11.17 Implement shift pickup (Requirement 34)
+  - [x] 11.17 Implement shift pickup (Requirement 34)
     - Implement getAvailableShifts to show unassigned shifts and drop requests
     - Filter by staff qualifications (skills, certifications)
     - Filter by staff availability windows
@@ -1439,7 +1439,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test role assignment interface
     - Test error handling and display
 
-  - [ ] 26.4 Create availability management interface (Requirement 31)
+  - [-] 26.4 Create availability management interface (Requirement 31)
     - Build availability windows form with day of week and time range
     - Build availability exceptions form with date and time range
     - Display current availability windows and exceptions

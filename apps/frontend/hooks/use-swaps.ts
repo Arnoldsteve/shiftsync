@@ -76,3 +76,26 @@ export function useRejectSwap() {
     },
   });
 }
+
+/**
+ * Hook to cancel a pending swap request
+ * Requirements: 37.1, 37.2, 37.3, 37.4, 37.5
+ *
+ * Allows staff to cancel their own pending swap requests
+ * Notifies target staff and manager, decrements pending count
+ */
+export function useCancelSwapRequest() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (swapRequestId: string) => swapService.cancelSwapRequest(swapRequestId),
+    onSuccess: () => {
+      // Invalidate swaps and all pending counts
+      queryClient.invalidateQueries({ queryKey: queryKeys.swaps.all });
+      toast.success('Swap request cancelled');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to cancel swap request');
+    },
+  });
+}

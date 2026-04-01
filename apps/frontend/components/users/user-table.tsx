@@ -40,7 +40,7 @@ export function UserTable({ users, onEdit }: UserTableProps) {
             <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
             <TableCell className="text-right">
               {onEdit && (
-                <Button variant="ghost" size="icon-sm" onClick={() => onEdit(user)}>
+                <Button variant="ghost" size="icon" onClick={() => onEdit(user)}>
                   <Edit className="h-4 w-4" />
                 </Button>
               )}

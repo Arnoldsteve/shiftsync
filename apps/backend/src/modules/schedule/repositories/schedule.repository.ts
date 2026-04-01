@@ -242,4 +242,49 @@ export class ScheduleRepository {
       assignment,
     }));
   }
+
+  /**
+   * Find unassigned shifts (no assignments)
+   * Requirements: 34.1
+   */
+  async findUnassignedShifts(
+    locationIds?: string[],
+    startDate?: Date,
+    endDate?: Date
+  ): Promise<ShiftWithDetails[]> {
+    const where: Prisma.ShiftWhereInput = {
+      isPublished: true,
+      assignments: {
+        none: {},
+      },
+    };
+
+    if (locationIds && locationIds.length > 0) {
+      where.locationId = { in: locationIds };
+    }
+
+    if (startDate) {
+      where.startTime = { gte: startDate };
+    }
+
+    if (endDate) {
+      where.endTime = { lte: endDate };
+    }
+
+    return this.prisma.shift.findMany({
+      where,
+      include: {
+        location: true,
+        skills: {
+          include: {
+            skill: true,
+          },
+        },
+        assignments: true,
+      },
+      orderBy: {
+        startTime: 'asc',
+      },
+    });
+  }
 }

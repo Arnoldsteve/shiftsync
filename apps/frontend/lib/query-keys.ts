@@ -7,6 +7,8 @@ export const queryKeys = {
     list: (filters: Record<string, any>) => [...queryKeys.users.lists(), filters] as const,
     details: () => [...queryKeys.users.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.users.details(), id] as const,
+    desiredHours: (userId: string) => [...queryKeys.users.all, 'desired-hours', userId] as const,
+    availability: (userId: string) => [...queryKeys.users.all, 'availability', userId] as const,
   },
 
   // Shifts
@@ -16,6 +18,9 @@ export const queryKeys = {
     list: (filters: Record<string, any>) => [...queryKeys.shifts.lists(), filters] as const,
     details: () => [...queryKeys.shifts.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.shifts.details(), id] as const,
+    available: () => [...queryKeys.shifts.all, 'available'] as const,
+    published: (staffId: string, filters?: Record<string, any>) =>
+      [...queryKeys.shifts.all, 'published', staffId, filters] as const,
   },
 
   // Schedules
@@ -33,6 +38,9 @@ export const queryKeys = {
     all: ['swaps'] as const,
     pending: () => [...queryKeys.swaps.all, 'pending'] as const,
     byStaff: (staffId: string) => [...queryKeys.swaps.all, 'staff', staffId] as const,
+    drops: () => [...queryKeys.swaps.all, 'drops'] as const,
+    dropsByStaff: (staffId: string) => [...queryKeys.swaps.all, 'drops', 'staff', staffId] as const,
+    pendingCount: (staffId: string) => [...queryKeys.swaps.all, 'pending-count', staffId] as const,
   },
 
   // Overtime

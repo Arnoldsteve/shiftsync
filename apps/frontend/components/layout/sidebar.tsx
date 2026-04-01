@@ -30,7 +30,7 @@ interface NavItem {
 export function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const { can } = usePermissions();
 
   const handleLogout = () => {

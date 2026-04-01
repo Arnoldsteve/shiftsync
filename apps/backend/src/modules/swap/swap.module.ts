@@ -31,6 +31,6 @@ import { UserModule } from '../user/user.module';
     SwapRepository,
     DropRequestRepository,
   ],
-  exports: [SwapService],
+  exports: [SwapService, DropRequestRepository],
 })
 export class SwapModule {}

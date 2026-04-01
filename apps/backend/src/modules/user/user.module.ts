@@ -37,6 +37,6 @@ import { PrismaModule } from '../../prisma/prisma.module';
     CaslAbilityFactory,
     PoliciesGuard,
   ],
-  exports: [UserService, CaslAbilityFactory, PoliciesGuard],
+  exports: [UserService, UserRepository, CaslAbilityFactory, PoliciesGuard],
 })
 export class UserModule {}

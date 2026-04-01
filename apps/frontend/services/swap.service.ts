@@ -5,6 +5,8 @@ import type {
   ApproveSwapDto,
   RejectSwapDto,
   SwapFilters,
+  CreateDropRequestDto,
+  DropRequest,
 } from '@/types/swap.types';
 
 export const swapService = {
@@ -38,5 +40,27 @@ export const swapService = {
       reason: data.reason,
     });
     return response.data as SwapRequest;
+  },
+
+  // Drop Requests (Requirement 33)
+  async createDropRequest(data: CreateDropRequestDto): Promise<DropRequest> {
+    const response = await apiClient.post('/drops', data);
+    return response.data as DropRequest;
+  },
+
+  async getDropRequestsByStaff(staffId: string): Promise<DropRequest[]> {
+    const response = await apiClient.get(`/staff/${staffId}/drops`);
+    return response.data as DropRequest[];
+  },
+
+  // Swap Cancellation (Requirement 37)
+  async cancelSwapRequest(swapRequestId: string): Promise<void> {
+    await apiClient.delete(`/swaps/${swapRequestId}/cancel`);
+  },
+
+  // Pending Request Count (Requirement 35)
+  async getPendingRequestCount(staffId: string): Promise<{ count: number }> {
+    const response = await apiClient.get(`/staff/${staffId}/pending-count`);
+    return response.data as { count: number };
   },
 };

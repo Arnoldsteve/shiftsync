@@ -30,4 +30,48 @@ export const userService = {
     const response = await apiClient.put(`/users/${userId}/role`, { roleId });
     return response.data as User;
   },
+
+  // Availability Management (Requirement 31)
+  async setAvailabilityWindow(data: {
+    dayOfWeek: number;
+    startTime: string;
+    endTime: string;
+  }): Promise<void> {
+    await apiClient.post('/users/me/availability/windows', data);
+  },
+
+  async removeAvailabilityWindow(windowId: string): Promise<void> {
+    await apiClient.post(`/users/me/availability/windows/${windowId}/remove`);
+  },
+
+  async addAvailabilityException(data: {
+    date: string;
+    startTime?: string;
+    endTime?: string;
+  }): Promise<void> {
+    await apiClient.post('/users/me/availability/exceptions', data);
+  },
+
+  async getAvailability(userId?: string): Promise<{
+    windows: Array<{ id: string; dayOfWeek: number; startTime: string; endTime: string }>;
+    exceptions: Array<{ id: string; date: string; startTime?: string; endTime?: string }>;
+  }> {
+    const endpoint = userId ? `/users/${userId}/availability` : '/users/me/availability';
+    const response = await apiClient.get(endpoint);
+    return response.data as {
+      windows: Array<{ id: string; dayOfWeek: number; startTime: string; endTime: string }>;
+      exceptions: Array<{ id: string; date: string; startTime?: string; endTime?: string }>;
+    };
+  },
+
+  // Desired Hours (Requirement 41)
+  async setDesiredWeeklyHours(hours: number): Promise<void> {
+    await apiClient.post('/users/me/desired-hours', { hours });
+  },
+
+  async getDesiredWeeklyHours(userId?: string): Promise<{ hours: number | null }> {
+    const endpoint = userId ? `/users/${userId}/desired-hours` : '/users/me/desired-hours';
+    const response = await apiClient.get(endpoint);
+    return response.data as { hours: number | null };
+  },
 };

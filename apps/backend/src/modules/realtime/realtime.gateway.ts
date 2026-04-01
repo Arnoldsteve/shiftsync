@@ -286,4 +286,16 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     this.server.to(`location:${locationId}`).emit('drop:expired', dropRequest);
     this.logger.log(`Broadcasted drop:expired to location:${locationId}`);
   }
+
+  /**
+   * Broadcast drop request claimed event
+   * Requirements: 34.4
+   */
+  emitDropClaimed(locationId: string, dropRequestId: string, staffId: string) {
+    this.server.to(`location:${locationId}`).emit('drop:claimed', {
+      dropRequestId,
+      staffId,
+    });
+    this.logger.log(`Broadcasted drop:claimed to location:${locationId}`);
+  }
 }

@@ -7,13 +7,14 @@ import type {
   AssignStaffDto,
   PublishScheduleDto,
   UnpublishScheduleDto,
+  AvailableShift,
 } from '@/types/shift.types';
 
 export const shiftService = {
   async getShifts(filters?: ShiftFilters): Promise<Shift[]> {
     const response = await apiClient.get('/schedule/shifts', { params: filters });
     // Backend returns { shifts: [], total: number }, extract the shifts array
-    return response.data.shifts as Shift[];
+    return (response.data as any).shifts as Shift[];
   },
 
   async getShiftById(id: string): Promise<Shift> {
@@ -48,12 +49,12 @@ export const shiftService = {
 
   async publishSchedule(data: PublishScheduleDto): Promise<{ publishedCount: number }> {
     const response = await apiClient.post('/schedule/publish', data);
-    return response.data;
+    return response.data as { publishedCount: number };
   },
 
   async unpublishSchedule(data: UnpublishScheduleDto): Promise<{ unpublishedCount: number }> {
     const response = await apiClient.post('/schedule/unpublish', data);
-    return response.data;
+    return response.data as { unpublishedCount: number };
   },
 
   async getPublishedShifts(staffId: string, filters?: ShiftFilters): Promise<Shift[]> {
@@ -61,5 +62,15 @@ export const shiftService = {
       params: filters,
     });
     return response.data as Shift[];
+  },
+
+  // Shift Pickup (Requirement 34)
+  async getAvailableShifts(): Promise<AvailableShift[]> {
+    const response = await apiClient.get('/schedule/available-shifts');
+    return response.data as AvailableShift[];
+  },
+
+  async pickupShift(shiftId: string): Promise<void> {
+    await apiClient.post(`/schedule/shifts/${shiftId}/pickup`);
   },
 };

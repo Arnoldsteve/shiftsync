@@ -61,12 +61,12 @@ export function SwapTable({ swaps, onApprove, onReject, showActions = false }: S
             {showActions && swap.status === 'pending' && (
               <TableCell className="text-right space-x-2">
                 {onApprove && (
-                  <Button variant="ghost" size="icon-sm" onClick={() => onApprove(swap.id)}>
+                  <Button variant="ghost" size="icon" onClick={() => onApprove(swap.id)}>
                     <Check className="h-4 w-4 text-green-600" />
                   </Button>
                 )}
                 {onReject && (
-                  <Button variant="ghost" size="icon-sm" onClick={() => onReject(swap.id)}>
+                  <Button variant="ghost" size="icon" onClick={() => onReject(swap.id)}>
                     <X className="h-4 w-4 text-red-600" />
                   </Button>
                 )}

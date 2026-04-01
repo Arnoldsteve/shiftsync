@@ -57,3 +57,17 @@ export interface UnpublishScheduleDto {
   locationId: string;
   weekStartDate: string;
 }
+
+// Available Shift for Pickup (Requirement 34)
+export interface AvailableShift {
+  id: string;
+  locationId: string;
+  locationName: string;
+  startTime: string;
+  endTime: string;
+  timezone: string;
+  requiredSkills: string[];
+  type: 'unassigned' | 'drop_request';
+  dropRequestId: string | null;
+  expiresAt?: string;
+}

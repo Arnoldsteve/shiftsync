@@ -38,3 +38,29 @@ export interface SwapFilters {
   staffId?: string;
   locationId?: string;
 }
+
+// Drop Request (Requirement 33)
+export interface DropRequest {
+  id: string;
+  shiftId: string;
+  requestorId: string;
+  requestorName: string;
+  status: 'pending' | 'claimed' | 'expired' | 'cancelled';
+  expiresAt: string;
+  claimedBy?: string;
+  claimedAt?: string;
+  reason?: string;
+  createdAt: string;
+  shift?: {
+    id: string;
+    startTime: string;
+    endTime: string;
+    locationId: string;
+    locationName: string;
+  };
+}
+
+export interface CreateDropRequestDto {
+  shiftId: string;
+  reason?: string;
+}

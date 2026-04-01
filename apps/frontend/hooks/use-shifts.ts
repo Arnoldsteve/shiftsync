@@ -7,6 +7,8 @@ import type {
   UpdateShiftDto,
   ShiftFilters,
   AssignStaffDto,
+  PublishScheduleDto,
+  UnpublishScheduleDto,
 } from '@/types/shift.types';
 
 /**
@@ -16,11 +18,11 @@ import type {
  */
 export function useShifts(filters?: ShiftFilters) {
   return useQuery({
-    // The queryKey includes the filters so that switching locations 
+    // The queryKey includes the filters so that switching locations
     // or status triggers a fresh fetch from the server.
     queryKey: queryKeys.shifts.list(filters || {}),
     queryFn: () => shiftService.getShifts(filters),
-    // Senior Logic: Only require dates. locationId is now handled 
+    // Senior Logic: Only require dates. locationId is now handled
     // dynamically by the Backend's PBAC logic.
     enabled: !!filters?.startDate && !!filters?.endDate,
     refetchOnWindowFocus: false,
@@ -136,5 +138,59 @@ export function useUnassignStaff() {
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Failed to unassign staff');
     },
+  });
+}
+
+/**
+ * Hook to publish a schedule for a week.
+ * Requirement 32.1
+ */
+export function usePublishSchedule() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { locationId: string; weekStartDate: string }) =>
+      shiftService.publishSchedule(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.shifts.all });
+      toast.success('Schedule published successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to publish schedule');
+    },
+  });
+}
+
+/**
+ * Hook to unpublish a schedule for a week.
+ * Requirement 32.2 - with 48-hour cutoff enforcement
+ */
+export function useUnpublishSchedule() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { locationId: string; weekStartDate: string }) =>
+      shiftService.unpublishSchedule(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.shifts.all });
+      toast.success('Schedule unpublished successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to unpublish schedule');
+    },
+  });
+}
+
+/**
+ * Hook to fetch published shifts for a staff member.
+ * Requirement 32.3
+ */
+export function usePublishedShifts(staffId: string, filters?: ShiftFilters) {
+  return useQuery({
+    queryKey: queryKeys.shifts.published(staffId, filters),
+    queryFn: () => shiftService.getPublishedShifts(staffId, filters),
+    enabled: !!staffId,
+    refetchOnWindowFocus: false,
+    staleTime: 30000,
   });
 }

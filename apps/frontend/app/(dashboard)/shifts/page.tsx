@@ -28,14 +28,14 @@ export default function ShiftsPage() {
   const { startISO, endISO } = useMemo(() => {
     const start = new Date();
     start.setHours(0, 0, 0, 0); // Start of today
-    
+
     const end = new Date(start);
     end.setDate(start.getDate() + 7);
     end.setHours(23, 59, 59, 999); // End of the 7th day
-    
-    return { 
-      startISO: start.toISOString(), 
-      endISO: end.toISOString() 
+
+    return {
+      startISO: start.toISOString(),
+      endISO: end.toISOString(),
     };
   }, []); // Empty deps: This range stays stable for the lifecycle of the page
 
@@ -47,7 +47,6 @@ export default function ShiftsPage() {
     data: shifts,
     isLoading: isLoadingShifts,
     error,
-    isFetching,
   } = useShifts({
     // If 'all', pass undefined. Backend Service handles the PBAC Global fetch.
     locationId: locationFilter === 'all' ? undefined : locationFilter,
@@ -65,9 +64,9 @@ export default function ShiftsPage() {
   const locationMap = useMemo(() => {
     const map = new Map();
     locations?.forEach((loc) => {
-      map.set(loc.id, { 
-        name: loc.name, 
-        timezone: loc.timezone 
+      map.set(loc.id, {
+        name: loc.name,
+        timezone: loc.timezone,
       });
     });
     return map;
@@ -131,7 +130,6 @@ export default function ShiftsPage() {
       <ShiftTable
         shifts={shiftList}
         isLoading={isLoading}
-        isFetching={isFetching && !!shifts} // Visual indicator for background refreshes
         locationMap={locationMap}
         isPremiumShift={isPremiumShift}
       />

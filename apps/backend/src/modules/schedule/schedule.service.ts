@@ -1,35 +1,35 @@
-import {
-  Injectable,
-  Logger,
-  BadRequestException,
-  NotFoundException,
-  ForbiddenException,
-} from '@nestjs/common';
-import { ScheduleRepository } from './repositories/schedule.repository';
-import { AuditService } from '../audit/audit.service';
-import { CacheService } from '../cache/cache.service';
-import { ConflictService } from '../conflict/conflict.service';
-import { ComplianceService } from '../compliance/compliance.service';
-import { RealtimeGateway } from '../realtime/realtime.gateway';
-import { Shift, Assignment, Role } from '@prisma/client';
+import { Injectable } from '@nestjs/common';
+import { ShiftManagementService } from './services/shift-management.service';
+import { StaffAssignmentService } from './services/staff-assignment.service';
+import { SchedulePublishingService } from './services/schedule-publishing.service';
+import { ShiftPickupService } from './services/shift-pickup.service';
+import { Shift, Assignment } from '@prisma/client';
 
+/**
+ * Schedule Service (Orchestrator)
+ *
+ * Lightweight facade that delegates to specialized services:
+ * - ShiftManagementService: Shift CRUD operations
+ * - StaffAssignmentService: Staff assignment/unassignment
+ * - SchedulePublishingService: Schedule publishing/unpublishing
+ * - ShiftPickupService: Staff self-service shift pickup
+ *
+ * This orchestrator pattern improves maintainability by:
+ * - Single Responsibility: Each service has one clear purpose
+ * - Testability: Services can be tested independently
+ * - Scalability: Easy to add new features without bloating one file
+ */
 @Injectable()
 export class ScheduleService {
-  private readonly logger = new Logger(ScheduleService.name);
-
   constructor(
-    private readonly scheduleRepository: ScheduleRepository,
-    private readonly auditService: AuditService,
-    private readonly cacheService: CacheService,
-    private readonly conflictService: ConflictService,
-    private readonly complianceService: ComplianceService,
-    private readonly realtimeGateway: RealtimeGateway
+    private readonly shiftManagementService: ShiftManagementService,
+    private readonly staffAssignmentService: StaffAssignmentService,
+    private readonly schedulePublishingService: SchedulePublishingService,
+    private readonly shiftPickupService: ShiftPickupService
   ) {}
 
-  /**
-   * Create a new shift
-   * Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 18.1
-   */
+  // ==================== Shift Management ====================
+
   async createShift(
     locationId: string,
     startTime: Date,
@@ -38,369 +38,93 @@ export class ScheduleService {
     managerId: string,
     managerLocationIds?: string[]
   ): Promise<Shift> {
-    try {
-      if (!locationId || !startTime || !endTime) {
-        throw new BadRequestException('Missing required fields for shift creation');
-      }
-
-      const startUTC = new Date(startTime);
-      const endUTC = new Date(endTime);
-
-      if (endUTC <= startUTC) {
-        throw new BadRequestException('Shift end time must be after start time');
-      }
-
-      // PBAC: Check if manager is actually assigned to this location
-      if (managerLocationIds && !managerLocationIds.includes(locationId)) {
-        throw new ForbiddenException('Manager not authorized to create shifts for this location');
-      }
-
-      const shift = await this.scheduleRepository.createShift({
-        location: {
-          connect: { id: locationId },
-        },
-        startTime: startUTC,
-        endTime: endUTC,
-        createdBy: managerId,
-        skills: {
-          create: requiredSkillIds.map((skillId) => ({
-            skill: {
-              connect: { id: skillId },
-            },
-          })),
-        },
-      });
-
-      await this.auditService.logShiftChange('CREATE', shift.id, managerId, {
-        newState: {
-          locationId,
-          startTime: startUTC.toISOString(),
-          endTime: endUTC.toISOString(),
-          requiredSkillIds,
-        },
-      });
-
-      await this.cacheService.invalidateSchedule(locationId);
-      this.realtimeGateway.emitShiftCreated(locationId, shift);
-
-      return shift;
-    } catch (error) {
-      this.logger.error(`Error creating shift:`, error);
-      throw error;
-    }
+    return this.shiftManagementService.createShift(
+      locationId,
+      startTime,
+      endTime,
+      requiredSkillIds,
+      managerId,
+      managerLocationIds
+    );
   }
 
-  /**
-   * Get schedule for a location (or all authorized locations) and date range
-   * Senior Refactor: Implements PBAC Filtering and Per-Shift Timezone Handling
-   */
   async getSchedule(
     currentUser: any,
     locationId?: string,
     startDate?: Date,
     endDate?: Date,
-    page: number = 1,
-    pageSize: number = 50
+    page?: number,
+    pageSize?: number
   ): Promise<{ shifts: any[]; total: number }> {
-    try {
-      const start = startDate || new Date();
-      const end = endDate || new Date(new Date().setDate(start.getDate() + 7));
-
-      // 1. Determine Authorization Context (PBAC Logic)
-      let targetLocationIds: string | string[] | undefined = undefined;
-
-      if (currentUser.role === Role.ADMIN) {
-        // Admin: Return specific location or everything if missing
-        targetLocationIds = locationId || undefined;
-      } else {
-        // Manager: Restricted to their specific assigned locations
-        const managedIds = currentUser.managedLocationIds || [];
-
-        if (locationId) {
-          // Verify manager owns the specific location they requested
-          if (!managedIds.includes(locationId)) {
-            throw new ForbiddenException('You do not have permission to view this location');
-          }
-          targetLocationIds = locationId;
-        } else {
-          // "Global" View: Return only the locations this manager runs
-          targetLocationIds = managedIds;
-        }
-      }
-
-      const skip = (page - 1) * pageSize;
-
-      // 2. Fetch using dynamic repository method (Step 1)
-      const rawShifts = await this.scheduleRepository.findShiftsByLocation(
-        targetLocationIds,
-        start,
-        end,
-        skip,
-        pageSize
-      );
-
-      // 3. Collect Unique Staff IDs for name hydration
-      const staffIds = new Set<string>();
-      rawShifts.forEach((shift) => {
-        if (shift.assignments?.[0]) {
-          staffIds.add(shift.assignments[0].staffId);
-        }
-      });
-
-      const staffMap = await this.scheduleRepository.findStaffByIds(Array.from(staffIds));
-
-      // 4. Transform: Mapping Per-Shift Timezones and Names
-      const shifts = rawShifts.map((shift) => {
-        // We pull the specific timezone/name from the joined location object
-        const locationData = (shift as any).location;
-
-        return {
-          id: shift.id,
-          locationId: shift.locationId,
-          locationName: locationData?.name || 'Unknown Location',
-          startTime: shift.startTime.toISOString(),
-          endTime: shift.endTime.toISOString(),
-          timezone: locationData?.timezone || 'UTC',
-          requiredSkills: shift.skills.map((s) => s.skill.name),
-          assignment: shift.assignments?.[0]
-            ? {
-                id: shift.assignments[0].id,
-                shiftId: shift.id,
-                staffId: shift.assignments[0].staffId,
-                staffName: staffMap.get(shift.assignments[0].staffId) || 'Unknown Staff',
-                createdAt: shift.assignments[0].assignedAt.toISOString(),
-              }
-            : undefined,
-          createdAt: shift.createdAt.toISOString(),
-          updatedAt: shift.updatedAt.toISOString(),
-        };
-      });
-
-      return {
-        shifts,
-        total: shifts.length, // Pagination logic: in production, use count()
-      };
-    } catch (error) {
-      this.logger.error(`Error getting schedule:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Assign staff to a shift with Conflict & Compliance checks
-   */
-  async assignStaff(shiftId: string, staffId: string, assignedBy: string): Promise<Assignment> {
-    try {
-      const shift = await this.scheduleRepository.findShiftById(shiftId);
-      if (!shift) throw new NotFoundException('Shift not found');
-
-      const existingAssignment = shift.assignments.find((a) => a.shiftId === shiftId);
-      if (existingAssignment) throw new BadRequestException('Shift is already covered');
-
-      // Double-booking check
-      const conflictResult = await this.conflictService.checkOverlap(
-        staffId,
-        shift.startTime,
-        shift.endTime
-      );
-      if (conflictResult.hasConflict) {
-        throw new BadRequestException(
-          `Schedule Conflict: User is already working at ${conflictResult.conflictingShifts[0].locationId}`
-        );
-      }
-
-      // Labor Compliance (10h rest, 12h daily limit, etc.)
-      const location = await this.scheduleRepository.findLocationById(shift.locationId);
-      const tz = location?.timezone || 'UTC';
-      const compliance = await this.complianceService.validateAll(
-        shift.locationId,
-        staffId,
-        shift.startTime,
-        shift.endTime,
-        tz
-      );
-
-      const failure = compliance.find((r) => !r.isValid);
-      if (failure) throw new BadRequestException(`Compliance Violation: ${failure.message}`);
-
-      const assignment = await this.scheduleRepository.createAssignment({
-        shift: { connect: { id: shiftId } },
-        staff: { connect: { id: staffId } },
-        assignedBy,
-        version: 1,
-      });
-
-      await this.auditService.logAssignmentChange('CREATE', assignment.id, assignedBy, {
-        newState: { shiftId, staffId, assignedBy },
-      });
-
-      this.realtimeGateway.emitAssignmentChanged(shift.locationId, staffId, assignment);
-      return assignment;
-    } catch (error) {
-      this.logger.error(`Error assigning staff:`, error);
-      throw error;
-    }
-  }
-
-  async unassignStaff(shiftId: string, unassignedBy: string): Promise<void> {
-    try {
-      const assignment = await this.scheduleRepository.findAssignmentByShift(shiftId);
-      if (!assignment) throw new NotFoundException('Assignment not found');
-
-      await this.scheduleRepository.deleteAssignment(assignment.id);
-
-      await this.auditService.logAssignmentChange('DELETE', assignment.id, unassignedBy, {
-        previousState: { shiftId, staffId: assignment.staffId },
-      });
-
-      this.realtimeGateway.emitAssignmentChanged(assignment.shiftId, assignment.staffId, {
-        action: 'unassigned',
-      });
-    } catch (error) {
-      this.logger.error(`Error unassigning staff:`, error);
-      throw error;
-    }
+    return this.shiftManagementService.getSchedule(
+      currentUser,
+      locationId,
+      startDate,
+      endDate,
+      page,
+      pageSize
+    );
   }
 
   async getStaffSchedule(staffId: string, startDate?: Date, endDate?: Date): Promise<any[]> {
-    return this.scheduleRepository.findShiftsByStaff(staffId, startDate, endDate);
+    return this.shiftManagementService.getStaffSchedule(staffId, startDate, endDate);
   }
 
-  /**
-   * Publish schedule for a week
-   * Requirements: 32.1, 32.5
-   */
+  async getStaffSchedulePublished(
+    staffId: string,
+    startDate?: Date,
+    endDate?: Date
+  ): Promise<any[]> {
+    return this.shiftManagementService.getStaffSchedulePublished(staffId, startDate, endDate);
+  }
+
+  // ==================== Staff Assignment ====================
+
+  async assignStaff(shiftId: string, staffId: string, assignedBy: string): Promise<Assignment> {
+    return this.staffAssignmentService.assignStaff(shiftId, staffId, assignedBy);
+  }
+
+  async unassignStaff(shiftId: string, unassignedBy: string): Promise<void> {
+    return this.staffAssignmentService.unassignStaff(shiftId, unassignedBy);
+  }
+
+  // ==================== Schedule Publishing ====================
+
   async publishSchedule(
     locationId: string,
     weekStartDate: Date,
     managerId: string,
     managerLocationIds?: string[]
   ): Promise<{ publishedCount: number }> {
-    try {
-      // PBAC: Check if manager is authorized for this location
-      if (managerLocationIds && !managerLocationIds.includes(locationId)) {
-        throw new ForbiddenException(
-          'Manager not authorized to publish schedules for this location'
-        );
-      }
-
-      // Calculate week end (7 days from start)
-      const weekEnd = new Date(weekStartDate);
-      weekEnd.setDate(weekEnd.getDate() + 7);
-
-      // Publish all shifts in the week
-      const publishedCount = await this.scheduleRepository.publishShifts(
-        locationId,
-        weekStartDate,
-        weekEnd
-      );
-
-      // Audit log
-      await this.auditService.logShiftChange('UPDATE', `schedule-${locationId}`, managerId, {
-        newState: {
-          action: 'publish',
-          locationId,
-          weekStartDate: weekStartDate.toISOString(),
-          publishedCount,
-        },
-      });
-
-      // Invalidate cache
-      await this.cacheService.invalidateSchedule(locationId);
-
-      // Emit real-time event
-      this.realtimeGateway.emitSchedulePublished(locationId, weekStartDate, publishedCount);
-
-      // TODO: Integrate with Notification Service when implemented (Task 20a)
-      // await this.notificationService.notifySchedulePublished(locationId, weekStartDate);
-
-      this.logger.log(`Published ${publishedCount} shifts for location ${locationId}`);
-
-      return { publishedCount };
-    } catch (error) {
-      this.logger.error(`Error publishing schedule:`, error);
-      throw error;
-    }
+    return this.schedulePublishingService.publishSchedule(
+      locationId,
+      weekStartDate,
+      managerId,
+      managerLocationIds
+    );
   }
 
-  /**
-   * Unpublish schedule for a week with cutoff enforcement
-   * Requirements: 32.4
-   */
   async unpublishSchedule(
     locationId: string,
     weekStartDate: Date,
     managerId: string,
     managerLocationIds?: string[]
   ): Promise<{ unpublishedCount: number }> {
-    try {
-      // PBAC: Check if manager is authorized for this location
-      if (managerLocationIds && !managerLocationIds.includes(locationId)) {
-        throw new ForbiddenException(
-          'Manager not authorized to unpublish schedules for this location'
-        );
-      }
-
-      // Get location config for cutoff hours
-      const location = await this.scheduleRepository.findLocationById(locationId);
-      if (!location) {
-        throw new NotFoundException('Location not found');
-      }
-
-      // Check cutoff time (default 48 hours before week start)
-      const cutoffHours = (location as any).schedulePublishCutoffHours || 48;
-      const cutoffTime = new Date(weekStartDate);
-      cutoffTime.setHours(cutoffTime.getHours() - cutoffHours);
-
-      const now = new Date();
-      if (now >= cutoffTime) {
-        throw new BadRequestException(
-          `Cannot unpublish schedule within ${cutoffHours} hours of week start`
-        );
-      }
-
-      // Calculate week end
-      const weekEnd = new Date(weekStartDate);
-      weekEnd.setDate(weekEnd.getDate() + 7);
-
-      // Unpublish all shifts in the week
-      const unpublishedCount = await this.scheduleRepository.unpublishShifts(
-        locationId,
-        weekStartDate,
-        weekEnd
-      );
-
-      // Audit log
-      await this.auditService.logShiftChange('UPDATE', `schedule-${locationId}`, managerId, {
-        newState: {
-          action: 'unpublish',
-          locationId,
-          weekStartDate: weekStartDate.toISOString(),
-          unpublishedCount,
-        },
-      });
-
-      // Invalidate cache
-      await this.cacheService.invalidateSchedule(locationId);
-
-      this.logger.log(`Unpublished ${unpublishedCount} shifts for location ${locationId}`);
-
-      return { unpublishedCount };
-    } catch (error) {
-      this.logger.error(`Error unpublishing schedule:`, error);
-      throw error;
-    }
+    return this.schedulePublishingService.unpublishSchedule(
+      locationId,
+      weekStartDate,
+      managerId,
+      managerLocationIds
+    );
   }
 
-  /**
-   * Get staff schedule (only published shifts for staff role)
-   * Requirements: 32.2, 32.3
-   */
-  async getStaffSchedulePublished(
-    staffId: string,
-    startDate?: Date,
-    endDate?: Date
-  ): Promise<any[]> {
-    return this.scheduleRepository.findPublishedShiftsByStaff(staffId, startDate, endDate);
+  // ==================== Shift Pickup ====================
+
+  async getAvailableShifts(staffId: string): Promise<any[]> {
+    return this.shiftPickupService.getAvailableShifts(staffId);
+  }
+
+  async pickupShift(shiftId: string, staffId: string): Promise<Assignment> {
+    return this.shiftPickupService.pickupShift(shiftId, staffId);
   }
 }
