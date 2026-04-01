@@ -198,6 +198,14 @@ export class UserService {
   }
 
   /**
+   * Get all skills
+   * Requirements: 2.1
+   */
+  async getAllSkills() {
+    return this.userRepository.getAllSkills();
+  }
+
+  /**
    * Get user by ID with relations
    * Requirements: 1.5
    */

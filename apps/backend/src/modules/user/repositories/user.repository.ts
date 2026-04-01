@@ -155,4 +155,16 @@ export class UserRepository {
 
     return managerAssignments.map((assignment) => assignment.manager);
   }
+
+  /**
+   * Get all skills
+   * Requirements: 2.1
+   */
+  async getAllSkills() {
+    return this.prisma.skill.findMany({
+      orderBy: {
+        name: 'asc',
+      },
+    });
+  }
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,7 @@ import {
 import { toast } from 'sonner';
 import { useCreateShift } from '@/hooks/use-shifts';
 import { useLocations } from '@/hooks/use-locations';
+import { useSkills } from '@/hooks/use-skills';
 import type { CreateShiftDto } from '@/types/shift.types';
 
 export function CreateShiftDialog() {
@@ -33,9 +34,11 @@ export function CreateShiftDialog() {
   const [endTime, setEndTime] = useState('17:00');
   const [locationId, setLocationId] = useState('');
   const [requiredHeadcount, setRequiredHeadcount] = useState(1);
+  const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
 
   const createShift = useCreateShift();
   const { data: locations, isLoading: isLoadingLocations } = useLocations();
+  const { data: skills, isLoading: isLoadingSkills } = useSkills();
 
   const resetForm = () => {
     setStartDate(undefined);
@@ -44,6 +47,7 @@ export function CreateShiftDialog() {
     setEndTime('17:00');
     setLocationId('');
     setRequiredHeadcount(1);
+    setSelectedSkillIds([]);
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -56,6 +60,11 @@ export function CreateShiftDialog() {
 
     if (!locationId) {
       toast.error('Please select a location');
+      return;
+    }
+
+    if (selectedSkillIds.length === 0) {
+      toast.error('Please select at least one required skill');
       return;
     }
 
@@ -78,7 +87,7 @@ export function CreateShiftDialog() {
       locationId,
       startTime: startDateTime.toISOString(),
       endTime: endDateTime.toISOString(),
-      requiredSkillIds: [],
+      requiredSkillIds: selectedSkillIds,
       requiredHeadcount,
     };
 
@@ -197,6 +206,68 @@ export function CreateShiftDialog() {
                 required
               />
             </div>
+
+            {/* Required Skills */}
+            <div className="grid gap-2">
+              <Label className="text-sm font-medium">
+                Required Skills <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value=""
+                onValueChange={(skillId) => {
+                  if (!selectedSkillIds.includes(skillId)) {
+                    setSelectedSkillIds([...selectedSkillIds, skillId]);
+                  }
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select skills" />
+                </SelectTrigger>
+                <SelectContent>
+                  {isLoadingSkills ? (
+                    <SelectItem value="loading" disabled>
+                      Loading skills...
+                    </SelectItem>
+                  ) : skills && skills.length > 0 ? (
+                    skills
+                      .filter((skill) => !selectedSkillIds.includes(skill.id))
+                      .map((skill) => (
+                        <SelectItem key={skill.id} value={skill.id}>
+                          {skill.name}
+                        </SelectItem>
+                      ))
+                  ) : (
+                    <SelectItem value="none" disabled>
+                      No skills available
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+              {selectedSkillIds.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {selectedSkillIds.map((skillId) => {
+                    const skill = skills?.find((s) => s.id === skillId);
+                    return (
+                      <div
+                        key={skillId}
+                        className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-md text-sm"
+                      >
+                        <span>{skill?.name}</span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setSelectedSkillIds(selectedSkillIds.filter((id) => id !== skillId))
+                          }
+                          className="hover:bg-primary/20 rounded-full p-0.5"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           <DialogFooter className="gap-2">
@@ -211,7 +282,10 @@ export function CreateShiftDialog() {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={createShift.isPending || !locationId}>
+            <Button
+              type="submit"
+              disabled={createShift.isPending || !locationId || selectedSkillIds.length === 0}
+            >
               {createShift.isPending ? 'Creating...' : 'Create Shift'}
             </Button>
           </DialogFooter>

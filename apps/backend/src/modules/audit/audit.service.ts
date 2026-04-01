@@ -205,8 +205,8 @@ export class AuditService {
       data.entityId,
       data.userId,
       data.timestamp.toISOString(),
-      JSON.stringify(data.previousState || null),
-      JSON.stringify(data.newState || null),
+      this.canonicalStringify(data.previousState || null),
+      this.canonicalStringify(data.newState || null),
     ].join('|');
 
     console.log('Hash input:', hashInput);
@@ -214,5 +214,32 @@ export class AuditService {
     console.log('Generated hash:', hash);
 
     return hash;
+  }
+
+  /**
+   * Canonical JSON stringifier - ensures consistent key ordering
+   * Requirements: 20.3
+   * @private
+   */
+  private canonicalStringify(obj: any): string {
+    if (obj === null || obj === undefined) {
+      return 'null';
+    }
+
+    if (typeof obj !== 'object') {
+      return JSON.stringify(obj);
+    }
+
+    if (Array.isArray(obj)) {
+      return '[' + obj.map((item) => this.canonicalStringify(item)).join(',') + ']';
+    }
+
+    // Sort object keys alphabetically
+    const sortedKeys = Object.keys(obj).sort();
+    const pairs = sortedKeys.map((key) => {
+      return JSON.stringify(key) + ':' + this.canonicalStringify(obj[key]);
+    });
+
+    return '{' + pairs.join(',') + '}';
   }
 }

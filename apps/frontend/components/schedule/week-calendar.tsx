@@ -150,6 +150,21 @@ export function WeekCalendar({
                           {assignments.map((a) => a.staffName).join(', ')}
                         </div>
                       )}
+
+                      {/* Required Skills */}
+                      {shift.requiredSkills && shift.requiredSkills.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {shift.requiredSkills.map((skill, idx) => (
+                            <Badge
+                              key={idx}
+                              variant="outline"
+                              className="text-[9px] px-1 py-0 h-3.5"
+                            >
+                              {skill}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })}

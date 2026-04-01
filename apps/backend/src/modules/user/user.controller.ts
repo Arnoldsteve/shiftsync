@@ -121,6 +121,16 @@ export class UserController {
   }
 
   /**
+   * Get all skills - PBAC: All authenticated users can read
+   * Requirements: 2.1
+   */
+  @Get('skills/all')
+  @CheckPolicies((ability) => ability.can(Action.Read, 'User'))
+  async getAllSkills() {
+    return this.userService.getAllSkills();
+  }
+
+  /**
    * Get user by ID - PBAC: All authenticated users can read
    * Requirements: 1.5
    */

@@ -261,13 +261,25 @@ describe('AuditService', () => {
           id: 'audit-1',
           action: 'CREATE',
           entityType: 'SHIFT',
+          entityId: 'shift-1',
+          userId: 'user-1',
           timestamp: new Date('2024-01-15'),
+          previousState: null,
+          newState: {},
+          hash: 'hash-1',
+          user: { firstName: 'John', lastName: 'Doe' },
         },
         {
           id: 'audit-2',
           action: 'UPDATE',
           entityType: 'ASSIGNMENT',
+          entityId: 'assignment-1',
+          userId: 'user-2',
           timestamp: new Date('2024-01-20'),
+          previousState: {},
+          newState: {},
+          hash: 'hash-2',
+          user: { firstName: 'Jane', lastName: 'Smith' },
         },
       ];
 
@@ -275,7 +287,11 @@ describe('AuditService', () => {
 
       const result = await auditService.queryAuditLog(filters);
 
-      expect(result).toEqual(mockAuditLogs);
+      expect(result.data).toHaveLength(2);
+      expect(result.total).toBe(2);
+      expect(result.data[0].action).toBe('create');
+      expect(result.data[0].entityType).toBe('shift');
+      expect(result.data[0].userName).toBe('John Doe');
       expect(auditRepository.query).toHaveBeenCalledWith(filters);
     });
 
@@ -288,6 +304,12 @@ describe('AuditService', () => {
           userId: 'user-123',
           action: 'CREATE',
           entityType: 'SHIFT',
+          entityId: 'shift-1',
+          timestamp: new Date('2024-01-15'),
+          previousState: null,
+          newState: {},
+          hash: 'hash-1',
+          user: { firstName: 'John', lastName: 'Doe' },
         },
       ];
 
@@ -295,7 +317,8 @@ describe('AuditService', () => {
 
       const result = await auditService.queryAuditLog(filters);
 
-      expect(result).toEqual(mockAuditLogs);
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].userId).toBe('user-123');
       expect(auditRepository.query).toHaveBeenCalledWith(filters);
     });
 
@@ -307,6 +330,13 @@ describe('AuditService', () => {
           id: 'audit-1',
           action: 'CREATE',
           entityType: 'SHIFT',
+          entityId: 'shift-1',
+          userId: 'user-1',
+          timestamp: new Date('2024-01-15'),
+          previousState: null,
+          newState: {},
+          hash: 'hash-1',
+          user: { firstName: 'John', lastName: 'Doe' },
         },
       ];
 
@@ -314,7 +344,9 @@ describe('AuditService', () => {
 
       const result = await auditService.queryAuditLog(filters);
 
-      expect(result).toEqual(mockAuditLogs);
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].action).toBe('create');
+      expect(result.data[0].entityType).toBe('shift');
       expect(auditRepository.query).toHaveBeenCalledWith(filters);
     });
   });
