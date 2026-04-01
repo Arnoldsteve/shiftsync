@@ -41,7 +41,8 @@ export class ScheduleService {
     endTime: Date,
     requiredSkillIds: string[],
     managerId: string,
-    managerLocationIds?: string[]
+    managerLocationIds?: string[],
+    requiredHeadcount?: number
   ): Promise<Shift> {
     return this.shiftManagementService.createShift(
       locationId,
@@ -49,7 +50,8 @@ export class ScheduleService {
       endTime,
       requiredSkillIds,
       managerId,
-      managerLocationIds
+      managerLocationIds,
+      requiredHeadcount
     );
   }
 

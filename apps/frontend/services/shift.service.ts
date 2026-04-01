@@ -8,6 +8,7 @@ import type {
   PublishScheduleDto,
   UnpublishScheduleDto,
   AvailableShift,
+  StaffSuggestion,
 } from '@/types/shift.types';
 
 export const shiftService = {
@@ -80,5 +81,13 @@ export const shiftService = {
 
   async pickupShift(shiftId: string): Promise<void> {
     await apiClient.post(`/schedule/shifts/${shiftId}/pickup`);
+  },
+
+  // Alternative Staff Suggestions (Requirement 40)
+  async getAlternativeStaff(shiftId: string, excludeStaffId?: string): Promise<StaffSuggestion[]> {
+    const response = await apiClient.get(`/schedule/shifts/${shiftId}/alternatives`, {
+      params: excludeStaffId ? { excludeStaffId } : undefined,
+    });
+    return response.data as StaffSuggestion[];
   },
 };

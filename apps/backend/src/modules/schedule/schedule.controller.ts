@@ -47,6 +47,7 @@ export class ScheduleController {
       startTime: string;
       endTime: string;
       requiredSkillIds: string[];
+      requiredHeadcount?: number;
     },
     @CurrentUser() user: any
   ) {
@@ -56,7 +57,8 @@ export class ScheduleController {
       new Date(data.endTime),
       data.requiredSkillIds,
       user.id,
-      user.managedLocationIds // Pass authorized IDs for immediate validation
+      user.managedLocationIds, // Pass authorized IDs for immediate validation
+      data.requiredHeadcount
     );
   }
 
@@ -206,5 +208,28 @@ export class ScheduleController {
   @CheckPolicies((ability) => ability.can(Action.Create, 'Assignment'))
   async pickupShift(@Param('id') shiftId: string, @CurrentUser('id') staffId: string) {
     return this.scheduleService.pickupShift(shiftId, staffId);
+  }
+
+  /**
+   * Get alternative staff suggestions for a shift - Manager only
+   * Requirements: 40.1, 40.2, 40.3, 40.4, 40.5
+   */
+  @Get('shifts/:id/alternatives')
+  @CheckPolicies((ability) => ability.can(Action.Read, 'Shift'))
+  async getAlternativeStaff(
+    @Param('id') shiftId: string,
+    @Query('excludeStaffId') excludeStaffId?: string
+  ) {
+    return this.scheduleService.getAlternativeStaff(shiftId, excludeStaffId);
+  }
+
+  /**
+   * Get shift headcount status - Manager only
+   * Requirements: 42.3, 42.4
+   */
+  @Get('shifts/:id/headcount')
+  @CheckPolicies((ability) => ability.can(Action.Read, 'Shift'))
+  async getShiftHeadcountStatus(@Param('id') shiftId: string) {
+    return this.scheduleService.getShiftHeadcountStatus(shiftId);
   }
 }

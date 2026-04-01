@@ -31,7 +31,7 @@ export class ShiftManagementService {
 
   /**
    * Create a new shift
-   * Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 18.1
+   * Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 18.1, 42.1
    */
   async createShift(
     locationId: string,
@@ -39,7 +39,8 @@ export class ShiftManagementService {
     endTime: Date,
     requiredSkillIds: string[],
     managerId: string,
-    managerLocationIds?: string[]
+    managerLocationIds?: string[],
+    requiredHeadcount?: number
   ): Promise<Shift> {
     try {
       if (!locationId || !startTime || !endTime) {
@@ -64,6 +65,7 @@ export class ShiftManagementService {
         },
         startTime: startUTC,
         endTime: endUTC,
+        requiredHeadcount: requiredHeadcount || 1,
         createdBy: managerId,
         skills: {
           create: requiredSkillIds.map((skillId) => ({
@@ -80,6 +82,7 @@ export class ShiftManagementService {
           startTime: startUTC.toISOString(),
           endTime: endUTC.toISOString(),
           requiredSkillIds,
+          requiredHeadcount: shift.requiredHeadcount,
         },
       });
 
@@ -145,9 +148,9 @@ export class ShiftManagementService {
       // 3. Collect Unique Staff IDs for name hydration
       const staffIds = new Set<string>();
       rawShifts.forEach((shift) => {
-        if (shift.assignments?.[0]) {
-          staffIds.add(shift.assignments[0].staffId);
-        }
+        shift.assignments?.forEach((assignment) => {
+          staffIds.add(assignment.staffId);
+        });
       });
 
       const staffMap = await this.scheduleRepository.findStaffByIds(Array.from(staffIds));
@@ -164,6 +167,7 @@ export class ShiftManagementService {
           endTime: shift.endTime.toISOString(),
           timezone: locationData?.timezone || 'UTC',
           requiredSkills: shift.skills.map((s) => s.skill.name),
+          requiredHeadcount: shift.requiredHeadcount,
           assignment: shift.assignments?.[0]
             ? {
                 id: shift.assignments[0].id,
@@ -173,6 +177,15 @@ export class ShiftManagementService {
                 createdAt: shift.assignments[0].assignedAt.toISOString(),
               }
             : undefined,
+          assignments: shift.assignments?.map((assignment) => ({
+            id: assignment.id,
+            shiftId: shift.id,
+            staffId: assignment.staffId,
+            staffName: staffMap.get(assignment.staffId) || 'Unknown Staff',
+            createdAt: assignment.assignedAt.toISOString(),
+          })),
+          isPublished: shift.isPublished,
+          publishedAt: shift.publishedAt?.toISOString(),
           createdAt: shift.createdAt.toISOString(),
           updatedAt: shift.updatedAt.toISOString(),
         };

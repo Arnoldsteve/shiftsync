@@ -283,3 +283,121 @@ export function ApiGetSwapsByStaffDocs() {
     })
   );
 }
+
+/**
+ * Documentation for Create Drop Request endpoint
+ */
+export function ApiCreateDropRequestDocs() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Create drop request',
+      description:
+        'Staff member offers their shift to any qualified staff. System validates constraints and tracks pending requests.',
+    }),
+    ApiBody({
+      schema: {
+        type: 'object',
+        required: ['shiftId'],
+        properties: {
+          shiftId: { type: 'string', example: 'clx-shift-123' },
+          reason: { type: 'string', example: 'Personal emergency', maxLength: 500 },
+        },
+      },
+    }),
+    ApiResponse({
+      status: HttpStatus.CREATED,
+      description: 'Drop request created successfully',
+    }),
+    ApiResponse({
+      status: HttpStatus.BAD_REQUEST,
+      description: 'Validation error or constraint violation',
+      schema: {
+        examples: {
+          maxPendingRequests: {
+            summary: 'Maximum Pending Requests Exceeded',
+            value: {
+              statusCode: 400,
+              message:
+                'Cannot create drop request: you have reached the maximum of 3 pending requests. Please wait for existing requests to be processed.',
+            },
+          },
+          shiftTooSoon: {
+            summary: 'Shift Starts Too Soon',
+            value: {
+              statusCode: 400,
+              message: 'Cannot create drop request: shift starts in less than 24 hours',
+            },
+          },
+          existingDropRequest: {
+            summary: 'Drop Request Already Exists',
+            value: {
+              statusCode: 400,
+              message: 'A drop request already exists for this shift',
+            },
+          },
+          notAssigned: {
+            summary: 'Not Assigned to Shift',
+            value: {
+              statusCode: 400,
+              message: 'Requestor is not assigned to this shift',
+            },
+          },
+        },
+      },
+    }),
+    ApiResponse({
+      status: HttpStatus.NOT_FOUND,
+      description: 'Shift not found',
+    })
+  );
+}
+
+/**
+ * Documentation for Get Drop Requests By Staff endpoint
+ */
+export function ApiGetDropRequestsByStaffDocs() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Get drop requests by staff',
+      description:
+        'Retrieve all drop requests (pending, claimed, expired) for a specific staff member',
+    }),
+    ApiParam({
+      name: 'id',
+      description: 'Staff ID',
+      example: 'clx-staff-john',
+    }),
+    ApiResponse({
+      status: HttpStatus.OK,
+      description: 'Drop requests retrieved successfully',
+    })
+  );
+}
+
+/**
+ * Documentation for Get Pending Request Count endpoint
+ */
+export function ApiGetPendingRequestCountDocs() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Get pending request count',
+      description:
+        'Get the total count of pending swap and drop requests for a staff member. Used to enforce maximum pending request limits.',
+    }),
+    ApiParam({
+      name: 'id',
+      description: 'Staff ID',
+      example: 'clx-staff-john',
+    }),
+    ApiResponse({
+      status: HttpStatus.OK,
+      description: 'Pending request count retrieved successfully',
+      schema: {
+        type: 'object',
+        properties: {
+          count: { type: 'number', example: 2 },
+        },
+      },
+    })
+  );
+}

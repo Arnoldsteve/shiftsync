@@ -21,6 +21,7 @@ export * from "./components/ui/table";
 export * from "./components/ui/badge";
 export * from "./components/ui/dropdown-menu";
 export * from "./components/ui/tooltip";
+export * from "./components/ui/alert-dialog"
 
 // Custom
 export * from "./components/date-picker";

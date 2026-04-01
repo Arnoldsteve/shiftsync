@@ -18,12 +18,8 @@ import type {
  */
 export function useShifts(filters?: ShiftFilters) {
   return useQuery({
-    // The queryKey includes the filters so that switching locations
-    // or status triggers a fresh fetch from the server.
     queryKey: queryKeys.shifts.list(filters || {}),
     queryFn: () => shiftService.getShifts(filters),
-    // Senior Logic: Only require dates. locationId is now handled
-    // dynamically by the Backend's PBAC logic.
     enabled: !!filters?.startDate && !!filters?.endDate,
     refetchOnWindowFocus: false,
     staleTime: 30000, // 30 seconds of freshness
@@ -51,12 +47,10 @@ export function useCreateShift() {
   return useMutation({
     mutationFn: (data: CreateShiftDto) => shiftService.createShift(data),
     onSuccess: () => {
-      // Invalidate the entire shift cache to trigger a background refetch
       queryClient.invalidateQueries({ queryKey: queryKeys.shifts.all });
       toast.success('Shift created successfully');
     },
     onError: (error: any) => {
-      // Extraction of specific Backend Constraint Engine error messages
       const message = error.response?.data?.message || 'Failed to create shift';
       toast.error(message);
     },
@@ -206,5 +200,19 @@ export function useStaffShifts(staffId: string, filters?: ShiftFilters) {
     enabled: !!staffId && !!filters?.startDate && !!filters?.endDate,
     refetchOnWindowFocus: false,
     staleTime: 30000,
+  });
+}
+
+/**
+ * Hook to fetch alternative staff suggestions for a shift.
+ * Requirement 40
+ */
+export function useAlternativeStaff(shiftId: string, excludeStaffId?: string) {
+  return useQuery({
+    queryKey: ['shifts', shiftId, 'alternatives', excludeStaffId],
+    queryFn: () => shiftService.getAlternativeStaff(shiftId, excludeStaffId),
+    enabled: false, // Only fetch when explicitly triggered
+    refetchOnWindowFocus: false,
+    staleTime: 0, // Always fetch fresh data when triggered
   });
 }

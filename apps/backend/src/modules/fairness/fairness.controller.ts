@@ -75,6 +75,46 @@ export class FairnessController {
   }
 
   /**
+   * Get under-scheduled staff for location
+   * Requirements: 41.2, 41.3, 41.4
+   */
+  @Get(':locationId/under-scheduled')
+  @CheckPolicies((ability) => ability.can(Action.Read, 'User'))
+  @ApiOperation({ summary: 'Get under-scheduled staff for location' })
+  async getUnderScheduledStaff(
+    @Param('locationId') locationId: string,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string
+  ) {
+    const result = await this.fairnessService.compareActualToDesiredHours(
+      locationId,
+      new Date(startDate),
+      new Date(endDate)
+    );
+    return result.underScheduled;
+  }
+
+  /**
+   * Get over-scheduled staff for location
+   * Requirements: 41.2, 41.3, 41.4
+   */
+  @Get(':locationId/over-scheduled')
+  @CheckPolicies((ability) => ability.can(Action.Read, 'User'))
+  @ApiOperation({ summary: 'Get over-scheduled staff for location' })
+  async getOverScheduledStaff(
+    @Param('locationId') locationId: string,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string
+  ) {
+    const result = await this.fairnessService.compareActualToDesiredHours(
+      locationId,
+      new Date(startDate),
+      new Date(endDate)
+    );
+    return result.overScheduled;
+  }
+
+  /**
    * Generate fairness report (background job)
    * Requirements: 13.4, 13.5, 24.2
    */

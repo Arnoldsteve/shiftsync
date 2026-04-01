@@ -6,7 +6,8 @@ export interface Shift {
   endTime: string;
   timezone: string;
   requiredSkills: string[];
-  assignment?: Assignment;
+  assignment?: Assignment; // Deprecated: Use assignments array instead
+  assignments?: Assignment[]; // Multiple assignments for headcount tracking
   isPublished?: boolean;
   publishedAt?: string;
   requiredHeadcount?: number;
@@ -27,6 +28,7 @@ export interface CreateShiftDto {
   startTime: string;
   endTime: string;
   requiredSkillIds: string[];
+  requiredHeadcount?: number;
 }
 
 export interface UpdateShiftDto {
@@ -70,4 +72,15 @@ export interface AvailableShift {
   type: 'unassigned' | 'drop_request';
   dropRequestId: string | null;
   expiresAt?: string;
+}
+
+// Staff Suggestion for Alternative Staff (Requirement 40)
+export interface StaffSuggestion {
+  staffId: string;
+  staffName: string;
+  currentHours: number;
+  isAvailable: boolean;
+  hasRequiredSkills: boolean;
+  hasLocationCertification: boolean;
+  passesConstraints: boolean;
 }

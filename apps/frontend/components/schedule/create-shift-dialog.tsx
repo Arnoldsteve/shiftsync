@@ -32,6 +32,7 @@ export function CreateShiftDialog() {
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('17:00');
   const [locationId, setLocationId] = useState('');
+  const [requiredHeadcount, setRequiredHeadcount] = useState(1);
 
   const createShift = useCreateShift();
   const { data: locations, isLoading: isLoadingLocations } = useLocations();
@@ -42,6 +43,7 @@ export function CreateShiftDialog() {
     setStartTime('09:00');
     setEndTime('17:00');
     setLocationId('');
+    setRequiredHeadcount(1);
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -77,6 +79,7 @@ export function CreateShiftDialog() {
       startTime: startDateTime.toISOString(),
       endTime: endDateTime.toISOString(),
       requiredSkillIds: [],
+      requiredHeadcount,
     };
 
     createShift.mutate(formData, {
@@ -178,6 +181,21 @@ export function CreateShiftDialog() {
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Required Headcount */}
+            <div className="grid gap-2">
+              <Label htmlFor="headcount" className="text-sm font-medium">
+                Required Headcount
+              </Label>
+              <Input
+                id="headcount"
+                type="number"
+                min="1"
+                value={requiredHeadcount}
+                onChange={(e) => setRequiredHeadcount(Math.max(1, parseInt(e.target.value) || 1))}
+                required
+              />
             </div>
           </div>
 

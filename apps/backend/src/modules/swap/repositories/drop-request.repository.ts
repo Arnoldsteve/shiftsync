@@ -159,4 +159,35 @@ export class DropRequestRepository {
       },
     });
   }
+
+  async findByRequestor(requestorId: string): Promise<DropRequest[]> {
+    return this.prisma.dropRequest.findMany({
+      where: {
+        requestorId,
+      },
+      include: {
+        shift: {
+          include: {
+            location: true,
+            skills: {
+              include: {
+                skill: true,
+              },
+            },
+          },
+        },
+        claimedByUser: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
 }

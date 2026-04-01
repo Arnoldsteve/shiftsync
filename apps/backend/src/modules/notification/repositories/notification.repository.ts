@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Notification, Prisma } from '@prisma/client';
+import { Notification, NotificationPreference, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 
 @Injectable()
@@ -70,5 +70,38 @@ export class NotificationRepository {
     });
 
     return result.count;
+  }
+
+  /**
+   * Upsert notification preferences for a user
+   * Requirements: 38.2
+   */
+  async upsertPreferences(
+    userId: string,
+    inAppEnabled: boolean,
+    emailEnabled: boolean
+  ): Promise<NotificationPreference> {
+    return this.prisma.notificationPreference.upsert({
+      where: { userId },
+      update: {
+        inAppEnabled,
+        emailEnabled,
+      },
+      create: {
+        userId,
+        inAppEnabled,
+        emailEnabled,
+      },
+    });
+  }
+
+  /**
+   * Get notification preferences for a user
+   * Requirements: 38.2
+   */
+  async findPreferencesByUserId(userId: string): Promise<NotificationPreference | null> {
+    return this.prisma.notificationPreference.findUnique({
+      where: { userId },
+    });
   }
 }

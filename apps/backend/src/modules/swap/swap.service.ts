@@ -107,6 +107,14 @@ export class SwapService {
     return this.dropRequestService.getPendingRequestCount(staffId);
   }
 
+  /**
+   * Get drop requests by staff
+   * Requirements: 33.1
+   */
+  async getDropRequestsByStaff(staffId: string): Promise<DropRequest[]> {
+    return this.dropRequestService.getDropRequestsByStaff(staffId);
+  }
+
   // ============================================
   // Swap Cancellation Operations
   // ============================================

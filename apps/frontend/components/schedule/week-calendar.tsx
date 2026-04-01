@@ -1,7 +1,7 @@
 'use client';
 
-import { Button } from '@shiftsync/ui';
-import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { Button, Badge } from '@shiftsync/ui';
+import { ChevronLeft, ChevronRight, Calendar, CheckCircle } from 'lucide-react';
 import type { Shift } from '@/types/shift.types';
 
 interface WeekCalendarProps {
@@ -73,34 +73,87 @@ export function WeekCalendar({
                 <div className="text-sm font-normal text-muted-foreground">{day.getDate()}</div>
               </div>
               <div className="space-y-2">
-                {dayShifts.map((shift) => (
-                  <div
-                    key={shift.id}
-                    onClick={() => onShiftClick?.(shift)}
-                    className={`p-2 rounded text-xs cursor-pointer hover:opacity-80 ${
-                      shift.assignment
-                        ? 'bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700'
-                        : 'bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700'
-                    }`}
-                  >
-                    <div className="font-medium">
-                      {new Date(shift.startTime).toLocaleTimeString('en-US', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}{' '}
-                      -{' '}
-                      {new Date(shift.endTime).toLocaleTimeString('en-US', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+                {dayShifts.map((shift) => {
+                  // Calculate headcount status
+                  const requiredHeadcount = shift.requiredHeadcount || 1;
+                  const assignments =
+                    shift.assignments || (shift.assignment ? [shift.assignment] : []);
+                  const filledHeadcount = assignments.length;
+                  const isFullyCovered = filledHeadcount >= requiredHeadcount;
+                  const isPartiallyCovered =
+                    filledHeadcount > 0 && filledHeadcount < requiredHeadcount;
+                  const isUncovered = filledHeadcount === 0;
+
+                  return (
+                    <div
+                      key={shift.id}
+                      onClick={() => onShiftClick?.(shift)}
+                      className={`p-2 rounded text-xs cursor-pointer hover:opacity-80 relative ${
+                        isFullyCovered
+                          ? 'bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700'
+                          : isPartiallyCovered
+                            ? 'bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700'
+                            : 'bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700'
+                      }`}
+                    >
+                      {/* Published Status Indicator (Requirement 32.2) */}
+                      {shift.isPublished && (
+                        <div className="absolute top-1 right-1">
+                          <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">
+                            <CheckCircle className="h-2.5 w-2.5 mr-0.5" />
+                            Published
+                          </Badge>
+                        </div>
+                      )}
+                      <div className="font-medium">
+                        {new Date(shift.startTime).toLocaleTimeString('en-US', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}{' '}
+                        -{' '}
+                        {new Date(shift.endTime).toLocaleTimeString('en-US', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </div>
+
+                      {/* Headcount Status (Requirement 42.3, 42.4, 42.5) */}
+                      <div className="flex items-center gap-1 mt-1">
+                        {isFullyCovered ? (
+                          <Badge
+                            variant="default"
+                            className="text-[10px] px-1 py-0 h-4 bg-green-600"
+                          >
+                            ✓ Fully Staffed
+                          </Badge>
+                        ) : isPartiallyCovered ? (
+                          <Badge
+                            variant="default"
+                            className="text-[10px] px-1 py-0 h-4 bg-yellow-600"
+                          >
+                            ⚠ Needs {requiredHeadcount - filledHeadcount} more
+                          </Badge>
+                        ) : (
+                          <Badge variant="default" className="text-[10px] px-1 py-0 h-4 bg-red-600">
+                            Uncovered
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* Staff Count Display */}
+                      <div className="text-muted-foreground mt-1">
+                        {filledHeadcount} / {requiredHeadcount} staff
+                      </div>
+
+                      {/* Staff Names */}
+                      {assignments.length > 0 && (
+                        <div className="text-muted-foreground text-[10px] mt-1">
+                          {assignments.map((a) => a.staffName).join(', ')}
+                        </div>
+                      )}
                     </div>
-                    {shift.assignment ? (
-                      <div className="text-muted-foreground">{shift.assignment.staffName}</div>
-                    ) : (
-                      <div className="text-muted-foreground">Uncovered</div>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           );

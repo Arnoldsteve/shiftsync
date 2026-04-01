@@ -1126,7 +1126,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - **Property 104: Notification History Completeness**
     - **Validates: Requirements 38.3**
 
-  - [ ] 20a.4 Implement notification preferences
+  - [x] 20a.4 Implement notification preferences
     - Implement setNotificationPreferences with inAppEnabled, emailEnabled
     - Implement getNotificationPreferences
     - Default: in-app enabled, email disabled
@@ -1136,7 +1136,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - **Property 103: Notification Preferences Round Trip**
     - **Validates: Requirements 38.2**
 
-  - [ ] 20a.6 Implement event-triggered notifications
+  - [x] 20a.6 Implement event-triggered notifications
     - Implement notifyShiftAssignment for staff assignments
     - Implement notifyShiftModification for shift changes
     - Implement notifySwapRequest for swap creation, approval, rejection
@@ -1235,7 +1235,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test round-trip consistency
 
 - [ ] 23. Implement REST API endpoints
-  - [ ] 23.1 Create User Management API endpoints
+  - [x] 23.1 Create User Management API endpoints
     - POST /api/users - Create user (Admin only)
     - POST /api/auth/login - Authenticate user
     - GET /api/users/:id - Get user details
@@ -1248,7 +1248,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Document all endpoints with Swagger/Scalar decorators
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 2.1, 2.2, 2.3, 2.4, 2.5, 30.1, 30.4, 30.5_
 
-  - [ ] 23.1a Create Availability and Desired Hours API endpoints (Requirements 31, 41)
+  - [x] 23.1a Create Availability and Desired Hours API endpoints (Requirements 31, 41)
     - POST /api/users/:id/availability/windows - Set availability window (Staff)
     - DELETE /api/users/:id/availability/windows/:windowId - Remove availability window (Staff)
     - POST /api/users/:id/availability/exceptions - Add availability exception (Staff)
@@ -1283,7 +1283,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Document all endpoints with Swagger/Scalar decorators
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 4.1, 4.2, 4.3, 4.4, 4.5, 17.1, 17.5_
 
-  - [ ] 23.5a Create Schedule Publishing and Pickup API endpoints (Requirements 32, 34, 40, 42)
+  - [x] 23.5a Create Schedule Publishing and Pickup API endpoints (Requirements 32, 34, 40, 42)
     - POST /api/schedules/:locationId/publish - Publish week's schedule (Manager)
     - POST /api/schedules/:locationId/unpublish - Unpublish schedule (Manager)
     - GET /api/shifts/available - Get available shifts for staff (Staff)
@@ -1304,7 +1304,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Add input validation with DTOs
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 8.1, 8.2, 8.3, 8.4, 8.5_
 
-  - [ ] 23.6a Create Drop Request and Cancellation API endpoints (Requirements 33, 35, 37)
+  - [x] 23.6a Create Drop Request and Cancellation API endpoints (Requirements 33, 35, 37)
     - POST /api/drops - Create drop request (Staff)
     - GET /api/staff/:id/drops - Get drop requests by staff (Staff)
     - DELETE /api/swaps/:id/cancel - Cancel swap request (Staff)
@@ -1322,7 +1322,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Add authentication and authorization guards
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 13.1, 13.2, 13.3, 13.4, 13.5, 14.1, 14.2, 14.3, 14.4, 24.2, 24.3_
 
-  - [ ] 23.7a Create Desired Hours Fairness API endpoints (Requirement 41)
+  - [x] 23.7a Create Desired Hours Fairness API endpoints (Requirement 41)
     - GET /api/fairness/:locationId/desired-hours - Get desired vs actual hours comparison
     - GET /api/fairness/:locationId/under-scheduled - Get under-scheduled staff
     - GET /api/fairness/:locationId/over-scheduled - Get over-scheduled staff
@@ -1355,7 +1355,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Add authentication and authorization guards
     - _Requirements: 24.5_
 
-  - [ ] 23.10a Create Notification API endpoints (Requirement 38)
+  - [x] 23.10a Create Notification API endpoints (Requirement 38)
     - GET /api/notifications - Get notifications for current user (Staff/Manager/Admin)
     - PUT /api/notifications/:id/read - Mark notification as read
     - PUT /api/notifications/read-all - Mark all notifications as read
@@ -1439,7 +1439,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test role assignment interface
     - Test error handling and display
 
-  - [-] 26.4 Create availability management interface (Requirement 31)
+  - [x] 26.4 Create availability management interface (Requirement 31)
     - Build availability windows form with day of week and time range
     - Build availability exceptions form with date and time range
     - Display current availability windows and exceptions
@@ -1447,7 +1447,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Show validation errors for invalid time formats
     - _Requirements: 31.1, 31.2, 31.5_
 
-  - [ ] 26.5 Create desired hours interface (Requirement 41)
+  - [x] 26.5 Create desired hours interface (Requirement 41)
     - Build desired weekly hours input field
     - Display current desired hours value
     - Show validation for positive numbers
@@ -1496,7 +1496,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test staff assignment interface
     - Test real-time update handling
 
-  - [ ] 27.6 Create schedule publishing interface (Requirement 32)
+  - [x] 27.6 Create schedule publishing interface (Requirement 32)
     - Build publish/unpublish buttons for week view
     - Show published status indicator on shifts
     - Display cutoff time warning for unpublish attempts
@@ -1504,7 +1504,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Show all shifts to managers regardless of published status
     - _Requirements: 32.1, 32.2, 32.3, 32.4_
 
-  - [ ] 27.7 Create available shifts and pickup interface (Requirement 34)
+  - [x] 27.7 Create available shifts and pickup interface (Requirement 34)
     - Build available shifts list for staff
     - Display shift details (location, time, skills required)
     - Filter by staff qualifications automatically
@@ -1513,7 +1513,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Remove shift from list on successful pickup
     - _Requirements: 34.1, 34.2, 34.3, 34.4_
 
-  - [ ] 27.8 Create alternative staff suggestions interface (Requirement 40)
+  - [x] 27.8 Create alternative staff suggestions interface (Requirement 40)
     - Display alternative staff list on constraint violation
     - Show staff current hours and availability status
     - Rank staff by hours (ascending)
@@ -1521,7 +1521,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Implement quick assign button for alternatives
     - _Requirements: 40.1, 40.2, 40.3, 40.4, 40.5_
 
-  - [ ] 27.9 Create headcount tracking interface (Requirement 42)
+  - [x] 27.9 Create headcount tracking interface (Requirement 42)
     - Add headcount input field to shift creation form
     - Display filled vs required headcount on shifts
     - Show partially covered indicator for unfilled headcount

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -14,10 +14,13 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Badge,
+  Card,
 } from '@shiftsync/ui';
-import { useAssignStaff } from '@/hooks/use-shifts';
+import { useAssignStaff, useAlternativeStaff } from '@/hooks/use-shifts';
 import { useAvailableStaff } from '@/hooks/use-callouts';
 import type { Shift } from '@/types/shift.types';
+import type { StaffSuggestion } from '@/types/shift.types';
 
 interface AssignStaffDialogProps {
   shift: Shift | null;
@@ -27,28 +30,60 @@ interface AssignStaffDialogProps {
 
 export function AssignStaffDialog({ shift, open, onOpenChange }: AssignStaffDialogProps) {
   const [selectedStaffId, setSelectedStaffId] = useState('');
+  const [assignmentError, setAssignmentError] = useState<string | null>(null);
+  const [showAlternatives, setShowAlternatives] = useState(false);
   const assignStaff = useAssignStaff();
 
   // Fetch available staff for this shift
   const { data: availableStaff, isLoading: isLoadingStaff } = useAvailableStaff(shift?.id || '');
 
-  const handleAssign = async () => {
-    if (!shift || !selectedStaffId) return;
+  // Fetch alternative staff suggestions (only when triggered)
+  const {
+    data: alternativeStaff,
+    isLoading: isLoadingAlternatives,
+    refetch: fetchAlternatives,
+  } = useAlternativeStaff(shift?.id || '', selectedStaffId);
 
-    await assignStaff.mutateAsync({
-      shiftId: shift.id,
-      staffId: selectedStaffId,
-    });
+  // Reset state when dialog opens/closes
+  useEffect(() => {
+    if (!open) {
+      setSelectedStaffId('');
+      setAssignmentError(null);
+      setShowAlternatives(false);
+    }
+  }, [open]);
 
-    setSelectedStaffId('');
-    onOpenChange(false);
+  const handleAssign = async (staffId?: string) => {
+    if (!shift) return;
+    const targetStaffId = staffId || selectedStaffId;
+    if (!targetStaffId) return;
+
+    try {
+      await assignStaff.mutateAsync({
+        shiftId: shift.id,
+        staffId: targetStaffId,
+      });
+
+      setSelectedStaffId('');
+      setAssignmentError(null);
+      setShowAlternatives(false);
+      onOpenChange(false);
+    } catch (error: any) {
+      // Capture the error message and fetch alternatives
+      const errorMessage = error.response?.data?.message || 'Failed to assign staff';
+      setAssignmentError(errorMessage);
+      setShowAlternatives(true);
+
+      // Fetch alternative staff suggestions
+      fetchAlternatives();
+    }
   };
 
   if (!shift) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Assign Staff to Shift</DialogTitle>
           <DialogDescription>
@@ -106,11 +141,68 @@ export function AssignStaffDialog({ shift, open, onOpenChange }: AssignStaffDial
             </div>
           )}
 
+          {/* Error Message */}
+          {assignmentError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-sm text-red-800">{assignmentError}</p>
+            </div>
+          )}
+
+          {/* Alternative Staff Suggestions */}
+          {showAlternatives && (
+            <div className="space-y-3">
+              <div className="border-t pt-4">
+                <h3 className="text-sm font-semibold mb-3">Alternative Staff Suggestions</h3>
+
+                {isLoadingAlternatives ? (
+                  <p className="text-sm text-gray-500">Loading alternatives...</p>
+                ) : alternativeStaff && alternativeStaff.length > 0 ? (
+                  <div className="space-y-2">
+                    {alternativeStaff.map((suggestion: StaffSuggestion) => (
+                      <Card key={suggestion.staffId} className="p-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{suggestion.staffName}</span>
+                              <Badge
+                                variant={suggestion.isAvailable ? 'default' : 'secondary'}
+                                className="text-xs"
+                              >
+                                {suggestion.isAvailable ? 'Available' : 'Unavailable'}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-gray-600">
+                              {suggestion.currentHours.toFixed(1)} hours this week
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => handleAssign(suggestion.staffId)}
+                            disabled={assignStaff.isPending}
+                          >
+                            {assignStaff.isPending ? 'Assigning...' : 'Assign'}
+                          </Button>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">
+                    No alternative staff members available for this shift.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button onClick={handleAssign} disabled={!selectedStaffId || assignStaff.isPending}>
+            <Button
+              onClick={() => handleAssign()}
+              disabled={!selectedStaffId || assignStaff.isPending}
+            >
               {assignStaff.isPending ? 'Assigning...' : 'Assign Staff'}
             </Button>
           </div>

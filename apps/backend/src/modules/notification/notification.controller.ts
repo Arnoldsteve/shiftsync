@@ -1,7 +1,8 @@
 import {
   Controller,
   Get,
-  Patch,
+  Put,
+  Body,
   Param,
   Query,
   UseGuards,
@@ -23,7 +24,7 @@ export class NotificationController {
    */
   @Get()
   async getNotifications(
-    @CurrentUser('sub') userId: string,
+    @CurrentUser('id') userId: string,
     @Query('includeRead') includeRead?: string
   ) {
     const includeReadBool = includeRead === 'true';
@@ -39,9 +40,9 @@ export class NotificationController {
    * Mark a notification as read
    * Requirements: 38.1
    */
-  @Patch(':id/read')
+  @Put(':id/read')
   @HttpCode(HttpStatus.OK)
-  async markAsRead(@Param('id') id: string, @CurrentUser('sub') userId: string) {
+  async markAsRead(@Param('id') id: string, @CurrentUser('id') userId: string) {
     const notification = await this.notificationService.markAsRead(id, userId);
 
     return {
@@ -54,14 +55,49 @@ export class NotificationController {
    * Mark all notifications as read
    * Requirements: 38.1
    */
-  @Patch('read-all')
+  @Put('read-all')
   @HttpCode(HttpStatus.OK)
-  async markAllAsRead(@CurrentUser('sub') userId: string) {
+  async markAllAsRead(@CurrentUser('id') userId: string) {
     const count = await this.notificationService.markAllAsRead(userId);
 
     return {
       count,
       message: `${count} notification(s) marked as read`,
+    };
+  }
+
+  /**
+   * Get notification preferences for the current user
+   * Requirements: 38.2
+   */
+  @Get('preferences')
+  async getPreferences(@CurrentUser('id') userId: string) {
+    const preferences = await this.notificationService.getNotificationPreferences(userId);
+
+    return {
+      data: preferences,
+    };
+  }
+
+  /**
+   * Update notification preferences for the current user
+   * Requirements: 38.2
+   */
+  @Put('preferences')
+  @HttpCode(HttpStatus.OK)
+  async setPreferences(
+    @CurrentUser('id') userId: string,
+    @Body() body: { inAppEnabled: boolean; emailEnabled: boolean }
+  ) {
+    const preferences = await this.notificationService.setNotificationPreferences(
+      userId,
+      body.inAppEnabled,
+      body.emailEnabled
+    );
+
+    return {
+      data: preferences,
+      message: 'Notification preferences updated',
     };
   }
 }

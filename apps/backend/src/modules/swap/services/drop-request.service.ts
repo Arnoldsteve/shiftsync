@@ -189,4 +189,17 @@ export class DropRequestService {
       throw error;
     }
   }
+
+  /**
+   * Get drop requests by requestor
+   * Requirements: 33.1
+   */
+  async getDropRequestsByStaff(staffId: string): Promise<DropRequest[]> {
+    try {
+      return this.dropRequestRepository.findByRequestor(staffId);
+    } catch (error) {
+      this.logger.error(`Error getting drop requests for staff ${staffId}:`, error);
+      throw error;
+    }
+  }
 }
