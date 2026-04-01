@@ -194,8 +194,18 @@ export class ShiftPickupService {
         shift.endTime
       );
       if (conflictResult.hasConflict) {
+        const conflictingShift = conflictResult.conflictingShifts[0];
+        const locationName = (conflictingShift as any).location?.name || 'Unknown Location';
+        const conflictStart = new Date(conflictingShift.startTime).toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+        });
+        const conflictEnd = new Date(conflictingShift.endTime).toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+        });
         throw new BadRequestException(
-          `Schedule conflict: You are already working at ${conflictResult.conflictingShifts[0].locationId} during this time`
+          `Schedule conflict: You are already working at ${locationName} from ${conflictStart} - ${conflictEnd}`
         );
       }
 
@@ -260,19 +270,34 @@ export class ShiftPickupService {
       );
       const wasOffered = shiftOfferNotification.some((n: any) => n.metadata?.shiftId === shiftId);
 
-      if (wasOffered) {
-        // Find managers for this location and notify them
-        const managers = await this.userRepository.findManagersByLocation(shift.locationId);
-        const staffName = `${staff.firstName} ${staff.lastName}`;
-        const locationName = (shift as any).location?.name || 'Unknown Location';
-        const shiftTime = `${shift.startTime.toLocaleString()} - ${shift.endTime.toLocaleTimeString()}`;
+      // Notify managers about the pickup
+      const managers = await this.userRepository.findManagersByLocation(shift.locationId);
+      const staffName = `${staff.firstName} ${staff.lastName}`;
+      const locationName = (shift as any).location?.name || 'Unknown Location';
+      const shiftTime = `${shift.startTime.toLocaleString()} - ${shift.endTime.toLocaleTimeString()}`;
 
-        for (const manager of managers) {
+      for (const manager of managers) {
+        if (wasOffered) {
           await this.notificationService.createNotification(
             manager.id,
             'SHIFT_OFFER_ACCEPTED',
             'Shift Offer Accepted',
             `${staffName} has accepted the offer for ${locationName} on ${shiftTime}.`,
+            {
+              shiftId,
+              staffId,
+              staffName,
+              locationName,
+              startTime: shift.startTime,
+              endTime: shift.endTime,
+            }
+          );
+        } else {
+          await this.notificationService.createNotification(
+            manager.id,
+            'SHIFT_PICKED_UP',
+            'Shift Picked Up',
+            `${staffName} has picked up a shift at ${locationName} on ${shiftTime}.`,
             {
               shiftId,
               staffId,

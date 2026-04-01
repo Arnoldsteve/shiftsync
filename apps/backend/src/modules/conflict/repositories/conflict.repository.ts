@@ -51,7 +51,11 @@ export class ConflictRepository {
         },
       },
       include: {
-        shift: true,
+        shift: {
+          include: {
+            location: true,
+          },
+        },
       },
     });
   }

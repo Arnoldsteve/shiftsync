@@ -83,6 +83,9 @@ export class CaslAbilityFactory {
       can(Action.Read, 'Shift');
       can(Action.Read, 'Schedule');
 
+      // Staff can create assignments for themselves (shift pickup)
+      can(Action.Create, 'Assignment');
+
       // Staff can create swap requests and drop requests
       can(Action.Create, 'SwapRequest');
       can(Action.Read, 'SwapRequest');
@@ -110,11 +113,10 @@ export class CaslAbilityFactory {
       can(Action.Read, 'Notification');
       can(Action.Update, 'Notification');
 
-      // Staff cannot modify shifts, assignments, or view admin features
+      // Staff cannot modify shifts or delete assignments
       cannot(Action.Create, 'Shift');
       cannot(Action.Update, 'Shift');
       cannot(Action.Delete, 'Shift');
-      cannot(Action.Create, 'Assignment');
       cannot(Action.Delete, 'Assignment');
       cannot(Action.Read, 'Fairness');
       cannot(Action.Read, 'Config');

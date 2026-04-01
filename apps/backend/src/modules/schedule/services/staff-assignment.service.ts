@@ -59,8 +59,18 @@ export class StaffAssignmentService {
         shift.endTime
       );
       if (conflictResult.hasConflict) {
+        const conflictingShift = conflictResult.conflictingShifts[0];
+        const locationName = (conflictingShift as any).location?.name || 'Unknown Location';
+        const conflictStart = new Date(conflictingShift.startTime).toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+        });
+        const conflictEnd = new Date(conflictingShift.endTime).toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+        });
         throw new BadRequestException(
-          `Schedule Conflict: User is already working at ${conflictResult.conflictingShifts[0].locationId}`
+          `Schedule Conflict: User is already working at ${locationName} from ${conflictStart} - ${conflictEnd}`
         );
       }
 
