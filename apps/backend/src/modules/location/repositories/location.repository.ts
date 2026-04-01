@@ -19,4 +19,17 @@ export class LocationRepository {
       where: { id },
     });
   }
+
+  async findByIds(ids: string[]): Promise<Location[]> {
+    return this.prisma.location.findMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    });
+  }
 }

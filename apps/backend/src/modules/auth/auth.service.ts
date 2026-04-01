@@ -75,6 +75,16 @@ export class AuthService {
    */
   async validateUser(payload: JwtPayload) {
     const user = await this.userService.getUserById(payload.sub);
-    return user;
+
+    // Get manager location IDs if user is a manager
+    let managedLocationIds: string[] | undefined;
+    if (user.role === 'MANAGER') {
+      managedLocationIds = await this.userService.getAuthorizedLocationIds(user.id);
+    }
+
+    return {
+      ...user,
+      ...(managedLocationIds && { managedLocationIds }),
+    };
   }
 }
