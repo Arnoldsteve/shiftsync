@@ -64,6 +64,14 @@ export const shiftService = {
     return response.data as Shift[];
   },
 
+  async getStaffShifts(staffId: string, filters?: ShiftFilters): Promise<Shift[]> {
+    const response = await apiClient.get(`/schedule/staff/${staffId}/shifts`, {
+      params: filters,
+    });
+    // Backend returns an array directly, not wrapped in { shifts: [], total: number }
+    return response.data as Shift[];
+  },
+
   // Shift Pickup (Requirement 34)
   async getAvailableShifts(): Promise<AvailableShift[]> {
     const response = await apiClient.get('/schedule/available-shifts');

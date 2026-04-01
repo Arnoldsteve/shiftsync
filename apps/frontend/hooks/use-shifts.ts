@@ -194,3 +194,17 @@ export function usePublishedShifts(staffId: string, filters?: ShiftFilters) {
     staleTime: 30000,
   });
 }
+
+/**
+ * Hook to fetch all shifts for a specific staff member (published and unpublished).
+ * Used in "My Shifts" page.
+ */
+export function useStaffShifts(staffId: string, filters?: ShiftFilters) {
+  return useQuery({
+    queryKey: queryKeys.shifts.staff(staffId, filters),
+    queryFn: () => shiftService.getStaffShifts(staffId, filters),
+    enabled: !!staffId && !!filters?.startDate && !!filters?.endDate,
+    refetchOnWindowFocus: false,
+    staleTime: 30000,
+  });
+}

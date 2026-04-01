@@ -103,8 +103,13 @@ export async function seedNotificationPreferences(
 
   let count = 0;
   for (const user of allUsers) {
-    await prisma.notificationPreference.create({
-      data: {
+    await prisma.notificationPreference.upsert({
+      where: { userId: user.id },
+      update: {
+        inAppEnabled: true,
+        emailEnabled: user.role === 'MANAGER' || user.role === 'ADMIN', // Managers and admins get emails
+      },
+      create: {
         userId: user.id,
         inAppEnabled: true,
         emailEnabled: user.role === 'MANAGER' || user.role === 'ADMIN', // Managers and admins get emails

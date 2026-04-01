@@ -14,6 +14,7 @@ import {
   seedNotificationPreferences,
   seedDesiredHours,
 } from './seeds/availability.seed';
+import { seedStaffData } from './seeds/staff-data.seed';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -45,7 +46,7 @@ async function main() {
   await seedAssignments(prisma, { admin, managers, staffMembers, skills, locations });
 
   // 6. Seed shifts and assignments
-  await seedShifts(prisma, { managers, staffMembers, skills, locations });
+  const { shifts } = await seedShifts(prisma, { managers, staffMembers, skills, locations });
 
   // 7. Seed availability windows and exceptions
   await seedAvailability(prisma, { staffMembers });
@@ -55,6 +56,9 @@ async function main() {
 
   // 9. Seed desired weekly hours
   await seedDesiredHours(prisma, { staffMembers });
+
+  // 10. Seed staff-facing data (swaps, drops, callouts, notifications)
+  await seedStaffData(prisma, { staffMembers, shifts });
 
   console.log('\n🎉 Seeding completed successfully!\n');
   console.log('═══════════════════════════════════════════════════════════');

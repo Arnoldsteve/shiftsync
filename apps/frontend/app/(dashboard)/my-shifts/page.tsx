@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -18,9 +18,10 @@ import { useAuth } from '@/contexts/auth-context';
 import { usePermissions } from '@/hooks/use-permissions';
 import { Action } from '@/lib/ability';
 import { Can } from '@/components/auth/can';
-import { useShifts } from '@/hooks/use-shifts';
+import { useStaffShifts } from '@/hooks/use-shifts';
 import { useStaffSwaps, useCancelSwapRequest } from '@/hooks/use-swaps';
 import { useDropRequests } from '@/hooks/use-drop-requests';
+import { useUsers } from '@/hooks/use-users';
 import { CreateSwapDialog } from '@/components/swaps/create-swap-dialog';
 import { CreateDropDialog } from '@/components/swaps/create-drop-dialog';
 import { Clock, MapPin, X } from 'lucide-react';
@@ -40,15 +41,26 @@ export default function MyShiftsPage() {
     };
   });
 
-  const { data: shifts, isLoading: shiftsLoading } = useShifts({
-    staffId: user?.id,
-    ...dateRange,
+  const { data: shifts, isLoading: shiftsLoading } = useStaffShifts(user?.id || '', {
+    startDate: dateRange.startDate,
+    endDate: dateRange.endDate,
   });
 
   const { data: swapRequests, isLoading: swapsLoading } = useStaffSwaps(user?.id || '');
   const { data: dropRequests, isLoading: dropsLoading } = useDropRequests(user?.id || '');
+  const { data: allUsers } = useUsers();
   const cancelSwap = useCancelSwapRequest();
 
+  // Filter for staff members only (exclude current user)
+  const availableStaff = useMemo(() => {
+    if (!allUsers || !user) return [];
+    return allUsers
+      .filter((u) => u.role === 'STAFF' && u.id !== user.id)
+      .map((u) => ({
+        id: u.id,
+        name: `${u.firstName} ${u.lastName}`,
+      }));
+  }, [allUsers, user]);
   const formatDateTime = (date: string) => {
     return new Date(date).toLocaleString('en-US', {
       weekday: 'short',
@@ -71,8 +83,12 @@ export default function MyShiftsPage() {
     return <Badge variant={variants[status] || 'default'}>{status.toUpperCase()}</Badge>;
   };
 
-  const myShifts = shifts?.filter((s) => s.assignment?.staffId === user?.id) || [];
-  const availableStaff: Array<{ id: string; name: string }> = []; // TODO: Fetch available staff for swaps
+  // The useStaffShifts hook already filters by staff ID, no need to filter again
+  const myShifts = shifts || [];
+
+  // Debug: Log shifts to check for duplicates
+  console.log('Staff shifts from API:', shifts);
+  console.log('User ID:', user?.id);
 
   // Check permissions
   if (!can(Action.Read, 'SwapRequest')) {

@@ -79,8 +79,9 @@ export class ScheduleRepository {
       where: {
         staffId,
         shift: {
-          startTime: startDate ? { gte: startDate } : undefined,
-          endTime: endDate ? { lte: endDate } : undefined,
+          // A shift is in range if it starts before the end date AND ends after the start date
+          startTime: endDate ? { lte: endDate } : undefined,
+          endTime: startDate ? { gte: startDate } : undefined,
         },
       },
       include: {

@@ -21,6 +21,8 @@ export const queryKeys = {
     available: () => [...queryKeys.shifts.all, 'available'] as const,
     published: (staffId: string, filters?: Record<string, any>) =>
       [...queryKeys.shifts.all, 'published', staffId, filters] as const,
+    staff: (staffId: string, filters?: Record<string, any>) =>
+      [...queryKeys.shifts.all, 'staff', staffId, filters] as const,
   },
 
   // Schedules
