@@ -104,7 +104,7 @@ export function Sidebar() {
       label: 'Swap Requests',
       href: '/swaps',
       icon: RefreshCw,
-      action: Action.Update,
+      action: Action.Manage,
       subject: 'SwapRequest',
     },
     {

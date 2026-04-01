@@ -142,4 +142,20 @@ export class SwapService {
   async cancelSwapRequest(swapRequestId: string, requestorId: string): Promise<SwapRequest> {
     return this.swapRequestService.cancelSwapRequest(swapRequestId, requestorId);
   }
+
+  /**
+   * Accept a swap request by the target staff
+   * Requirements: 7.6
+   */
+  async acceptSwapRequest(swapRequestId: string, targetStaffId: string): Promise<SwapRequest> {
+    return this.swapRequestService.acceptSwapRequest(swapRequestId, targetStaffId);
+  }
+
+  /**
+   * Decline a swap request by the target staff
+   * Requirements: 7.6
+   */
+  async declineSwapRequest(swapRequestId: string, targetStaffId: string): Promise<SwapRequest> {
+    return this.swapRequestService.declineSwapRequest(swapRequestId, targetStaffId);
+  }
 }

@@ -193,15 +193,16 @@ model Assignment {
 // ============================================
 
 model SwapRequest {
-  id              String     @id @default(uuid())
-  shiftId         String
-  requestorId     String
-  targetStaffId   String
-  status          SwapStatus @default(PENDING)
-  createdAt       DateTime   @default(now())
-  reviewedAt      DateTime?
-  reviewedBy      String?
-  rejectionReason String?
+  id                    String     @id @default(uuid())
+  shiftId               String
+  requestorId           String
+  targetStaffId         String
+  status                SwapStatus @default(PENDING)
+  targetStaffAcceptedAt DateTime?
+  createdAt             DateTime   @default(now())
+  reviewedAt            DateTime?
+  reviewedBy            String?
+  rejectionReason       String?
 
   // Relations
   shift       Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)

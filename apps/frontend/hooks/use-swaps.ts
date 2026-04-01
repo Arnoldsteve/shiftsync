@@ -99,3 +99,41 @@ export function useCancelSwapRequest() {
     },
   });
 }
+
+/**
+ * Hook to accept a swap request (target staff)
+ * Requirements: 7.6
+ */
+export function useAcceptSwapRequest() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (swapRequestId: string) => swapService.acceptSwapRequest(swapRequestId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.swaps.all });
+      toast.success('Swap request accepted - pending manager approval');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to accept swap request');
+    },
+  });
+}
+
+/**
+ * Hook to decline a swap request (target staff)
+ * Requirements: 7.6
+ */
+export function useDeclineSwapRequest() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (swapRequestId: string) => swapService.declineSwapRequest(swapRequestId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.swaps.all });
+      toast.success('Swap request declined');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to decline swap request');
+    },
+  });
+}

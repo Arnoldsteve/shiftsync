@@ -21,23 +21,35 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from '@shiftsync/ui';
 import { useAuth } from '@/contexts/auth-context';
 import { usePermissions } from '@/hooks/use-permissions';
 import { Action } from '@/lib/ability';
 import { Can } from '@/components/auth/can';
 import { useStaffShifts } from '@/hooks/use-shifts';
-import { useStaffSwaps, useCancelSwapRequest } from '@/hooks/use-swaps';
+import {
+  useStaffSwaps,
+  useCancelSwapRequest,
+  useAcceptSwapRequest,
+  useDeclineSwapRequest,
+} from '@/hooks/use-swaps';
 import {
   useDropRequests,
   useCancelDropRequest,
   usePendingRequestCount,
 } from '@/hooks/use-drop-requests';
 import { useDropRealtime } from '@/hooks/use-drop-realtime';
+import { useSwapRealtime } from '@/hooks/use-swap-realtime';
 import { useUsers } from '@/hooks/use-users';
 import { CreateSwapDialog } from '@/components/swaps/create-swap-dialog';
 import { CreateDropDialog } from '@/components/swaps/create-drop-dialog';
-import { Clock, MapPin, X, AlertCircle } from 'lucide-react';
+import { Clock, MapPin, X, AlertCircle, Check } from 'lucide-react';
 
 export default function MyShiftsPage() {
   const { user } = useAuth();
@@ -57,6 +69,9 @@ export default function MyShiftsPage() {
   // Requirement 37: Swap cancellation confirmation dialog state
   const [swapToCancelId, setSwapToCancelId] = useState<string | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [acceptDialogOpen, setAcceptDialogOpen] = useState(false);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [selectedSwapId, setSelectedSwapId] = useState<string>('');
 
   const { data: shifts, isLoading: shiftsLoading } = useStaffShifts(user?.id || '', {
     startDate: dateRange.startDate,
@@ -68,10 +83,13 @@ export default function MyShiftsPage() {
   const { data: pendingCount } = usePendingRequestCount(user?.id || '');
   const { data: allUsers } = useUsers();
   const cancelSwap = useCancelSwapRequest();
+  const acceptSwap = useAcceptSwapRequest();
+  const declineSwap = useDeclineSwapRequest();
   const cancelDrop = useCancelDropRequest();
 
-  // Enable real-time updates for drop requests
+  // Enable real-time updates
   useDropRealtime();
+  useSwapRealtime();
 
   // Requirement 35.1 - Max 3 pending requests per staff (configurable per location)
   const maxPendingRequests = 3; // Default limit
@@ -150,6 +168,22 @@ export default function MyShiftsPage() {
     setSwapToCancelId(null);
   };
 
+  const confirmAcceptSwap = () => {
+    if (selectedSwapId) {
+      acceptSwap.mutate(selectedSwapId);
+    }
+    setAcceptDialogOpen(false);
+    setSelectedSwapId('');
+  };
+
+  const confirmDeclineSwap = () => {
+    if (selectedSwapId) {
+      declineSwap.mutate(selectedSwapId);
+    }
+    setRejectDialogOpen(false);
+    setSelectedSwapId('');
+  };
+
   // Check permissions
   if (!can(Action.Read, 'SwapRequest')) {
     return (
@@ -165,7 +199,7 @@ export default function MyShiftsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold">My Shifts</h1>
@@ -260,54 +294,98 @@ export default function MyShiftsPage() {
             <div className="text-center py-8 text-muted-foreground">Loading swap requests...</div>
           ) : swapRequests && swapRequests.length > 0 ? (
             <div className="space-y-4">
-              {swapRequests.map((swap) => (
-                <Card key={swap.id}>
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <CardTitle className="text-lg">Swap Request</CardTitle>
-                        <CardDescription>
-                          {formatDateTime(swap.shift?.startTime || '')}
-                        </CardDescription>
+              {swapRequests.map((swap) => {
+                const isOutgoing = swap.requestorId === user?.id;
+                const isIncoming = swap.targetStaffId === user?.id;
+                const isPending = swap.status === 'PENDING';
+
+                return (
+                  <Card key={swap.id}>
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <CardTitle className="text-lg">
+                              {isOutgoing ? 'Outgoing' : 'Incoming'} Swap Request
+                            </CardTitle>
+                            <Badge variant={isOutgoing ? 'default' : 'secondary'}>
+                              {isOutgoing ? 'Sent' : 'Received'}
+                            </Badge>
+                          </div>
+                          <CardDescription>
+                            {formatDateTime(swap.shift?.startTime || '')}
+                          </CardDescription>
+                        </div>
+                        <div className="flex items-center gap-2">{getStatusBadge(swap.status)}</div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {getStatusBadge(swap.status)}
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3 text-sm">
+                        <div>
+                          <span className="font-medium">{isOutgoing ? 'To:' : 'From:'}</span>{' '}
+                          {isOutgoing ? swap.targetStaffName : swap.requestorName}
+                        </div>
+                        {swap.reason && (
+                          <div>
+                            <span className="font-medium">Reason:</span> {swap.reason}
+                          </div>
+                        )}
                         <Can I={Action.Update} a="SwapRequest">
-                          {swap.status === 'pending' && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleCancelSwapClick(swap.id)}
-                              disabled={cancelSwap.isPending}
-                              title="Cancel swap request"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
+                          {isPending && (
+                            <div className="flex gap-2 pt-2">
+                              {isOutgoing && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleCancelSwapClick(swap.id)}
+                                  disabled={cancelSwap.isPending}
+                                >
+                                  <X className="h-4 w-4 mr-1" />
+                                  Cancel Request
+                                </Button>
+                              )}
+                              {isIncoming && (
+                                <>
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedSwapId(swap.id);
+                                      setAcceptDialogOpen(true);
+                                    }}
+                                    disabled={acceptSwap.isPending}
+                                  >
+                                    <Check className="h-4 w-4 mr-1" />
+                                    Accept
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedSwapId(swap.id);
+                                      setRejectDialogOpen(true);
+                                    }}
+                                    disabled={declineSwap.isPending}
+                                  >
+                                    <X className="h-4 w-4 mr-1" />
+                                    Decline
+                                  </Button>
+                                </>
+                              )}
+                            </div>
                           )}
                         </Can>
                       </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2 text-sm">
-                      <div>
-                        <span className="font-medium">Target Staff:</span> {swap.targetStaffName}
-                      </div>
-                      {swap.reason && (
-                        <div>
-                          <span className="font-medium">Reason:</span> {swap.reason}
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           ) : (
             <Card>
               <CardHeader>
                 <CardTitle>No Swap Requests</CardTitle>
-                <CardDescription>You don&apos;t have any pending swap requests.</CardDescription>
+                <CardDescription>You don&apos;t have any swap requests.</CardDescription>
               </CardHeader>
             </Card>
           )}
@@ -409,6 +487,51 @@ export default function MyShiftsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Accept Swap Dialog */}
+      <Dialog open={acceptDialogOpen} onOpenChange={setAcceptDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Accept Swap Request</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to accept this swap request? This will send it to your manager
+              for final approval.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAcceptDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmAcceptSwap} disabled={acceptSwap.isPending}>
+              {acceptSwap.isPending ? 'Accepting...' : 'Accept Swap'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Decline Swap Dialog */}
+      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Decline Swap Request</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to decline this swap request?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDeclineSwap}
+              disabled={declineSwap.isPending}
+            >
+              {declineSwap.isPending ? 'Declining...' : 'Decline Swap'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

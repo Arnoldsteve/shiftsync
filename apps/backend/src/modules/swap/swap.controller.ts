@@ -149,4 +149,30 @@ export class SwapController {
   ) {
     return this.swapService.cancelDropRequest(dropRequestId, requestorId);
   }
+
+  /**
+   * Accept swap request - Staff (target only)
+   * Requirements: 7.6
+   */
+  @Put(':id/accept')
+  @CheckPolicies((ability) => ability.can(Action.Update, 'SwapRequest'))
+  async acceptSwapRequest(
+    @Param('id') swapRequestId: string,
+    @CurrentUser('id') targetStaffId: string
+  ) {
+    return this.swapService.acceptSwapRequest(swapRequestId, targetStaffId);
+  }
+
+  /**
+   * Decline swap request - Staff (target only)
+   * Requirements: 7.6
+   */
+  @Put(':id/decline')
+  @CheckPolicies((ability) => ability.can(Action.Update, 'SwapRequest'))
+  async declineSwapRequest(
+    @Param('id') swapRequestId: string,
+    @CurrentUser('id') targetStaffId: string
+  ) {
+    return this.swapService.declineSwapRequest(swapRequestId, targetStaffId);
+  }
 }

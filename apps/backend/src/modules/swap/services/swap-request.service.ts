@@ -7,6 +7,7 @@ import { ConflictService } from '../../conflict/conflict.service';
 import { ComplianceService } from '../../compliance/compliance.service';
 import { ConfigService } from '../../config/config.service';
 import { RealtimeGateway } from '../../realtime/realtime.gateway';
+import { NotificationService } from '../../notification/notification.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { SwapRequest } from '@prisma/client';
 import { SwapRequestWithDetails } from '../interfaces';
@@ -24,6 +25,7 @@ export class SwapRequestService {
     private readonly complianceService: ComplianceService,
     private readonly configService: ConfigService,
     private readonly realtimeGateway: RealtimeGateway,
+    private readonly notificationService: NotificationService,
     private readonly prisma: PrismaService
   ) {}
 
@@ -74,8 +76,40 @@ export class SwapRequestService {
         );
       }
 
-      // TODO: Verify target staff has required skills (will implement with User Service integration)
-      // TODO: Verify target staff has location certification (will implement with User Service integration)
+      // Verify target staff has required skills (Requirement 7.2)
+      const requiredSkillIds = shift.skills.map((s) => s.skillId);
+      const targetStaff = await this.prisma.user.findUnique({
+        where: { id: targetStaffId },
+        include: {
+          skills: true,
+          certifications: true,
+        },
+      });
+
+      if (!targetStaff) {
+        throw new NotFoundException('Target staff not found');
+      }
+
+      const targetSkillIds = targetStaff.skills.map((s) => s.skillId);
+      const missingSkills = requiredSkillIds.filter((skillId) => !targetSkillIds.includes(skillId));
+
+      if (missingSkills.length > 0) {
+        const missingSkillNames = shift.skills
+          .filter((s) => missingSkills.includes(s.skillId))
+          .map((s) => s.skill.name);
+        throw new BadRequestException(
+          `Target staff does not have required skills: ${missingSkillNames.join(', ')}`
+        );
+      }
+
+      // Verify target staff has location certification (Requirement 7.2)
+      const hasCertification = targetStaff.certifications.some(
+        (cert) => cert.locationId === shift.locationId
+      );
+
+      if (!hasCertification) {
+        throw new BadRequestException('Target staff is not certified for this location');
+      }
 
       // Create swap request with initial status "pending"
       const swapRequest = await this.swapRepository.createSwapRequest({
@@ -100,6 +134,29 @@ export class SwapRequestService {
           status: 'PENDING',
         },
       });
+
+      // Get manager for this location to notify them
+      const managers = await this.prisma.user.findMany({
+        where: {
+          role: 'MANAGER',
+          managerLocations: {
+            some: {
+              locationId: shift.locationId,
+            },
+          },
+        },
+      });
+
+      // Notify target staff and managers
+      if (managers.length > 0) {
+        await this.notificationService.notifySwapRequest(
+          requestorId,
+          targetStaffId,
+          managers[0].id,
+          swapRequest.id,
+          'created'
+        );
+      }
 
       // Emit real-time event
       if (shift) {
@@ -299,7 +356,14 @@ export class SwapRequestService {
    */
   async getPendingSwaps(locationId?: string): Promise<SwapRequestWithDetails[]> {
     try {
-      return this.swapRepository.findPendingSwaps(locationId);
+      const swaps = await this.swapRepository.findPendingSwaps(locationId);
+
+      // Transform to include names
+      return swaps.map((swap) => ({
+        ...swap,
+        requestorName: `${swap.requestor.firstName} ${swap.requestor.lastName}`,
+        targetStaffName: `${swap.targetStaff.firstName} ${swap.targetStaff.lastName}`,
+      })) as SwapRequestWithDetails[];
     } catch (error) {
       this.logger.error(`Error getting pending swaps:`, error);
       throw error;
@@ -310,9 +374,48 @@ export class SwapRequestService {
    * Get swap requests by staff
    * Requirements: 8.1
    */
-  async getSwapsByStaff(staffId: string): Promise<SwapRequestWithDetails[]> {
+  async getSwapsByStaff(staffId: string): Promise<any[]> {
     try {
-      return this.swapRepository.findSwapsByStaff(staffId);
+      const swaps = await this.swapRepository.findSwapsByStaff(staffId);
+
+      // For each swap, find the target staff's shift (what they would trade)
+      const enrichedSwaps = await Promise.all(
+        swaps.map(async (swap) => {
+          // Find target staff's shift at the same time as the requested shift
+          const targetShift = await this.prisma.assignment.findFirst({
+            where: {
+              staffId: swap.targetStaffId,
+              shift: {
+                startTime: {
+                  gte: new Date(swap.shift.startTime.getTime() - 24 * 60 * 60 * 1000), // Within 24 hours
+                  lte: new Date(swap.shift.startTime.getTime() + 24 * 60 * 60 * 1000),
+                },
+              },
+            },
+            include: {
+              shift: {
+                include: {
+                  location: true,
+                  skills: {
+                    include: {
+                      skill: true,
+                    },
+                  },
+                },
+              },
+            },
+          });
+
+          return {
+            ...swap,
+            requestorName: `${swap.requestor.firstName} ${swap.requestor.lastName}`,
+            targetStaffName: `${swap.targetStaff.firstName} ${swap.targetStaff.lastName}`,
+            targetShift: targetShift?.shift || null,
+          };
+        })
+      );
+
+      return enrichedSwaps;
     } catch (error) {
       this.logger.error(`Error getting swaps for staff ${staffId}:`, error);
       throw error;
@@ -441,6 +544,162 @@ export class SwapRequestService {
       return updatedSwapRequest;
     } catch (error) {
       this.logger.error(`Error cancelling swap request ${swapRequestId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Accept a swap request by the target staff
+   * Requirements: 7.6
+   * This validates skills/certifications and queues for manager approval
+   */
+  async acceptSwapRequest(swapRequestId: string, targetStaffId: string): Promise<SwapRequest> {
+    try {
+      const swapRequest = await this.swapRepository.findSwapRequestById(swapRequestId);
+      if (!swapRequest) {
+        throw new NotFoundException('Swap request not found');
+      }
+
+      // Validate target staff is the recipient
+      if (swapRequest.targetStaffId !== targetStaffId) {
+        throw new BadRequestException('You can only accept swap requests sent to you');
+      }
+
+      // Validate swap request is in PENDING status
+      if (swapRequest.status !== 'PENDING') {
+        throw new BadRequestException(
+          `Cannot accept swap request with status: ${swapRequest.status}`
+        );
+      }
+
+      // Get shift details
+      const shift = await this.prisma.shift.findUnique({
+        where: { id: swapRequest.shiftId },
+        include: {
+          skills: {
+            include: {
+              skill: true,
+            },
+          },
+        },
+      });
+
+      if (!shift) {
+        throw new NotFoundException('Shift not found');
+      }
+
+      // Re-validate target staff still has required skills
+      const requiredSkillIds = shift.skills.map((s) => s.skillId);
+      const targetStaff = await this.prisma.user.findUnique({
+        where: { id: targetStaffId },
+        include: {
+          skills: true,
+          certifications: true,
+        },
+      });
+
+      if (!targetStaff) {
+        throw new NotFoundException('Target staff not found');
+      }
+
+      const targetSkillIds = targetStaff.skills.map((s) => s.skillId);
+      const missingSkills = requiredSkillIds.filter((skillId) => !targetSkillIds.includes(skillId));
+
+      if (missingSkills.length > 0) {
+        const missingSkillNames = shift.skills
+          .filter((s) => missingSkills.includes(s.skillId))
+          .map((s) => s.skill.name);
+        throw new BadRequestException(
+          `You no longer have required skills: ${missingSkillNames.join(', ')}`
+        );
+      }
+
+      // Re-validate location certification
+      const hasCertification = targetStaff.certifications.some(
+        (cert) => cert.locationId === shift.locationId
+      );
+
+      if (!hasCertification) {
+        throw new BadRequestException('You are no longer certified for this location');
+      }
+
+      // Update swap request to mark target staff acceptance
+      const updatedSwapRequest = await this.prisma.swapRequest.update({
+        where: { id: swapRequestId },
+        data: {
+          targetStaffAcceptedAt: new Date(),
+        },
+      });
+
+      this.logger.log(`Swap request ${swapRequestId} accepted by target staff ${targetStaffId}`);
+
+      return updatedSwapRequest;
+    } catch (error) {
+      this.logger.error(`Error accepting swap request ${swapRequestId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Decline a swap request by the target staff
+   * Requirements: 7.6
+   */
+  async declineSwapRequest(swapRequestId: string, targetStaffId: string): Promise<SwapRequest> {
+    try {
+      const swapRequest = await this.swapRepository.findSwapRequestById(swapRequestId);
+      if (!swapRequest) {
+        throw new NotFoundException('Swap request not found');
+      }
+
+      // Validate target staff is the recipient
+      if (swapRequest.targetStaffId !== targetStaffId) {
+        throw new BadRequestException('You can only decline swap requests sent to you');
+      }
+
+      // Validate swap request is in PENDING status
+      if (swapRequest.status !== 'PENDING') {
+        throw new BadRequestException(
+          `Cannot decline swap request with status: ${swapRequest.status}`
+        );
+      }
+
+      // Update status to REJECTED (declined by target staff)
+      const updatedSwapRequest = await this.swapRepository.updateSwapRequestStatus(
+        swapRequestId,
+        'REJECTED',
+        targetStaffId,
+        'Declined by target staff'
+      );
+
+      // Log decline
+      await this.auditService.logSwapAction('REJECT', swapRequestId, targetStaffId, {
+        previousState: {
+          status: 'PENDING',
+        },
+        newState: {
+          status: 'REJECTED',
+          rejectionReason: 'Declined by target staff',
+        },
+      });
+
+      // Emit real-time event
+      const shift = await this.prisma.shift.findUnique({
+        where: { id: swapRequest.shiftId },
+      });
+      if (shift) {
+        this.realtimeGateway.emitSwapUpdated(
+          shift.locationId,
+          swapRequest.requestorId,
+          swapRequest.targetStaffId,
+          updatedSwapRequest
+        );
+      }
+
+      this.logger.log(`Swap request ${swapRequestId} declined by target staff ${targetStaffId}`);
+
+      return updatedSwapRequest;
+    } catch (error) {
+      this.logger.error(`Error declining swap request ${swapRequestId}:`, error);
       throw error;
     }
   }

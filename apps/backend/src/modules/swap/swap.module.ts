@@ -13,6 +13,7 @@ import { ComplianceModule } from '../compliance/compliance.module';
 import { ConfigModule } from '../config/config.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { UserModule } from '../user/user.module';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { UserModule } from '../user/user.module';
     ConfigModule,
     RealtimeModule,
     UserModule,
+    NotificationModule,
   ],
   controllers: [SwapController],
   providers: [

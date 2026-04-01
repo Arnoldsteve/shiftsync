@@ -48,7 +48,16 @@ export class SwapRepository {
       include: {
         requestor: true,
         targetStaff: true,
-        shift: true,
+        shift: {
+          include: {
+            location: true,
+            skills: {
+              include: {
+                skill: true,
+              },
+            },
+          },
+        },
       },
       orderBy: {
         createdAt: 'asc',
@@ -64,7 +73,16 @@ export class SwapRepository {
       include: {
         requestor: true,
         targetStaff: true,
-        shift: true,
+        shift: {
+          include: {
+            location: true,
+            skills: {
+              include: {
+                skill: true,
+              },
+            },
+          },
+        },
       },
       orderBy: {
         createdAt: 'desc',

@@ -5,16 +5,39 @@ export interface SwapRequest {
   requestorName: string;
   targetStaffId: string;
   targetStaffName: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+  targetStaffAcceptedAt?: string;
   reason?: string;
   rejectionReason?: string;
   createdAt: string;
   updatedAt: string;
+  requestor?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
+  targetStaff?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
   shift?: {
     id: string;
     startTime: string;
     endTime: string;
     locationId: string;
+    location?: {
+      name: string;
+    };
+  };
+  targetShift?: {
+    id: string;
+    startTime: string;
+    endTime: string;
+    locationId: string;
+    location?: {
+      name: string;
+    };
   };
 }
 

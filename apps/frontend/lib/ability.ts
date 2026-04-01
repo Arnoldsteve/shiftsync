@@ -58,6 +58,7 @@ export function createAbility(role: string, _managerLocationIds?: string[]): App
     // Manager can approve/reject swap and drop requests
     can(Action.Read, 'SwapRequest');
     can(Action.Update, 'SwapRequest');
+    can(Action.Manage, 'SwapRequest');
     can(Action.Read, 'DropRequest');
     can(Action.Update, 'DropRequest');
 

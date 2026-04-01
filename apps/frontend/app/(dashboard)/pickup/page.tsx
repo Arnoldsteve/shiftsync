@@ -43,7 +43,7 @@ export default function PickupPage() {
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold">Available Shifts</h1>

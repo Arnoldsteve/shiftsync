@@ -68,4 +68,15 @@ export const swapService = {
     const response = await apiClient.get(`/swaps/staff/${staffId}/pending-count`);
     return response.data as { count: number };
   },
+
+  // Staff Accept/Decline (Requirement 7.6)
+  async acceptSwapRequest(swapRequestId: string): Promise<SwapRequest> {
+    const response = await apiClient.put(`/swaps/${swapRequestId}/accept`);
+    return response.data as SwapRequest;
+  },
+
+  async declineSwapRequest(swapRequestId: string): Promise<SwapRequest> {
+    const response = await apiClient.put(`/swaps/${swapRequestId}/decline`);
+    return response.data as SwapRequest;
+  },
 };
