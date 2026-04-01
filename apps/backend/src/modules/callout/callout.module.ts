@@ -13,6 +13,7 @@ import { RealtimeModule } from '../realtime/realtime.module';
 import { ComplianceModule } from '../compliance/compliance.module';
 import { ConflictModule } from '../conflict/conflict.module';
 import { UserModule } from '../user/user.module';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { UserModule } from '../user/user.module';
     ComplianceModule,
     ConflictModule,
     UserModule,
+    NotificationModule,
   ],
   controllers: [CalloutController],
   providers: [

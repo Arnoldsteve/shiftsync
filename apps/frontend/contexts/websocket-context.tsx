@@ -38,7 +38,8 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     if (!token) return;
 
     // Create socket connection with JWT authentication
-    const newSocket = io(WS_URL, {
+    // Backend gateway uses /realtime namespace
+    const newSocket = io(`${WS_URL}/realtime`, {
       auth: {
         token,
       },
@@ -53,6 +54,12 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     newSocket.on('connect', () => {
       console.log('WebSocket connected');
       setIsConnected(true);
+
+      // Auto-subscribe to user's own staff room for notifications
+      if (user?.id) {
+        newSocket.emit('subscribe:staff', { staffId: user.id });
+        console.log(`Auto-subscribed to staff:${user.id}`);
+      }
     });
 
     newSocket.on('disconnect', (reason) => {

@@ -37,7 +37,11 @@ export class CoverageGapRepository {
             skill: true,
           },
         },
-        certifications: true,
+        certifications: {
+          include: {
+            location: true,
+          },
+        },
         // Performance: Fetching these now so the Service doesn't have to query again in a loop
         availabilityWindows: true,
         availabilityExceptions: true,

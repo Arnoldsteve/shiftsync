@@ -14,6 +14,7 @@ import { CacheModule } from '../cache/cache.module';
 import { ConflictModule } from '../conflict/conflict.module';
 import { ComplianceModule } from '../compliance/compliance.module';
 import { RealtimeModule } from '../realtime/realtime.module';
+import { NotificationModule } from '../notification/notification.module';
 import { UserModule } from '../user/user.module';
 import { SwapModule } from '../swap/swap.module';
 import { OvertimeModule } from '../overtime/overtime.module';
@@ -26,6 +27,7 @@ import { OvertimeModule } from '../overtime/overtime.module';
     ConflictModule,
     ComplianceModule,
     RealtimeModule,
+    NotificationModule,
     UserModule,
     SwapModule,
     OvertimeModule,

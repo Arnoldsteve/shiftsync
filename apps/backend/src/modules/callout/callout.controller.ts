@@ -19,7 +19,7 @@ export class CalloutController {
    * Requirements: 22.1, 22.2, 22.3, 22.4
    */
   @Post()
-  @CheckPolicies((ability) => ability.can(Action.Create, 'User'))
+  @CheckPolicies((ability) => ability.can(Action.Create, 'CalloutRequest'))
   @ApiOperation({ summary: 'Report callout for a shift' })
   async reportCallout(
     @Body() data: { shiftId: string; reason?: string },
@@ -33,7 +33,7 @@ export class CalloutController {
    * Requirements: 21.1, 21.2, 21.3
    */
   @Get('dashboard/coverage')
-  @CheckPolicies((ability) => ability.can(Action.Read, 'User'))
+  @CheckPolicies((ability) => ability.can(Action.Read, 'Schedule'))
   @ApiOperation({ summary: 'Get current coverage for all locations' })
   async getCurrentCoverage() {
     return this.calloutService.getCurrentCoverage();
@@ -44,7 +44,7 @@ export class CalloutController {
    * Requirements: 21.4
    */
   @Get('dashboard/upcoming')
-  @CheckPolicies((ability) => ability.can(Action.Read, 'User'))
+  @CheckPolicies((ability) => ability.can(Action.Read, 'Schedule'))
   @ApiOperation({ summary: 'Get upcoming shifts in next 24 hours' })
   async getUpcomingShifts() {
     return this.calloutService.getUpcomingShifts();
@@ -55,7 +55,7 @@ export class CalloutController {
    * Requirements: 23.1, 23.2, 23.3
    */
   @Get('shifts/:id/available-staff')
-  @CheckPolicies((ability) => ability.can(Action.Read, 'User'))
+  @CheckPolicies((ability) => ability.can(Action.Read, 'Schedule'))
   @ApiOperation({ summary: 'Find available staff for uncovered shift' })
   async findAvailableStaff(@Param('id') shiftId: string) {
     return this.calloutService.findAvailableStaff(shiftId);
@@ -66,7 +66,7 @@ export class CalloutController {
    * Requirements: 23.4, 23.5
    */
   @Post('shifts/:id/offer')
-  @CheckPolicies((ability) => ability.can(Action.Create, 'User'))
+  @CheckPolicies((ability) => ability.can(Action.Create, 'Assignment'))
   @ApiOperation({ summary: 'Send shift offer to specific staff' })
   async sendShiftOffer(@Param('id') shiftId: string, @Body() data: { staffId: string }) {
     await this.calloutService.sendShiftOffer(shiftId, data.staffId);

@@ -90,7 +90,7 @@ export function Sidebar() {
       label: 'Coverage',
       href: '/coverage',
       icon: Users,
-      action: Action.Read,
+      action: Action.Update,
       subject: 'CalloutRequest',
     },
     {

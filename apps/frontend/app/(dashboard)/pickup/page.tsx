@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardDescription, CardHeader, CardTitle } from '@shiftsync/ui';
 import { useAvailableShifts } from '@/hooks/use-shift-pickup';
 import { ShiftPickupCard } from '@/components/shifts/shift-pickup-card';
@@ -11,8 +13,20 @@ import { Action } from '@/lib/ability';
 export default function PickupPage() {
   const { user } = useAuth();
   const { can } = usePermissions();
+  const searchParams = useSearchParams();
+  const highlightShiftId = searchParams.get('highlight');
   const { data: availableShifts, isLoading } = useAvailableShifts();
   const { data: pendingCount } = usePendingRequestCount(user?.id || '');
+  const highlightedCardRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to highlighted shift when data loads
+  useEffect(() => {
+    if (highlightShiftId && availableShifts && highlightedCardRef.current) {
+      setTimeout(() => {
+        highlightedCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    }
+  }, [highlightShiftId, availableShifts]);
 
   // Check permissions
   if (!can(Action.Read, 'Shift')) {
@@ -47,7 +61,9 @@ export default function PickupPage() {
       ) : availableShifts && availableShifts.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {availableShifts.map((shift) => (
-            <ShiftPickupCard key={shift.id} shift={shift} />
+            <div key={shift.id} ref={highlightShiftId === shift.id ? highlightedCardRef : null}>
+              <ShiftPickupCard shift={shift} autoOpen={highlightShiftId === shift.id} />
+            </div>
           ))}
         </div>
       ) : (

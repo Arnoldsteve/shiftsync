@@ -72,6 +72,7 @@ export interface AvailableShift {
   type: 'unassigned' | 'drop_request';
   dropRequestId: string | null;
   expiresAt?: string;
+  offeredToUser?: boolean;
 }
 
 // Staff Suggestion for Alternative Staff (Requirement 40)

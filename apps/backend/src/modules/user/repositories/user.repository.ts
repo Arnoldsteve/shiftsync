@@ -141,4 +141,18 @@ export class UserRepository {
       },
     });
   }
+
+  /**
+   * Find managers assigned to a specific location
+   */
+  async findManagersByLocation(locationId: string): Promise<User[]> {
+    const managerAssignments = await this.prisma.managerLocation.findMany({
+      where: { locationId },
+      include: {
+        manager: true,
+      },
+    });
+
+    return managerAssignments.map((assignment) => assignment.manager);
+  }
 }

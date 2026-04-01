@@ -306,4 +306,20 @@ export class ScheduleRepository {
       },
     });
   }
+
+  /**
+   * Find notifications by user and type
+   * Used to check if shifts were offered to a specific user
+   */
+  async findNotificationsByUserAndType(userId: string, type: string): Promise<any[]> {
+    return this.prisma.notification.findMany({
+      where: {
+        userId,
+        type,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
 }

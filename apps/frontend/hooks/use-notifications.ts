@@ -1,4 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { useWebSocket } from '@/contexts/websocket-context';
 import { notificationService } from '@/services/notification.service';
 import { queryKeys } from '@/lib/query-keys';
 import type { UpdateNotificationPreferencesDto } from '@/types/notification.types';
@@ -9,6 +11,7 @@ import type { UpdateNotificationPreferencesDto } from '@/types/notification.type
  */
 export function useNotifications(includeRead: boolean = false) {
   const queryClient = useQueryClient();
+  const { socket, isConnected } = useWebSocket();
 
   // Get notifications
   const {
@@ -19,8 +22,26 @@ export function useNotifications(includeRead: boolean = false) {
   } = useQuery({
     queryKey: queryKeys.notifications.list(includeRead),
     queryFn: () => notificationService.getNotifications(includeRead),
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: 30000, // Refetch every 30 seconds as fallback
   });
+
+  // Listen for real-time notification events
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    const handleNotification = () => {
+      // Invalidate queries to refetch notifications
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+    };
+
+    // Listen for notification events (backend emits 'notification:new')
+    socket.on('notification:new', handleNotification);
+
+    // Cleanup
+    return () => {
+      socket.off('notification:new', handleNotification);
+    };
+  }, [socket, isConnected, queryClient]);
 
   // Mark as read mutation
   const markAsReadMutation = useMutation({

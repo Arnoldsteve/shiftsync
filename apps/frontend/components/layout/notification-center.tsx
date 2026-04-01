@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useNotifications } from '@/hooks/use-notifications';
 import {
   Button,
@@ -19,6 +20,8 @@ import {
   RefreshCw,
   Trash2,
   Info,
+  Package,
+  Users,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { Notification, NotificationType } from '@/types/notification.types';
@@ -28,6 +31,7 @@ import type { Notification, NotificationType } from '@/types/notification.types'
  * Requirements: 38.1, 38.3
  */
 export function NotificationCenter() {
+  const router = useRouter();
   const includeRead = false;
   const { notifications, unreadCount, markAsRead, markAllAsRead, isMarkingAllAsRead } =
     useNotifications(includeRead);
@@ -35,6 +39,45 @@ export function NotificationCenter() {
   const handleNotificationClick = (notification: Notification) => {
     if (!notification.isRead) {
       markAsRead(notification.id);
+    }
+
+    // Navigate based on notification type
+    switch (notification.type) {
+      case 'SHIFT_OFFER':
+        // Extract shiftId from metadata and add as query parameter
+        const shiftId = notification.metadata?.shiftId;
+        if (shiftId) {
+          router.push(`/pickup?highlight=${shiftId}`);
+        } else {
+          router.push('/pickup');
+        }
+        break;
+      case 'SHIFT_OFFER_ACCEPTED':
+      case 'COVERAGE_GAP':
+        router.push('/coverage');
+        break;
+      case 'SHIFT_ASSIGNED':
+      case 'SHIFT_MODIFIED':
+      case 'SHIFT_DELETED':
+        router.push('/my-shifts');
+        break;
+      case 'SWAP_REQUEST_CREATED':
+      case 'SWAP_REQUEST_APPROVED':
+      case 'SWAP_REQUEST_REJECTED':
+        router.push('/swaps');
+        break;
+      case 'SCHEDULE_PUBLISHED':
+        router.push('/schedule');
+        break;
+      case 'OVERTIME_APPROACHING':
+        router.push('/overtime');
+        break;
+      case 'AVAILABILITY_CHANGED':
+        router.push('/availability');
+        break;
+      default:
+        // No navigation for unknown types
+        break;
     }
   };
 
@@ -44,6 +87,12 @@ export function NotificationCenter() {
 
   const getNotificationIcon = (type: NotificationType) => {
     switch (type) {
+      case 'SHIFT_OFFER':
+        return <Package className="h-4 w-4 text-green-600" />;
+      case 'SHIFT_OFFER_ACCEPTED':
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'COVERAGE_GAP':
+        return <Users className="h-4 w-4 text-red-600" />;
       case 'SHIFT_ASSIGNED':
       case 'SCHEDULE_PUBLISHED':
         return <Calendar className="h-4 w-4 text-blue-600" />;

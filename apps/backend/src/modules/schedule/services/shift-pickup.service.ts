@@ -5,6 +5,7 @@ import { CacheService } from '../../cache/cache.service';
 import { ConflictService } from '../../conflict/conflict.service';
 import { ComplianceService } from '../../compliance/compliance.service';
 import { RealtimeGateway } from '../../realtime/realtime.gateway';
+import { NotificationService } from '../../notification/notification.service';
 import { DropRequestRepository } from '../../swap/repositories/drop-request.repository';
 import { UserRepository } from '../../user/repositories/user.repository';
 import { Assignment, DropStatus } from '@prisma/client';
@@ -25,6 +26,7 @@ export class ShiftPickupService {
     private readonly conflictService: ConflictService,
     private readonly complianceService: ComplianceService,
     private readonly realtimeGateway: RealtimeGateway,
+    private readonly notificationService: NotificationService,
     private readonly dropRequestRepository: DropRequestRepository,
     private readonly userRepository: UserRepository
   ) {}
@@ -46,6 +48,17 @@ export class ShiftPickupService {
 
       // Get staff certified location IDs
       const staffCertifiedLocationIds = staff.certifications?.map((c: any) => c.locationId) || [];
+
+      // Get shift offers for this user from notifications
+      const notifications = await this.scheduleRepository.findNotificationsByUserAndType(
+        staffId,
+        'SHIFT_OFFER'
+      );
+      const offeredShiftIds = new Set(
+        notifications
+          .filter((n: any) => !n.isRead && n.metadata?.shiftId)
+          .map((n: any) => n.metadata.shiftId)
+      );
 
       // Get unassigned shifts
       const unassignedShifts = await this.scheduleRepository.findUnassignedShifts(
@@ -88,6 +101,7 @@ export class ShiftPickupService {
           requiredSkills: shift.skills.map((s) => s.skill.name),
           type: 'unassigned',
           dropRequestId: null,
+          offeredToUser: offeredShiftIds.has(shift.id),
         })),
         ...qualifiedDropRequests.map((dropRequest: any) => ({
           id: dropRequest.shift.id,
@@ -100,13 +114,16 @@ export class ShiftPickupService {
           type: 'drop_request',
           dropRequestId: dropRequest.id,
           expiresAt: dropRequest.expiresAt.toISOString(),
+          offeredToUser: offeredShiftIds.has(dropRequest.shift.id),
         })),
       ];
 
-      // Sort by start time
-      availableShifts.sort(
-        (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-      );
+      // Sort by offeredToUser first, then by start time
+      availableShifts.sort((a, b) => {
+        if (a.offeredToUser && !b.offeredToUser) return -1;
+        if (!a.offeredToUser && b.offeredToUser) return 1;
+        return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+      });
 
       return availableShifts;
     } catch (error) {
@@ -235,6 +252,38 @@ export class ShiftPickupService {
       await this.auditService.logAssignmentChange('CREATE', assignment.id, staffId, {
         newState: { shiftId, staffId, assignedBy: staffId, type: 'pickup' },
       });
+
+      // Check if this shift was offered to the user and notify managers
+      const shiftOfferNotification = await this.scheduleRepository.findNotificationsByUserAndType(
+        staffId,
+        'SHIFT_OFFER'
+      );
+      const wasOffered = shiftOfferNotification.some((n: any) => n.metadata?.shiftId === shiftId);
+
+      if (wasOffered) {
+        // Find managers for this location and notify them
+        const managers = await this.userRepository.findManagersByLocation(shift.locationId);
+        const staffName = `${staff.firstName} ${staff.lastName}`;
+        const locationName = (shift as any).location?.name || 'Unknown Location';
+        const shiftTime = `${shift.startTime.toLocaleString()} - ${shift.endTime.toLocaleTimeString()}`;
+
+        for (const manager of managers) {
+          await this.notificationService.createNotification(
+            manager.id,
+            'SHIFT_OFFER_ACCEPTED',
+            'Shift Offer Accepted',
+            `${staffName} has accepted the offer for ${locationName} on ${shiftTime}.`,
+            {
+              shiftId,
+              staffId,
+              staffName,
+              locationName,
+              startTime: shift.startTime,
+              endTime: shift.endTime,
+            }
+          );
+        }
+      }
 
       // Invalidate cache
       await this.cacheService.invalidateSchedule(shift.locationId);
