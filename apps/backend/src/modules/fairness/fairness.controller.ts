@@ -56,6 +56,25 @@ export class FairnessController {
   }
 
   /**
+   * Get desired hours comparison for location
+   * Requirements: 41.2, 41.3, 41.4, 41.5
+   */
+  @Get(':locationId/desired-hours')
+  @CheckPolicies((ability) => ability.can(Action.Read, 'User'))
+  @ApiOperation({ summary: 'Compare actual vs desired hours for location' })
+  async getDesiredHoursComparison(
+    @Param('locationId') locationId: string,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string
+  ) {
+    return this.fairnessService.compareActualToDesiredHours(
+      locationId,
+      new Date(startDate),
+      new Date(endDate)
+    );
+  }
+
+  /**
    * Generate fairness report (background job)
    * Requirements: 13.4, 13.5, 24.2
    */

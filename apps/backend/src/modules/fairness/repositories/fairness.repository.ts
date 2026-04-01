@@ -116,4 +116,20 @@ export class FairnessRepository {
       },
     });
   }
+
+  /**
+   * Find user with desired hours by ID
+   * Requirements: 41.2
+   */
+  async findUserWithDesiredHours(userId: string) {
+    return this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        desiredWeeklyHours: true,
+      },
+    });
+  }
 }

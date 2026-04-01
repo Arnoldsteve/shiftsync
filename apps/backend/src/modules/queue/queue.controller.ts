@@ -72,4 +72,20 @@ export class QueueController {
       message: 'Job retry initiated',
     };
   }
+
+  /**
+   * Manually trigger drop request expiration check - Admin
+   * Requirements: 33.3, 33.5
+   */
+  @Post('drop-request-expiration/trigger')
+  @CheckPolicies((ability) => ability.can(Action.Update, 'User'))
+  @ApiOperation({ summary: 'Manually trigger drop request expiration check' })
+  async triggerDropRequestExpiration() {
+    const job = await this.queueService.triggerDropRequestExpiration();
+
+    return {
+      jobId: job.id,
+      message: 'Drop request expiration check triggered',
+    };
+  }
 }

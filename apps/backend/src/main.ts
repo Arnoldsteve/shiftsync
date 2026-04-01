@@ -3,6 +3,10 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
+import { BullBoardAdminGuard } from './modules/queue/guards/bull-board-admin.guard';
+import { QueueService } from './modules/queue/queue.service';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -29,6 +33,34 @@ async function bootstrap() {
 
   // Set global API prefix
   app.setGlobalPrefix('api');
+
+  // Protect BullBoard UI with Admin authentication
+  const jwtService = app.get(JwtService);
+  const configService = app.get(ConfigService);
+  const bullBoardGuard = new BullBoardAdminGuard(jwtService, configService);
+
+  // Apply authentication middleware to BullBoard route
+  const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.use('/admin/queues', async (req: any, res: any, next: any) => {
+    try {
+      const mockContext = {
+        switchToHttp: () => ({
+          getRequest: () => req,
+          getResponse: () => res,
+        }),
+      } as any;
+
+      const canActivate = await bullBoardGuard.canActivate(mockContext);
+      if (canActivate) {
+        next();
+      } else {
+        res.status(403).json({ message: 'Access denied. Admin role required.' });
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unauthorized';
+      res.status(401).json({ message: errorMessage });
+    }
+  });
 
   // Scalar API documentation
   const config = new DocumentBuilder()
@@ -85,6 +117,11 @@ async function bootstrap() {
   const logger = app.get(Logger);
   logger.log(`🚀 ShiftSync API running on http://localhost:${port}`);
   logger.log(`📚 API Documentation (Scalar) available at http://localhost:${port}/api/docs`);
+
+  // Schedule recurring drop request expiration job
+  const queueService = app.get(QueueService);
+  await queueService.scheduleDropRequestExpiration();
+  logger.log('✅ Drop request expiration job scheduled (runs every 15 minutes)');
 }
 
 bootstrap();

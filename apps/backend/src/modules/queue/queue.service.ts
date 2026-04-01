@@ -12,7 +12,9 @@ export class QueueService {
     @InjectQueue(QUEUES.FAIRNESS_REPORT)
     private readonly fairnessReportQueue: Queue<FairnessReportJobData>,
     @InjectQueue(QUEUES.OVERTIME_REPORT)
-    private readonly overtimeReportQueue: Queue<OvertimeReportJobData>
+    private readonly overtimeReportQueue: Queue<OvertimeReportJobData>,
+    @InjectQueue(QUEUES.DROP_REQUEST_EXPIRATION)
+    private readonly dropRequestExpirationQueue: Queue<void>
   ) {}
 
   /**
@@ -69,8 +71,21 @@ export class QueueService {
     returnvalue: any;
     failedReason?: string;
   }> {
-    const queue =
-      queueName === QUEUES.FAIRNESS_REPORT ? this.fairnessReportQueue : this.overtimeReportQueue;
+    let queue: Queue;
+
+    switch (queueName) {
+      case QUEUES.FAIRNESS_REPORT:
+        queue = this.fairnessReportQueue;
+        break;
+      case QUEUES.OVERTIME_REPORT:
+        queue = this.overtimeReportQueue;
+        break;
+      case QUEUES.DROP_REQUEST_EXPIRATION:
+        queue = this.dropRequestExpirationQueue;
+        break;
+      default:
+        throw new Error(`Unknown queue: ${queueName}`);
+    }
 
     const job = await queue.getJob(jobId);
 
@@ -100,8 +115,21 @@ export class QueueService {
     queueName: QUEUES,
     state: 'waiting' | 'active' | 'completed' | 'failed'
   ): Promise<Job[]> {
-    const queue =
-      queueName === QUEUES.FAIRNESS_REPORT ? this.fairnessReportQueue : this.overtimeReportQueue;
+    let queue: Queue;
+
+    switch (queueName) {
+      case QUEUES.FAIRNESS_REPORT:
+        queue = this.fairnessReportQueue;
+        break;
+      case QUEUES.OVERTIME_REPORT:
+        queue = this.overtimeReportQueue;
+        break;
+      case QUEUES.DROP_REQUEST_EXPIRATION:
+        queue = this.dropRequestExpirationQueue;
+        break;
+      default:
+        throw new Error(`Unknown queue: ${queueName}`);
+    }
 
     switch (state) {
       case 'waiting':
@@ -122,8 +150,21 @@ export class QueueService {
    * Requirements: 24.5
    */
   async retryJob(queueName: QUEUES, jobId: string): Promise<void> {
-    const queue =
-      queueName === QUEUES.FAIRNESS_REPORT ? this.fairnessReportQueue : this.overtimeReportQueue;
+    let queue: Queue;
+
+    switch (queueName) {
+      case QUEUES.FAIRNESS_REPORT:
+        queue = this.fairnessReportQueue;
+        break;
+      case QUEUES.OVERTIME_REPORT:
+        queue = this.overtimeReportQueue;
+        break;
+      case QUEUES.DROP_REQUEST_EXPIRATION:
+        queue = this.dropRequestExpirationQueue;
+        break;
+      default:
+        throw new Error(`Unknown queue: ${queueName}`);
+    }
 
     const job = await queue.getJob(jobId);
 
@@ -133,5 +174,39 @@ export class QueueService {
 
     await job.retry();
     this.logger.log(`Retrying job ${jobId} in queue ${queueName}`);
+  }
+
+  /**
+   * Schedule recurring drop request expiration job
+   * Runs every 15 minutes to check for expired drop requests
+   * Requirements: 33.3, 33.5
+   */
+  async scheduleDropRequestExpiration(): Promise<void> {
+    this.logger.log('Scheduling drop request expiration job to run every 15 minutes');
+
+    // Add a repeatable job that runs every 15 minutes
+    await this.dropRequestExpirationQueue.add(
+      JOB_NAMES.EXPIRE_DROP_REQUESTS,
+      undefined, // No data needed for void type
+      {
+        repeat: {
+          pattern: '*/15 * * * *', // Every 15 minutes (cron format)
+        },
+        jobId: 'drop-request-expiration-recurring', // Unique ID to prevent duplicates
+      }
+    );
+
+    this.logger.log('Drop request expiration job scheduled successfully');
+  }
+
+  /**
+   * Manually trigger drop request expiration check
+   * Useful for testing and admin operations
+   * Requirements: 33.3, 33.5
+   */
+  async triggerDropRequestExpiration(): Promise<Job<void>> {
+    this.logger.log('Manually triggering drop request expiration check');
+
+    return this.dropRequestExpirationQueue.add(JOB_NAMES.EXPIRE_DROP_REQUESTS, undefined);
   }
 }

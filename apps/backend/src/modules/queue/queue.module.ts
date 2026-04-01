@@ -1,6 +1,7 @@
 import { Global, Module, forwardRef } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { JwtModule } from '@nestjs/jwt';
 import { BullBoardModule } from '@bull-board/nestjs';
 import { ExpressAdapter } from '@bull-board/express';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
@@ -8,10 +9,13 @@ import { QueueService } from './queue.service';
 import { QueueController } from './queue.controller';
 import { FairnessReportProcessor } from './processors/fairness-report.processor';
 import { OvertimeReportProcessor } from './processors/overtime-report.processor';
+import { DropRequestExpirationProcessor } from './processors/drop-request-expiration.processor';
 import { QUEUES } from './queue.constants';
 import { QueueRateLimiter } from './rate-limiter';
+import { BullBoardAdminGuard } from './guards/bull-board-admin.guard';
 import { FairnessModule } from '../fairness/fairness.module';
 import { OvertimeModule } from '../overtime/overtime.module';
+import { SwapModule } from '../swap/swap.module';
 import { CacheModule } from '../cache/cache.module';
 import { UserModule } from '../user/user.module';
 
@@ -71,7 +75,11 @@ import { UserModule } from '../user/user.module';
     }),
 
     // Register all queues defined in constants
-    BullModule.registerQueue({ name: QUEUES.FAIRNESS_REPORT }, { name: QUEUES.OVERTIME_REPORT }),
+    BullModule.registerQueue(
+      { name: QUEUES.FAIRNESS_REPORT },
+      { name: QUEUES.OVERTIME_REPORT },
+      { name: QUEUES.DROP_REQUEST_EXPIRATION }
+    ),
 
     // Register BullBoard for queue visualization
     BullBoardModule.forRoot({
@@ -86,10 +94,27 @@ import { UserModule } from '../user/user.module';
       name: QUEUES.OVERTIME_REPORT,
       adapter: BullMQAdapter as any,
     }),
+    BullBoardModule.forFeature({
+      name: QUEUES.DROP_REQUEST_EXPIRATION,
+      adapter: BullMQAdapter as any,
+    }),
+
+    // JWT Module for BullBoard authentication
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET'),
+        signOptions: {
+          expiresIn: configService.get<string>('JWT_EXPIRES_IN') || '24h',
+        },
+      }),
+    }),
 
     // Import required modules
     forwardRef(() => FairnessModule),
     forwardRef(() => OvertimeModule),
+    forwardRef(() => SwapModule),
     CacheModule,
     UserModule,
   ],
@@ -98,6 +123,8 @@ import { UserModule } from '../user/user.module';
     QueueService,
     FairnessReportProcessor,
     OvertimeReportProcessor,
+    DropRequestExpirationProcessor,
+    BullBoardAdminGuard,
     {
       provide: QueueRateLimiter,
       useValue: new QueueRateLimiter(50, 10), // 50 jobs/sec, 10 concurrent

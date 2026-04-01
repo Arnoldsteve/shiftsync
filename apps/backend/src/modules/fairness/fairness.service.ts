@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { FairnessRepository } from './repositories/fairness.repository';
-import { HourDistribution, PremiumShiftDistribution, FairnessReport } from './interfaces';
+import {
+  HourDistribution,
+  PremiumShiftDistribution,
+  FairnessReport,
+  DesiredHoursAnalysis,
+  DesiredHoursComparison,
+} from './interfaces';
 
 @Injectable()
 export class FairnessService {
@@ -179,8 +185,113 @@ export class FairnessService {
   }
 
   /**
+   * Compare actual scheduled hours to desired hours for each staff user
+   * Requirements: 41.2, 41.3, 41.4
+   */
+  async compareActualToDesiredHours(
+    locationId: string,
+    startDate: Date,
+    endDate: Date
+  ): Promise<DesiredHoursAnalysis> {
+    // Find all staff with shifts in this location
+    const staffIds = await this.fairnessRepository.findStaffWithShiftsInLocation(
+      locationId,
+      startDate,
+      endDate
+    );
+
+    const comparisons: DesiredHoursComparison[] = [];
+
+    // Calculate the number of weeks in the date range for weekly hours comparison
+    const durationMs = endDate.getTime() - startDate.getTime();
+    const durationWeeks = durationMs / (1000 * 60 * 60 * 24 * 7);
+
+    // Calculate actual vs desired hours for each staff member
+    for (const staffId of staffIds) {
+      const shifts = await this.fairnessRepository.findShiftsInRange(staffId, startDate, endDate);
+
+      // Calculate actual hours
+      let actualHours = 0;
+      for (const shift of shifts) {
+        const durationMs = shift.endTime.getTime() - shift.startTime.getTime();
+        const durationHours = durationMs / (1000 * 60 * 60);
+        actualHours += durationHours;
+      }
+
+      // Get user with desired hours
+      const user = await this.fairnessRepository.findUserWithDesiredHours(staffId);
+
+      const staffName = user ? `${user.firstName} ${user.lastName}` : 'Unknown';
+      const desiredWeeklyHours = user?.desiredWeeklyHours ?? null;
+
+      let comparison: DesiredHoursComparison;
+
+      if (desiredWeeklyHours === null) {
+        // Staff has not set desired hours
+        comparison = {
+          staffId,
+          staffName,
+          actualHours,
+          desiredHours: null,
+          difference: null,
+          percentageDifference: null,
+          status: 'no-preference',
+        };
+      } else {
+        // Calculate expected hours based on desired weekly hours and date range
+        const expectedHours = desiredWeeklyHours * durationWeeks;
+        const difference = actualHours - expectedHours;
+        const percentageDifference = expectedHours > 0 ? (difference / expectedHours) * 100 : 0;
+
+        // Determine status based on thresholds
+        // "Significantly" means: >20% deviation OR >5 hours absolute difference
+        const isSignificantlyDifferent =
+          Math.abs(percentageDifference) > 20 || Math.abs(difference) > 5;
+
+        let status: DesiredHoursComparison['status'];
+        if (!isSignificantlyDifferent) {
+          status = 'on-target';
+        } else if (difference < 0) {
+          status = 'under-scheduled';
+        } else {
+          status = 'over-scheduled';
+        }
+
+        comparison = {
+          staffId,
+          staffName,
+          actualHours,
+          desiredHours: expectedHours,
+          difference,
+          percentageDifference,
+          status,
+        };
+      }
+
+      comparisons.push(comparison);
+    }
+
+    // Categorize comparisons
+    const underScheduled = comparisons.filter((c) => c.status === 'under-scheduled');
+    const overScheduled = comparisons.filter((c) => c.status === 'over-scheduled');
+    const onTarget = comparisons.filter((c) => c.status === 'on-target');
+    const noPreference = comparisons.filter((c) => c.status === 'no-preference');
+
+    return {
+      locationId,
+      startDate,
+      endDate,
+      comparisons,
+      underScheduled,
+      overScheduled,
+      onTarget,
+      noPreference,
+    };
+  }
+
+  /**
    * Generate comprehensive fairness report
-   * Requirements: 13.4, 13.5
+   * Requirements: 13.4, 13.5, 41.5
    */
   async generateFairnessReport(
     locationId: string,
@@ -195,12 +306,19 @@ export class FairnessService {
       endDate
     );
 
+    const desiredHoursAnalysis = await this.compareActualToDesiredHours(
+      locationId,
+      startDate,
+      endDate
+    );
+
     return {
       locationId,
       startDate,
       endDate,
       hourDistribution,
       premiumShiftDistribution,
+      desiredHoursAnalysis,
       generatedAt: new Date(),
     };
   }

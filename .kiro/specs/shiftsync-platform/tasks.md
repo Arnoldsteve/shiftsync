@@ -871,7 +871,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test outlier detection at boundary conditions
     - Test percentage calculations with edge cases
 
-  - [ ] 15.12 Implement desired hours comparison (Requirement 41)
+  - [x] 15.12 Implement desired hours comparison (Requirement 41)
     - Implement compareActualToDesiredHours for location and date range
     - Calculate actual scheduled hours for each staff user
     - Compare to desired weekly hours (if set)
@@ -906,7 +906,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
   - Ensure Swap Service, Overtime Tracker, and Fairness Analyzer are working correctly. Run all tests. Ask the user if questions arise.
 
 - [ ] 17. Implement Background Job Queue with BullMQ
-  - [ ] 17.1 Set up BullMQ with Redis and BullBoard
+  - [x] 17.1 Set up BullMQ with Redis and BullBoard
     - Install BullMQ and configure with Redis connection
     - Install and configure BullBoard for job queue visualization
     - Create job queue module in NestJS
@@ -915,7 +915,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Mount BullBoard UI at /admin/queues endpoint (Admin only)
     - _Requirements: 24.1, 24.5, 29.4_
 
-  - [ ] 17.1a Implement drop request expiration job (Requirement 33)
+  - [x] 17.1a Implement drop request expiration job (Requirement 33)
     - Create job processor for "drop-request-expiration" job type
     - Schedule job to run periodically (e.g., every 15 minutes)
     - Query for drop requests with expiresAt < now and status PENDING
