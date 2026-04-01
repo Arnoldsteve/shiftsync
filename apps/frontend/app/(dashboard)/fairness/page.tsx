@@ -28,6 +28,8 @@ import {
 import { ArrowUpDown, Play } from 'lucide-react';
 import { useFairnessReport, useGenerateFairnessReport } from '@/hooks/use-fairness';
 import { useLocations } from '@/hooks/use-locations';
+import { ProtectedPage } from '@/components/auth/protected-page';
+import { Action } from '@/lib/ability';
 import type { HourDistribution } from '@/types/fairness.types';
 
 export default function FairnessPage() {
@@ -121,134 +123,146 @@ export default function FairnessPage() {
   };
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">Fairness Analytics</h1>
-          <p className="text-muted-foreground">
-            Analyze hour distribution and premium shift fairness
-          </p>
+    <ProtectedPage
+      action={Action.Read}
+      subject="Fairness"
+      fallbackMessage="Only administrators and managers can view fairness analytics."
+    >
+      <div className="container mx-auto p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold">Fairness Analytics</h1>
+            <p className="text-muted-foreground">
+              Analyze hour distribution and premium shift fairness
+            </p>
+          </div>
+          <Button onClick={handleGenerateReport} disabled={generateReport.isPending}>
+            <Play className="mr-2 h-4 w-4" />
+            {generateReport.isPending ? 'Generating...' : 'Generate Report'}
+          </Button>
         </div>
-        <Button onClick={handleGenerateReport} disabled={generateReport.isPending}>
-          <Play className="mr-2 h-4 w-4" />
-          {generateReport.isPending ? 'Generating...' : 'Generate Report'}
-        </Button>
-      </div>
 
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Filters</CardTitle>
-          <CardDescription>Select location and date range</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="grid gap-2">
-              <Label>Location</Label>
-              <Select value={locationId} onValueChange={setLocationId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select location" />
-                </SelectTrigger>
-                <SelectContent>
-                  {isLoadingLocations ? (
-                    <SelectItem value="loading" disabled>
-                      Loading locations...
-                    </SelectItem>
-                  ) : locations && locations.length > 0 ? (
-                    locations.map((location) => (
-                      <SelectItem key={location.id} value={location.id}>
-                        {location.name}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Filters</CardTitle>
+            <CardDescription>Select location and date range</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="grid gap-2">
+                <Label>Location</Label>
+                <Select value={locationId} onValueChange={setLocationId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select location" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {isLoadingLocations ? (
+                      <SelectItem value="loading" disabled>
+                        Loading locations...
                       </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="none" disabled>
-                      No locations available
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
+                    ) : locations && locations.length > 0 ? (
+                      locations.map((location) => (
+                        <SelectItem key={location.id} value={location.id}>
+                          {location.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="none" disabled>
+                        No locations available
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label>Start Date</Label>
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>End Date</Label>
+                <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+              </div>
             </div>
-            <div className="grid gap-2">
-              <Label>Start Date</Label>
-              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-            </div>
-            <div className="grid gap-2">
-              <Label>End Date</Label>
-              <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+          </CardContent>
+        </Card>
+
+        {report && (
+          <div className="grid gap-6 mb-6">
+            <div className="grid grid-cols-2 gap-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Mean Hours</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">
+                    {report.hourDistribution.mean.toFixed(2)}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Standard Deviation</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">
+                    {report.hourDistribution.standardDeviation.toFixed(2)}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        )}
 
-      {report && (
-        <div className="grid gap-6 mb-6">
-          <div className="grid grid-cols-2 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Mean Hours</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{report.hourDistribution.mean.toFixed(2)}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Standard Deviation</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">
-                  {report.hourDistribution.standardDeviation.toFixed(2)}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Hour Distribution</CardTitle>
-          <CardDescription>Staff hour distribution with outlier detection</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">Loading report...</div>
-          ) : report ? (
-            <div className="rounded-md border">
-              <table className="w-full">
-                <thead>
-                  {table.getHeaderGroups().map((headerGroup) => (
-                    <tr key={headerGroup.id} className="border-b">
-                      {headerGroup.headers.map((header) => (
-                        <th
-                          key={header.id}
-                          className="h-10 px-2 text-left align-middle font-medium"
-                        >
-                          {flexRender(header.column.columnDef.header, header.getContext())}
-                        </th>
-                      ))}
-                    </tr>
-                  ))}
-                </thead>
-                <tbody>
-                  {table.getRowModel().rows.map((row) => (
-                    <tr key={row.id} className="border-b">
-                      {row.getVisibleCells().map((cell) => (
-                        <td key={cell.id} className="p-2 align-middle">
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              Select filters to view report
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Hour Distribution</CardTitle>
+            <CardDescription>Staff hour distribution with outlier detection</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="text-center py-8 text-muted-foreground">Loading report...</div>
+            ) : report ? (
+              <div className="rounded-md border">
+                <table className="w-full">
+                  <thead>
+                    {table.getHeaderGroups().map((headerGroup) => (
+                      <tr key={headerGroup.id} className="border-b">
+                        {headerGroup.headers.map((header) => (
+                          <th
+                            key={header.id}
+                            className="h-10 px-2 text-left align-middle font-medium"
+                          >
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                          </th>
+                        ))}
+                      </tr>
+                    ))}
+                  </thead>
+                  <tbody>
+                    {table.getRowModel().rows.map((row) => (
+                      <tr key={row.id} className="border-b">
+                        {row.getVisibleCells().map((cell) => (
+                          <td key={cell.id} className="p-2 align-middle">
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                Select filters to view report
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </ProtectedPage>
   );
 }

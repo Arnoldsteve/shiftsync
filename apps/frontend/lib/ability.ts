@@ -26,6 +26,9 @@ export type Subjects =
   | 'Audit'
   | 'Availability'
   | 'DesiredHours'
+  | 'Notification'
+  | 'Job'
+  | 'CSV'
   | 'all';
 
 // Define ability type
@@ -84,6 +87,18 @@ export function createAbility(role: string, _managerLocationIds?: string[]): App
     // Manager can view audit logs
     can(Action.Read, 'Audit');
 
+    // Manager can view and manage jobs
+    can(Action.Read, 'Job');
+    can(Action.Update, 'Job');
+
+    // Manager can import/export CSV
+    can(Action.Create, 'CSV');
+    can(Action.Read, 'CSV');
+
+    // Manager can view notifications
+    can(Action.Read, 'Notification');
+    can(Action.Update, 'Notification');
+
     // Manager cannot manage users or other managers
     cannot(Action.Create, 'User');
     cannot(Action.Update, 'User');
@@ -119,6 +134,10 @@ export function createAbility(role: string, _managerLocationIds?: string[]): App
     can(Action.Read, 'DesiredHours');
     can(Action.Update, 'DesiredHours');
 
+    // Staff can view and manage their notifications
+    can(Action.Read, 'Notification');
+    can(Action.Update, 'Notification');
+
     // Staff cannot modify anything else
     cannot(Action.Create, 'Shift');
     cannot(Action.Update, 'Shift');
@@ -129,6 +148,9 @@ export function createAbility(role: string, _managerLocationIds?: string[]): App
     cannot(Action.Read, 'Config');
     cannot(Action.Update, 'Config');
     cannot(Action.Read, 'Audit');
+    cannot(Action.Read, 'Job');
+    cannot(Action.Create, 'CSV');
+    cannot(Action.Read, 'CSV');
   }
 
   return build();

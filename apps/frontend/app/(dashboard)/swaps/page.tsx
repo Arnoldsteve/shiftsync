@@ -21,6 +21,7 @@ import { usePendingSwaps, useApproveSwap, useRejectSwap } from '@/hooks/use-swap
 import { SwapTable } from '@/components/swaps/swap-table';
 import { useSwapRealtime } from '@/hooks/use-swap-realtime';
 import { usePermissions } from '@/hooks/use-permissions';
+import { ProtectedPage } from '@/components/auth/protected-page';
 import { Action } from '@/lib/ability';
 
 export default function SwapsPage() {
@@ -65,70 +66,76 @@ export default function SwapsPage() {
   };
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">Swap Requests</h1>
-          <p className="text-muted-foreground">Review and manage shift swap requests</p>
-        </div>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Pending Swaps</CardTitle>
-          <CardDescription>Approve or reject shift swap requests from staff</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">Loading swap requests...</div>
-          ) : swaps && swaps.length > 0 ? (
-            <SwapTable
-              swaps={swaps}
-              onApprove={canManageSwaps ? handleApprove : undefined}
-              onReject={canManageSwaps ? handleRejectClick : undefined}
-              showActions={canManageSwaps}
-            />
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">No pending swap requests</div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Reject Swap Request</DialogTitle>
-            <DialogDescription>
-              Please provide a reason for rejecting this swap request
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="reason">Rejection Reason</Label>
-              <Input
-                id="reason"
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                placeholder="Enter reason..."
-                required
-              />
-            </div>
+    <ProtectedPage
+      action={Action.Update}
+      subject="SwapRequest"
+      fallbackMessage="Only administrators and managers can manage swap requests."
+    >
+      <div className="container mx-auto p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold">Swap Requests</h1>
+            <p className="text-muted-foreground">Review and manage shift swap requests</p>
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setRejectDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={handleRejectConfirm}
-              disabled={!rejectionReason || rejectSwap.isPending}
-            >
-              {rejectSwap.isPending ? 'Rejecting...' : 'Reject Swap'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Pending Swaps</CardTitle>
+            <CardDescription>Approve or reject shift swap requests from staff</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="text-center py-8 text-muted-foreground">Loading swap requests...</div>
+            ) : swaps && swaps.length > 0 ? (
+              <SwapTable
+                swaps={swaps}
+                onApprove={canManageSwaps ? handleApprove : undefined}
+                onReject={canManageSwaps ? handleRejectClick : undefined}
+                showActions={canManageSwaps}
+              />
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">No pending swap requests</div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reject Swap Request</DialogTitle>
+              <DialogDescription>
+                Please provide a reason for rejecting this swap request
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="reason">Rejection Reason</Label>
+                <Input
+                  id="reason"
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="Enter reason..."
+                  required
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setRejectDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleRejectConfirm}
+                disabled={!rejectionReason || rejectSwap.isPending}
+              >
+                {rejectSwap.isPending ? 'Rejecting...' : 'Reject Swap'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </ProtectedPage>
   );
 }
