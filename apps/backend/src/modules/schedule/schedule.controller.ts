@@ -186,4 +186,25 @@ export class ScheduleController {
       endDate ? new Date(endDate) : undefined
     );
   }
+
+  /**
+   * Get available shifts for pickup - Staff role
+   * Requirements: 34.1, 34.2
+   * Returns unassigned published shifts that match staff qualifications
+   */
+  @Get('available-shifts')
+  @CheckPolicies((ability) => ability.can(Action.Read, 'Shift'))
+  async getAvailableShifts(@CurrentUser('id') staffId: string) {
+    return this.scheduleService.getAvailableShifts(staffId);
+  }
+
+  /**
+   * Pick up an available shift - Staff role
+   * Requirements: 34.3, 34.4, 34.5
+   */
+  @Post('shifts/:id/pickup')
+  @CheckPolicies((ability) => ability.can(Action.Create, 'Assignment'))
+  async pickupShift(@Param('id') shiftId: string, @CurrentUser('id') staffId: string) {
+    return this.scheduleService.pickupShift(shiftId, staffId);
+  }
 }

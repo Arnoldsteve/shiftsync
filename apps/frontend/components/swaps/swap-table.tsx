@@ -58,17 +58,23 @@ export function SwapTable({ swaps, onApprove, onReject, showActions = false }: S
               <span className={`capitalize ${getStatusColor(swap.status)}`}>{swap.status}</span>
             </TableCell>
             <TableCell>{new Date(swap.createdAt).toLocaleDateString()}</TableCell>
-            {showActions && swap.status === 'pending' && (
+            {showActions && (
               <TableCell className="text-right space-x-2">
-                {onApprove && (
-                  <Button variant="ghost" size="icon" onClick={() => onApprove(swap.id)}>
-                    <Check className="h-4 w-4 text-green-600" />
-                  </Button>
-                )}
-                {onReject && (
-                  <Button variant="ghost" size="icon" onClick={() => onReject(swap.id)}>
-                    <X className="h-4 w-4 text-red-600" />
-                  </Button>
+                {swap.status === 'pending' ? (
+                  <>
+                    {onApprove && (
+                      <Button variant="ghost" size="icon" onClick={() => onApprove(swap.id)}>
+                        <Check className="h-4 w-4 text-green-600" />
+                      </Button>
+                    )}
+                    {onReject && (
+                      <Button variant="ghost" size="icon" onClick={() => onReject(swap.id)}>
+                        <X className="h-4 w-4 text-red-600" />
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-sm text-muted-foreground">-</span>
                 )}
               </TableCell>
             )}

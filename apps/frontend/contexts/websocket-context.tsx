@@ -45,7 +45,8 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: 3, // Reduced attempts
+      transports: ['websocket', 'polling'], // Try websocket first, fallback to polling
     });
 
     // Connection event handlers
@@ -54,13 +55,14 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
       setIsConnected(true);
     });
 
-    newSocket.on('disconnect', () => {
-      console.log('WebSocket disconnected');
+    newSocket.on('disconnect', (reason) => {
+      console.log('WebSocket disconnected:', reason);
       setIsConnected(false);
     });
 
     newSocket.on('connect_error', (error) => {
-      console.error('WebSocket connection error:', error);
+      // Suppress error logging for staff users - realtime is optional
+      console.debug('WebSocket connection unavailable (optional feature)');
       setIsConnected(false);
     });
 

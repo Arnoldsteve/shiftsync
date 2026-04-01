@@ -33,8 +33,11 @@ export class DashboardService {
           endOfDay
         );
 
+        // A shift is uncovered if:
+        // 1. It has no assignments, OR
+        // 2. It has a callout (staff called out)
         const uncoveredShifts = shifts.filter(
-          (shift) => shift.callouts.length > 0 && shift.assignments.length === 0
+          (shift) => shift.assignments.length === 0 || shift.callouts.length > 0
         );
 
         const availableStaffCount = await this.dashboardRepository.countAvailableStaffForLocation(

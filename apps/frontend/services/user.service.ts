@@ -72,6 +72,7 @@ export const userService = {
   async getDesiredWeeklyHours(userId?: string): Promise<{ hours: number | null }> {
     const endpoint = userId ? `/users/${userId}/desired-hours` : '/users/me/desired-hours';
     const response = await apiClient.get(endpoint);
-    return response.data as { hours: number | null };
+    // Backend returns { desiredWeeklyHours: number | null }
+    return { hours: response.data.desiredWeeklyHours };
   },
 };

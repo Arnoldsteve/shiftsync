@@ -249,5 +249,25 @@ export async function seedShifts(prisma: PrismaClient, data: SeedData) {
   const unassignedCount = createdShifts.length - assignments.length;
   console.log(`📋 ${unassignedCount} shifts left unassigned for coverage testing`);
 
+  // Publish some unassigned shifts for pickup testing
+  // Publish shifts for the first 3 days (to make them available for staff pickup)
+  const shiftsToPublish = createdShifts.filter((shift, index) => {
+    const isUnassigned = !assignments.some((a) => a.shiftId === shift.id);
+    const isInFirstThreeDays = index < 30; // Roughly first 3 days worth of shifts
+    return isUnassigned && isInFirstThreeDays;
+  });
+
+  await prisma.shift.updateMany({
+    where: {
+      id: { in: shiftsToPublish.map((s) => s.id) },
+    },
+    data: {
+      isPublished: true,
+      publishedAt: new Date(),
+    },
+  });
+
+  console.log(`📢 Published ${shiftsToPublish.length} unassigned shifts for pickup`);
+
   return { shifts: createdShifts, assignments };
 }

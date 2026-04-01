@@ -44,5 +44,8 @@ export interface UpcomingShift {
   startTime: string;
   endTime: string;
   isCovered: boolean;
-  assignedStaff?: string;
+  assignedStaff?: {
+    staffId: string;
+    staffName: string;
+  };
 }
