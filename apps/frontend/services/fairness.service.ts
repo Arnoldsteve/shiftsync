@@ -39,4 +39,34 @@ export const fairnessService = {
     });
     return response.data as { jobId: string };
   },
+
+  async getDesiredHoursComparison(filters: FairnessFilters) {
+    const response = await apiClient.get(`/fairness/${filters.locationId}/desired-hours`, {
+      params: {
+        startDate: filters.startDate,
+        endDate: filters.endDate,
+      },
+    });
+    return response.data;
+  },
+
+  async getUnderScheduledStaff(filters: FairnessFilters) {
+    const response = await apiClient.get(`/fairness/${filters.locationId}/under-scheduled`, {
+      params: {
+        startDate: filters.startDate,
+        endDate: filters.endDate,
+      },
+    });
+    return response.data;
+  },
+
+  async getOverScheduledStaff(filters: FairnessFilters) {
+    const response = await apiClient.get(`/fairness/${filters.locationId}/over-scheduled`, {
+      params: {
+        startDate: filters.startDate,
+        endDate: filters.endDate,
+      },
+    });
+    return response.data;
+  },
 };

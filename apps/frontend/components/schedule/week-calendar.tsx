@@ -82,7 +82,6 @@ export function WeekCalendar({
                   const isFullyCovered = filledHeadcount >= requiredHeadcount;
                   const isPartiallyCovered =
                     filledHeadcount > 0 && filledHeadcount < requiredHeadcount;
-                  const isUncovered = filledHeadcount === 0;
 
                   return (
                     <div

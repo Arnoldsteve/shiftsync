@@ -26,8 +26,14 @@ export class StaffAssignmentService {
   /**
    * Assign staff to a shift with Conflict & Compliance checks
    * Requirements: 42.2 - Allow multiple assignments up to required headcount
+   * Requirements: 39.1, 39.2, 39.3, 39.4, 39.5 - Graduated compliance validation
    */
-  async assignStaff(shiftId: string, staffId: string, assignedBy: string): Promise<Assignment> {
+  async assignStaff(
+    shiftId: string,
+    staffId: string,
+    assignedBy: string,
+    overrideReason?: string
+  ): Promise<Assignment> {
     try {
       const shift = await this.scheduleRepository.findShiftById(shiftId);
       if (!shift) throw new NotFoundException('Shift not found');
@@ -58,19 +64,29 @@ export class StaffAssignmentService {
         );
       }
 
-      // Labor Compliance (10h rest, 12h daily limit, etc.)
+      // Labor Compliance with Graduated Validation (Requirements 39.1-39.5)
       const location = await this.scheduleRepository.findLocationById(shift.locationId);
       const tz = location?.timezone || 'UTC';
-      const compliance = await this.complianceService.validateAll(
+      const graduatedResult = await this.complianceService.validateWithGraduation(
         shift.locationId,
         staffId,
         shift.startTime,
         shift.endTime,
-        tz
+        tz,
+        overrideReason
       );
 
-      const failure = compliance.find((r) => !r.isValid);
-      if (failure) throw new BadRequestException(`Compliance Violation: ${failure.message}`);
+      // If there are hard errors, reject the assignment with graduated validation details
+      if (graduatedResult.errors.length > 0) {
+        const error: any = new BadRequestException('Compliance validation failed');
+        error.response = {
+          ...error.response,
+          errors: graduatedResult.errors,
+          warnings: graduatedResult.warnings,
+          requiresOverride: graduatedResult.requiresOverride,
+        };
+        throw error;
+      }
 
       const assignment = await this.scheduleRepository.createAssignment({
         shift: { connect: { id: shiftId } },
@@ -80,7 +96,7 @@ export class StaffAssignmentService {
       });
 
       await this.auditService.logAssignmentChange('CREATE', assignment.id, assignedBy, {
-        newState: { shiftId, staffId, assignedBy },
+        newState: { shiftId, staffId, assignedBy, overrideReason },
       });
 
       this.realtimeGateway.emitAssignmentChanged(shift.locationId, staffId, assignment);

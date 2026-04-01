@@ -202,4 +202,67 @@ export class DropRequestService {
       throw error;
     }
   }
+
+  /**
+   * Cancel a drop request by the requestor
+   * Requirements: 37.1, 37.2, 37.3, 37.4, 37.5 (similar to swap cancellation)
+   */
+  async cancelDropRequest(dropRequestId: string, requestorId: string): Promise<DropRequest> {
+    try {
+      // Find the drop request
+      const dropRequest = await this.dropRequestRepository.findById(dropRequestId);
+
+      if (!dropRequest) {
+        throw new NotFoundException('Drop request not found');
+      }
+
+      // Verify the requestor owns this drop request
+      if (dropRequest.requestorId !== requestorId) {
+        throw new BadRequestException('You can only cancel your own drop requests');
+      }
+
+      // Verify the drop request is still pending
+      if (dropRequest.status !== DropStatus.PENDING) {
+        throw new BadRequestException(
+          `Cannot cancel drop request with status: ${dropRequest.status}`
+        );
+      }
+
+      // Update status to CANCELLED
+      const cancelledRequest = await this.dropRequestRepository.updateStatus(
+        dropRequestId,
+        DropStatus.CANCELLED
+      );
+
+      // Log cancellation
+      await this.auditService.logSwapAction('CANCEL', dropRequestId, requestorId, {
+        previousState: {
+          status: DropStatus.PENDING,
+        },
+        newState: {
+          status: DropStatus.CANCELLED,
+        },
+      });
+
+      // Get shift details for real-time event
+      const shift = await this.prisma.shift.findUnique({
+        where: { id: dropRequest.shiftId },
+      });
+
+      if (shift) {
+        this.realtimeGateway.emitDropCancelled(
+          shift.locationId,
+          dropRequestId,
+          'Cancelled by requestor'
+        );
+      }
+
+      this.logger.log(`Drop request ${dropRequestId} cancelled by ${requestorId}`);
+
+      return cancelledRequest;
+    } catch (error) {
+      this.logger.error(`Error cancelling drop request:`, error);
+      throw error;
+    }
+  }
 }

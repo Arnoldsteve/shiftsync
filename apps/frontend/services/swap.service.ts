@@ -44,23 +44,28 @@ export const swapService = {
 
   // Drop Requests (Requirement 33)
   async createDropRequest(data: CreateDropRequestDto): Promise<DropRequest> {
-    const response = await apiClient.post('/drops', data);
+    const response = await apiClient.post('/swaps/drops', data);
     return response.data as DropRequest;
   },
 
   async getDropRequestsByStaff(staffId: string): Promise<DropRequest[]> {
-    const response = await apiClient.get(`/staff/${staffId}/drops`);
+    const response = await apiClient.get(`/swaps/staff/${staffId}/drops`);
     return response.data as DropRequest[];
+  },
+
+  // Drop Request Cancellation (Requirement 37 - similar to swap cancellation)
+  async cancelDropRequest(dropRequestId: string): Promise<void> {
+    await apiClient.put(`/swaps/drops/${dropRequestId}/cancel`);
   },
 
   // Swap Cancellation (Requirement 37)
   async cancelSwapRequest(swapRequestId: string): Promise<void> {
-    await apiClient.delete(`/swaps/${swapRequestId}/cancel`);
+    await apiClient.put(`/swaps/${swapRequestId}/cancel`);
   },
 
   // Pending Request Count (Requirement 35)
   async getPendingRequestCount(staffId: string): Promise<{ count: number }> {
-    const response = await apiClient.get(`/staff/${staffId}/pending-count`);
+    const response = await apiClient.get(`/swaps/staff/${staffId}/pending-count`);
     return response.data as { count: number };
   },
 };

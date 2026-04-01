@@ -44,7 +44,6 @@ export default function SchedulePage() {
 
   const { user } = useAuth();
   const isStaff = user?.role === 'STAFF';
-  const isManager = user?.role === 'MANAGER' || user?.role === 'ADMIN';
 
   const startDate = new Date(selectedDate);
   startDate.setDate(startDate.getDate() - startDate.getDay());

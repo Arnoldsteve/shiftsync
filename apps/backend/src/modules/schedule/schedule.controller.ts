@@ -109,7 +109,7 @@ export class ScheduleController {
 
   /**
    * Assign staff to shift - Manager only
-   * Requirements: 4.1, 4.2, 4.3, 4.4, 4.5
+   * Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 39.4
    * Triggers ConflictService & ComplianceService checks
    */
   @Post('shifts/:id/assign')
@@ -117,10 +117,10 @@ export class ScheduleController {
   @ApiAssignStaffDocs()
   async assignStaff(
     @Param('id') shiftId: string,
-    @Body() data: { staffId: string },
+    @Body() data: { staffId: string; overrideReason?: string },
     @CurrentUser('id') assignedBy: string
   ) {
-    return this.scheduleService.assignStaff(shiftId, data.staffId, assignedBy);
+    return this.scheduleService.assignStaff(shiftId, data.staffId, assignedBy, data.overrideReason);
   }
 
   /**

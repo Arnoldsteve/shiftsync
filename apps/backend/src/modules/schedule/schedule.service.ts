@@ -101,8 +101,13 @@ export class ScheduleService {
 
   // ==================== Staff Assignment ====================
 
-  async assignStaff(shiftId: string, staffId: string, assignedBy: string): Promise<Assignment> {
-    return this.staffAssignmentService.assignStaff(shiftId, staffId, assignedBy);
+  async assignStaff(
+    shiftId: string,
+    staffId: string,
+    assignedBy: string,
+    overrideReason?: string
+  ): Promise<Assignment> {
+    return this.staffAssignmentService.assignStaff(shiftId, staffId, assignedBy, overrideReason);
   }
 
   async unassignStaff(shiftId: string, unassignedBy: string): Promise<void> {

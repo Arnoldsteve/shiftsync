@@ -69,6 +69,42 @@ export function useRealtimeSwapEvents(
   }, [socket, isConnected, onSwapCreated, onSwapUpdated]);
 }
 
+export function useRealtimeDropEvents(
+  onDropCreated?: (data: any) => void,
+  onDropExpired?: (data: any) => void,
+  onDropClaimed?: (data: any) => void,
+  onDropCancelled?: (data: any) => void
+) {
+  const { socket, isConnected } = useWebSocket();
+
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    if (onDropCreated) {
+      socket.on('drop:created', onDropCreated);
+    }
+
+    if (onDropExpired) {
+      socket.on('drop:expired', onDropExpired);
+    }
+
+    if (onDropClaimed) {
+      socket.on('drop:claimed', onDropClaimed);
+    }
+
+    if (onDropCancelled) {
+      socket.on('drop:cancelled', onDropCancelled);
+    }
+
+    return () => {
+      if (onDropCreated) socket.off('drop:created', onDropCreated);
+      if (onDropExpired) socket.off('drop:expired', onDropExpired);
+      if (onDropClaimed) socket.off('drop:claimed', onDropClaimed);
+      if (onDropCancelled) socket.off('drop:cancelled', onDropCancelled);
+    };
+  }, [socket, isConnected, onDropCreated, onDropExpired, onDropClaimed, onDropCancelled]);
+}
+
 export function useRealtimeConflictEvents(onConflictDetected?: (data: any) => void) {
   const { socket, isConnected } = useWebSocket();
 
@@ -118,6 +154,10 @@ export interface RealtimeEventsCallbacks {
   onAssignmentChanged?: (data: any) => void;
   onSwapCreated?: (data: any) => void;
   onSwapUpdated?: (data: any) => void;
+  onDropCreated?: (data: any) => void;
+  onDropExpired?: (data: any) => void;
+  onDropClaimed?: (data: any) => void;
+  onDropCancelled?: (data: any) => void;
   onConflictDetected?: (data: any) => void;
   onCalloutReported?: (data: any) => void;
   onJobCompleted?: (data: any) => void;
@@ -131,6 +171,12 @@ export function useRealtimeEvents(callbacks: RealtimeEventsCallbacks) {
   );
   useRealtimeAssignmentEvents(callbacks.onAssignmentChanged);
   useRealtimeSwapEvents(callbacks.onSwapCreated, callbacks.onSwapUpdated);
+  useRealtimeDropEvents(
+    callbacks.onDropCreated,
+    callbacks.onDropExpired,
+    callbacks.onDropClaimed,
+    callbacks.onDropCancelled
+  );
   useRealtimeConflictEvents(callbacks.onConflictDetected);
   useRealtimeCalloutEvents(callbacks.onCalloutReported);
   useRealtimeJobEvents(callbacks.onJobCompleted);

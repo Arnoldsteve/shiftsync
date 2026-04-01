@@ -318,6 +318,18 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   }
 
   /**
+   * Broadcast drop request cancelled event
+   * Requirements: 37.1, 37.2, 37.3
+   */
+  emitDropCancelled(locationId: string, dropRequestId: string, reason: string) {
+    this.server.to(`location:${locationId}`).emit('drop:cancelled', {
+      dropRequestId,
+      reason,
+    });
+    this.logger.log(`Broadcasted drop:cancelled to location:${locationId}`);
+  }
+
+  /**
    * Broadcast new notification event
    * Requirements: 38.4
    */

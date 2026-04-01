@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
+import { NotificationCenter } from './notification-center';
 import {
   Button,
   DropdownMenu,
@@ -15,18 +16,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@shiftsync/ui';
-import {
-  Search,
-  Bell,
-  ChevronRight,
-  User,
-  Settings,
-  LogOut,
-  Command,
-  Clock,
-  AlertCircle,
-  CheckCircle,
-} from 'lucide-react';
+import { Search, ChevronRight, User, Settings, LogOut, Command } from 'lucide-react';
 
 export function Navbar() {
   const router = useRouter();
@@ -53,50 +43,9 @@ export function Navbar() {
 
   const breadcrumbs = generateBreadcrumbs();
 
-  // Mock notifications - in real app, fetch from API
-  const notifications = [
-    {
-      id: '1',
-      type: 'success',
-      title: 'Shift swap approved',
-      message: 'Your swap request for Monday has been approved',
-      time: '5 min ago',
-      read: false,
-    },
-    {
-      id: '2',
-      type: 'warning',
-      title: 'Coverage gap detected',
-      message: 'Downtown location needs coverage for tonight',
-      time: '1 hour ago',
-      read: false,
-    },
-    {
-      id: '3',
-      type: 'info',
-      title: 'Schedule published',
-      message: 'Next week schedule is now available',
-      time: '2 hours ago',
-      read: true,
-    },
-  ];
-
-  const unreadCount = notifications.filter((n) => !n.read).length;
-
   const handleLogout = () => {
     logout();
     router.push('/login');
-  };
-
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'success':
-        return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case 'warning':
-        return <AlertCircle className="h-4 w-4 text-orange-600" />;
-      default:
-        return <Clock className="h-4 w-4 text-blue-600" />;
-    }
   };
 
   return (
@@ -185,52 +134,7 @@ export function Navbar() {
         </Button>
 
         {/* Notifications */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-5 w-5" />
-              {unreadCount > 0 && (
-                <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[10px] font-medium text-white">
-                  {unreadCount}
-                </span>
-              )}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80">
-            <DropdownMenuLabel className="flex items-center justify-between">
-              <span>Notifications</span>
-              {unreadCount > 0 && (
-                <span className="text-xs font-normal text-muted-foreground">
-                  {unreadCount} unread
-                </span>
-              )}
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <div className="max-h-[400px] overflow-y-auto">
-              {notifications.map((notification) => (
-                <DropdownMenuItem
-                  key={notification.id}
-                  className={`flex flex-col items-start gap-1 p-3 cursor-pointer ${
-                    !notification.read ? 'bg-accent/50' : ''
-                  }`}
-                >
-                  <div className="flex items-start gap-2 w-full">
-                    {getNotificationIcon(notification.type)}
-                    <div className="flex-1 space-y-1">
-                      <p className="text-sm font-medium leading-none">{notification.title}</p>
-                      <p className="text-xs text-muted-foreground">{notification.message}</p>
-                      <p className="text-xs text-muted-foreground">{notification.time}</p>
-                    </div>
-                  </div>
-                </DropdownMenuItem>
-              ))}
-            </div>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-center justify-center text-sm text-primary cursor-pointer">
-              View all notifications
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <NotificationCenter />
 
         {/* User Menu */}
         <DropdownMenu>

@@ -1529,7 +1529,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Allow multiple staff assignments up to headcount
     - _Requirements: 42.1, 42.2, 42.3, 42.4, 42.5_
 
-  - [ ] 27.10 Implement enhanced compliance warnings display (Requirement 39)
+  - [x] 27.10 Implement enhanced compliance warnings display (Requirement 39)
     - Display graduated warnings (8-hour, 6-day) with yellow indicator
     - Display hard errors (12-hour, 7-day) with red indicator
     - Show override option for 7-day scenario with reason input
@@ -1571,7 +1571,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test swap approval interface
     - Test real-time notification handling
 
-  - [ ] 28.5 Create drop request interface (Requirement 33)
+  - [x] 28.5 Create drop request interface (Requirement 33)
     - Build drop request form without target staff selection
     - Display staff's own shifts available for dropping
     - Show expiration time (24 hours before shift)
@@ -1579,14 +1579,14 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Show notification on expiration
     - _Requirements: 33.1, 33.2, 33.3, 33.5_
 
-  - [ ] 28.6 Create request limits display (Requirement 35)
+  - [x] 28.6 Create request limits display (Requirement 35)
     - Display pending request count (swap + drop)
     - Show limit indicator (e.g., "2/3 pending requests")
     - Disable request buttons when at limit
     - Show error message when limit reached
     - _Requirements: 35.1, 35.2, 35.3_
 
-  - [ ] 28.7 Create swap cancellation interface (Requirement 37)
+  - [x] 28.7 Create swap cancellation interface (Requirement 37)
     - Add cancel button to pending swap requests
     - Show confirmation dialog for cancellation
     - Display cancellation notification to target staff
@@ -1623,7 +1623,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test date range filtering
     - Test background job status display
 
-  - [ ] 29.4 Add desired hours to fairness dashboard (Requirement 41)
+  - [x] 29.4 Add desired hours to fairness dashboard (Requirement 41)
     - Display desired vs actual hours comparison table
     - Show under-scheduled staff with indicator
     - Show over-scheduled staff with indicator
@@ -1672,7 +1672,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test real-time notification handling
 
 - [ ] 30a. Implement frontend notification center (Requirement 38)
-  - [ ] 30a.1 Create notification center UI
+  - [x] 30a.1 Create notification center UI
     - Build notification bell icon with unread count badge
     - Build notification dropdown/panel with list of notifications
     - Display notification title, message, and timestamp

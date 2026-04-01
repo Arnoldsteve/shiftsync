@@ -13,6 +13,14 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from '@shiftsync/ui';
 import { useAuth } from '@/contexts/auth-context';
 import { usePermissions } from '@/hooks/use-permissions';
@@ -20,11 +28,16 @@ import { Action } from '@/lib/ability';
 import { Can } from '@/components/auth/can';
 import { useStaffShifts } from '@/hooks/use-shifts';
 import { useStaffSwaps, useCancelSwapRequest } from '@/hooks/use-swaps';
-import { useDropRequests } from '@/hooks/use-drop-requests';
+import {
+  useDropRequests,
+  useCancelDropRequest,
+  usePendingRequestCount,
+} from '@/hooks/use-drop-requests';
+import { useDropRealtime } from '@/hooks/use-drop-realtime';
 import { useUsers } from '@/hooks/use-users';
 import { CreateSwapDialog } from '@/components/swaps/create-swap-dialog';
 import { CreateDropDialog } from '@/components/swaps/create-drop-dialog';
-import { Clock, MapPin, X } from 'lucide-react';
+import { Clock, MapPin, X, AlertCircle } from 'lucide-react';
 
 export default function MyShiftsPage() {
   const { user } = useAuth();
@@ -41,6 +54,10 @@ export default function MyShiftsPage() {
     };
   });
 
+  // Requirement 37: Swap cancellation confirmation dialog state
+  const [swapToCancelId, setSwapToCancelId] = useState<string | null>(null);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+
   const { data: shifts, isLoading: shiftsLoading } = useStaffShifts(user?.id || '', {
     startDate: dateRange.startDate,
     endDate: dateRange.endDate,
@@ -48,8 +65,18 @@ export default function MyShiftsPage() {
 
   const { data: swapRequests, isLoading: swapsLoading } = useStaffSwaps(user?.id || '');
   const { data: dropRequests, isLoading: dropsLoading } = useDropRequests(user?.id || '');
+  const { data: pendingCount } = usePendingRequestCount(user?.id || '');
   const { data: allUsers } = useUsers();
   const cancelSwap = useCancelSwapRequest();
+  const cancelDrop = useCancelDropRequest();
+
+  // Enable real-time updates for drop requests
+  useDropRealtime();
+
+  // Requirement 35.1 - Max 3 pending requests per staff (configurable per location)
+  const maxPendingRequests = 3; // Default limit
+  const currentPendingCount = pendingCount?.count || 0;
+  const isAtRequestLimit = currentPendingCount >= maxPendingRequests;
 
   // Filter for staff members only (exclude current user)
   const availableStaff = useMemo(() => {
@@ -71,6 +98,24 @@ export default function MyShiftsPage() {
     });
   };
 
+  const getTimeUntilExpiration = (expiresAt: string) => {
+    const now = new Date();
+    const expiration = new Date(expiresAt);
+    const hoursUntil = (expiration.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+    if (hoursUntil < 0) return 'Expired';
+    if (hoursUntil < 1) return `${Math.round(hoursUntil * 60)} minutes`;
+    if (hoursUntil < 24) return `${Math.round(hoursUntil)} hours`;
+    return `${Math.round(hoursUntil / 24)} days`;
+  };
+
+  const isExpiringSoon = (expiresAt: string) => {
+    const now = new Date();
+    const expiration = new Date(expiresAt);
+    const hoursUntil = (expiration.getTime() - now.getTime()) / (1000 * 60 * 60);
+    return hoursUntil < 6 && hoursUntil > 0; // Less than 6 hours
+  };
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
       pending: 'secondary',
@@ -89,6 +134,21 @@ export default function MyShiftsPage() {
   // Debug: Log shifts to check for duplicates
   console.log('Staff shifts from API:', shifts);
   console.log('User ID:', user?.id);
+
+  // Requirement 37.1: Handle swap cancellation with confirmation
+  const handleCancelSwapClick = (swapId: string) => {
+    setSwapToCancelId(swapId);
+    setCancelDialogOpen(true);
+  };
+
+  // Requirement 37.2, 37.3: Confirm cancellation and update status
+  const confirmCancelSwap = () => {
+    if (swapToCancelId) {
+      cancelSwap.mutate(swapToCancelId);
+    }
+    setCancelDialogOpen(false);
+    setSwapToCancelId(null);
+  };
 
   // Check permissions
   if (!can(Action.Read, 'SwapRequest')) {
@@ -111,13 +171,30 @@ export default function MyShiftsPage() {
           <h1 className="text-3xl font-bold">My Shifts</h1>
           <p className="text-muted-foreground">Manage your shifts, swaps, and drop requests</p>
         </div>
-        <div className="flex gap-2">
-          <Can I={Action.Create} a="SwapRequest">
-            <CreateSwapDialog staffShifts={myShifts} availableStaff={availableStaff} />
-          </Can>
-          <Can I={Action.Create} a="DropRequest">
-            <CreateDropDialog staffShifts={myShifts} />
-          </Can>
+        <div className="flex flex-col items-end gap-2">
+          {/* Requirement 35.1, 35.2 - Display pending request count */}
+          <div className="text-sm text-muted-foreground">
+            Pending requests: {currentPendingCount}/{maxPendingRequests}
+          </div>
+          <div className="flex gap-2">
+            <Can I={Action.Create} a="SwapRequest">
+              <CreateSwapDialog
+                staffShifts={myShifts}
+                availableStaff={availableStaff}
+                disabled={isAtRequestLimit}
+              />
+            </Can>
+            <Can I={Action.Create} a="DropRequest">
+              <CreateDropDialog staffShifts={myShifts} disabled={isAtRequestLimit} />
+            </Can>
+          </div>
+          {/* Requirement 35.3 - Show error message when limit reached */}
+          {isAtRequestLimit && (
+            <div className="flex items-center gap-2 text-sm text-orange-600">
+              <AlertCircle className="h-4 w-4" />
+              <span>Request limit reached. Cancel or wait for approval.</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -200,8 +277,9 @@ export default function MyShiftsPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => cancelSwap.mutate(swap.id)}
+                              onClick={() => handleCancelSwapClick(swap.id)}
                               disabled={cancelSwap.isPending}
+                              title="Cancel swap request"
                             >
                               <X className="h-4 w-4" />
                             </Button>
@@ -250,7 +328,22 @@ export default function MyShiftsPage() {
                           {formatDateTime(drop.shift?.startTime || '')}
                         </CardDescription>
                       </div>
-                      {getStatusBadge(drop.status)}
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(drop.status)}
+                        <Can I={Action.Update} a="DropRequest">
+                          {drop.status === 'pending' && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => cancelDrop.mutate(drop.id)}
+                              disabled={cancelDrop.isPending}
+                              title="Cancel drop request"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </Can>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -270,8 +363,18 @@ export default function MyShiftsPage() {
                         </div>
                       )}
                       {drop.expiresAt && drop.status === 'pending' && (
-                        <div className="text-xs text-muted-foreground">
-                          Expires: {new Date(drop.expiresAt).toLocaleString()}
+                        <div
+                          className={`flex items-center gap-2 text-xs ${
+                            isExpiringSoon(drop.expiresAt)
+                              ? 'text-orange-600 font-medium'
+                              : 'text-muted-foreground'
+                          }`}
+                        >
+                          {isExpiringSoon(drop.expiresAt) && <AlertCircle className="h-3 w-3" />}
+                          <span>
+                            Expires in {getTimeUntilExpiration(drop.expiresAt)} (
+                            {new Date(drop.expiresAt).toLocaleString()})
+                          </span>
                         </div>
                       )}
                     </div>
@@ -289,6 +392,23 @@ export default function MyShiftsPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Requirement 37: Swap cancellation confirmation dialog */}
+      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Swap Request</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel this swap request? The target staff member and manager
+              will be notified of the cancellation.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>No, keep it</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCancelSwap}>Yes, cancel request</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

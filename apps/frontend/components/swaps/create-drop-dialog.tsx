@@ -24,9 +24,10 @@ import type { CreateDropRequestDto } from '@/types/swap.types';
 
 interface CreateDropDialogProps {
   staffShifts: Array<{ id: string; startTime: string; endTime: string; locationName?: string }>;
+  disabled?: boolean;
 }
 
-export function CreateDropDialog({ staffShifts }: CreateDropDialogProps) {
+export function CreateDropDialog({ staffShifts, disabled = false }: CreateDropDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState<CreateDropRequestDto>({
     shiftId: '',
@@ -48,7 +49,11 @@ export function CreateDropDialog({ staffShifts }: CreateDropDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">
+        <Button
+          variant="outline"
+          disabled={disabled}
+          title={disabled ? 'Request limit reached' : undefined}
+        >
           <HandHelping className="mr-2 h-4 w-4" />
           Drop Shift
         </Button>

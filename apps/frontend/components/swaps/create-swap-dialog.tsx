@@ -24,9 +24,14 @@ import type { CreateSwapRequestDto } from '@/types/swap.types';
 interface CreateSwapDialogProps {
   staffShifts: Array<{ id: string; startTime: string; endTime: string }>;
   availableStaff: Array<{ id: string; name: string }>;
+  disabled?: boolean;
 }
 
-export function CreateSwapDialog({ staffShifts, availableStaff }: CreateSwapDialogProps) {
+export function CreateSwapDialog({
+  staffShifts,
+  availableStaff,
+  disabled = false,
+}: CreateSwapDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState<CreateSwapRequestDto>({
     shiftId: '',
@@ -48,7 +53,7 @@ export function CreateSwapDialog({ staffShifts, availableStaff }: CreateSwapDial
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button>
+        <Button disabled={disabled} title={disabled ? 'Request limit reached' : undefined}>
           <Plus className="mr-2 h-4 w-4" />
           Request Swap
         </Button>

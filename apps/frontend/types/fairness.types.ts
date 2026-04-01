@@ -34,3 +34,24 @@ export interface FairnessFilters {
   startDate: string;
   endDate: string;
 }
+
+export interface DesiredHoursComparison {
+  staffId: string;
+  staffName: string;
+  actualHours: number;
+  desiredHours: number | null;
+  difference: number | null;
+  percentageDifference: number | null;
+  status: 'under-scheduled' | 'over-scheduled' | 'on-target' | 'no-preference';
+}
+
+export interface DesiredHoursAnalysis {
+  locationId: string;
+  startDate: Date;
+  endDate: Date;
+  comparisons: DesiredHoursComparison[];
+  underScheduled: DesiredHoursComparison[];
+  overScheduled: DesiredHoursComparison[];
+  onTarget: DesiredHoursComparison[];
+  noPreference: DesiredHoursComparison[];
+}

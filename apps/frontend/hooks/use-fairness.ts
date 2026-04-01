@@ -39,3 +39,39 @@ export function useGenerateFairnessReport() {
     },
   });
 }
+
+export function useDesiredHoursComparison(filters: FairnessFilters) {
+  return useQuery({
+    queryKey: queryKeys.fairness.desiredHours(
+      filters.locationId,
+      filters.startDate,
+      filters.endDate
+    ),
+    queryFn: () => fairnessService.getDesiredHoursComparison(filters),
+    enabled: !!filters.locationId && !!filters.startDate && !!filters.endDate,
+  });
+}
+
+export function useUnderScheduledStaff(filters: FairnessFilters) {
+  return useQuery({
+    queryKey: queryKeys.fairness.underScheduled(
+      filters.locationId,
+      filters.startDate,
+      filters.endDate
+    ),
+    queryFn: () => fairnessService.getUnderScheduledStaff(filters),
+    enabled: !!filters.locationId && !!filters.startDate && !!filters.endDate,
+  });
+}
+
+export function useOverScheduledStaff(filters: FairnessFilters) {
+  return useQuery({
+    queryKey: queryKeys.fairness.overScheduled(
+      filters.locationId,
+      filters.startDate,
+      filters.endDate
+    ),
+    queryFn: () => fairnessService.getOverScheduledStaff(filters),
+    enabled: !!filters.locationId && !!filters.startDate && !!filters.endDate,
+  });
+}

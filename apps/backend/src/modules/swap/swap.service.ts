@@ -115,6 +115,14 @@ export class SwapService {
     return this.dropRequestService.getDropRequestsByStaff(staffId);
   }
 
+  /**
+   * Cancel a drop request by the requestor
+   * Requirements: 37.1, 37.2, 37.3, 37.4, 37.5 (similar to swap cancellation)
+   */
+  async cancelDropRequest(dropRequestId: string, requestorId: string): Promise<DropRequest> {
+    return this.dropRequestService.cancelDropRequest(dropRequestId, requestorId);
+  }
+
   // ============================================
   // Swap Cancellation Operations
   // ============================================

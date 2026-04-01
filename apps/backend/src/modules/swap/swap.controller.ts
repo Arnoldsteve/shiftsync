@@ -6,7 +6,7 @@ import { PoliciesGuard } from '../user/casl/policies.guard';
 import { CheckPolicies } from '../user/decorators/check-policies.decorator';
 import { CurrentUser } from '../user/decorators/current-user.decorator';
 import { Action } from '../user/casl/types';
-import { CreateDropRequestDto } from '@shiftsync/shared/dtos/swap/create-drop-request.dto';
+import { CreateDropRequestDto } from '@shiftsync/shared';
 import {
   ApiCreateSwapRequestDocs,
   ApiApproveSwapDocs,
@@ -135,5 +135,18 @@ export class SwapController {
     @CurrentUser('id') requestorId: string
   ) {
     return this.swapService.createDropRequest(data.shiftId, requestorId, data.reason);
+  }
+
+  /**
+   * Cancel drop request - Staff (requestor only)
+   * Requirements: 37.1, 37.2, 37.3, 37.4, 37.5
+   */
+  @Put('drops/:id/cancel')
+  @CheckPolicies((ability) => ability.can(Action.Update, 'DropRequest'))
+  async cancelDropRequest(
+    @Param('id') dropRequestId: string,
+    @CurrentUser('id') requestorId: string
+  ) {
+    return this.swapService.cancelDropRequest(dropRequestId, requestorId);
   }
 }

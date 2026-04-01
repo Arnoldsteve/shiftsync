@@ -16,11 +16,31 @@ import {
   SelectValue,
   Badge,
   Card,
+  Input,
 } from '@shiftsync/ui';
 import { useAssignStaff, useAlternativeStaff } from '@/hooks/use-shifts';
 import { useAvailableStaff } from '@/hooks/use-callouts';
 import type { Shift } from '@/types/shift.types';
 import type { StaffSuggestion } from '@/types/shift.types';
+import { AlertTriangle, XCircle } from 'lucide-react';
+
+interface ValidationError {
+  type: string;
+  message: string;
+  details?: any;
+}
+
+interface ValidationWarning {
+  type: string;
+  message: string;
+  details?: any;
+}
+
+interface GraduatedValidationResult {
+  errors: ValidationError[];
+  warnings: ValidationWarning[];
+  requiresOverride: boolean;
+}
 
 interface AssignStaffDialogProps {
   shift: Shift | null;
@@ -31,6 +51,10 @@ interface AssignStaffDialogProps {
 export function AssignStaffDialog({ shift, open, onOpenChange }: AssignStaffDialogProps) {
   const [selectedStaffId, setSelectedStaffId] = useState('');
   const [assignmentError, setAssignmentError] = useState<string | null>(null);
+  const [graduatedValidation, setGraduatedValidation] = useState<GraduatedValidationResult | null>(
+    null
+  );
+  const [overrideReason, setOverrideReason] = useState('');
   const [showAlternatives, setShowAlternatives] = useState(false);
   const assignStaff = useAssignStaff();
 
@@ -49,35 +73,64 @@ export function AssignStaffDialog({ shift, open, onOpenChange }: AssignStaffDial
     if (!open) {
       setSelectedStaffId('');
       setAssignmentError(null);
+      setGraduatedValidation(null);
+      setOverrideReason('');
       setShowAlternatives(false);
     }
   }, [open]);
 
-  const handleAssign = async (staffId?: string) => {
+  const handleAssign = async (staffId?: string, withOverride?: boolean) => {
     if (!shift) return;
     const targetStaffId = staffId || selectedStaffId;
     if (!targetStaffId) return;
 
     try {
+      const payload: any = { staffId: targetStaffId };
+
+      // Include override reason if provided
+      if (withOverride && overrideReason.trim()) {
+        payload.overrideReason = overrideReason.trim();
+      }
+
       await assignStaff.mutateAsync({
         shiftId: shift.id,
-        staffId: targetStaffId,
+        ...payload,
       });
 
       setSelectedStaffId('');
       setAssignmentError(null);
+      setGraduatedValidation(null);
+      setOverrideReason('');
       setShowAlternatives(false);
       onOpenChange(false);
     } catch (error: any) {
-      // Capture the error message and fetch alternatives
-      const errorMessage = error.response?.data?.message || 'Failed to assign staff';
-      setAssignmentError(errorMessage);
-      setShowAlternatives(true);
+      // Check if this is a graduated validation error
+      const errorData = error.response?.data;
 
-      // Fetch alternative staff suggestions
+      if (errorData?.errors || errorData?.warnings) {
+        // Graduated validation response
+        setGraduatedValidation({
+          errors: errorData.errors || [],
+          warnings: errorData.warnings || [],
+          requiresOverride: errorData.requiresOverride || false,
+        });
+        setAssignmentError(null);
+      } else {
+        // Simple error message
+        const errorMessage = errorData?.message || 'Failed to assign staff';
+        setAssignmentError(errorMessage);
+        setGraduatedValidation(null);
+      }
+
+      setShowAlternatives(true);
       fetchAlternatives();
     }
   };
+
+  const hasBlockingErrors = graduatedValidation ? graduatedValidation.errors.length > 0 : false;
+  const requiresOverride =
+    graduatedValidation?.requiresOverride &&
+    graduatedValidation.errors.some((e) => e.type === 'SEVEN_CONSECUTIVE_DAYS');
 
   if (!shift) return null;
 
@@ -141,8 +194,59 @@ export function AssignStaffDialog({ shift, open, onOpenChange }: AssignStaffDial
             </div>
           )}
 
-          {/* Error Message */}
-          {assignmentError && (
+          {/* Graduated Validation Display */}
+          {graduatedValidation && (
+            <div className="space-y-3">
+              {/* Display Errors (Red) */}
+              {graduatedValidation.errors.map((error, index) => (
+                <div
+                  key={`error-${index}`}
+                  className="p-3 bg-red-50 border border-red-200 rounded-md flex gap-2"
+                >
+                  <XCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm text-red-800 font-medium">{error.message}</p>
+                  </div>
+                </div>
+              ))}
+
+              {/* Display Warnings (Yellow) */}
+              {graduatedValidation.warnings.map((warning, index) => (
+                <div
+                  key={`warning-${index}`}
+                  className="p-3 bg-yellow-50 border border-yellow-200 rounded-md flex gap-2"
+                >
+                  <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm text-yellow-800">{warning.message}</p>
+                  </div>
+                </div>
+              ))}
+
+              {/* Override Option for 7-Day Scenario */}
+              {requiresOverride && (
+                <div className="space-y-3 p-4 bg-gray-50 border border-gray-200 rounded-md">
+                  <Label htmlFor="override-reason">Override Reason (Required)</Label>
+                  <Input
+                    id="override-reason"
+                    placeholder="Enter reason for override..."
+                    value={overrideReason}
+                    onChange={(e) => setOverrideReason(e.target.value)}
+                  />
+                  <Button
+                    onClick={() => handleAssign(undefined, true)}
+                    disabled={!overrideReason.trim() || assignStaff.isPending}
+                    className="w-full"
+                  >
+                    {assignStaff.isPending ? 'Assigning...' : 'Assign with Override'}
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Simple Error Message (fallback) */}
+          {assignmentError && !graduatedValidation && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-md">
               <p className="text-sm text-red-800">{assignmentError}</p>
             </div>
@@ -201,7 +305,11 @@ export function AssignStaffDialog({ shift, open, onOpenChange }: AssignStaffDial
             </Button>
             <Button
               onClick={() => handleAssign()}
-              disabled={!selectedStaffId || assignStaff.isPending}
+              disabled={
+                !selectedStaffId ||
+                assignStaff.isPending ||
+                (hasBlockingErrors && !requiresOverride)
+              }
             >
               {assignStaff.isPending ? 'Assigning...' : 'Assign Staff'}
             </Button>

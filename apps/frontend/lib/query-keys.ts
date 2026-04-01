@@ -61,6 +61,12 @@ export const queryKeys = {
       [...queryKeys.fairness.all, 'hours', locationId, { startDate, endDate }] as const,
     premium: (locationId: string, startDate: string, endDate: string) =>
       [...queryKeys.fairness.all, 'premium', locationId, { startDate, endDate }] as const,
+    desiredHours: (locationId: string, startDate: string, endDate: string) =>
+      [...queryKeys.fairness.all, 'desired-hours', locationId, { startDate, endDate }] as const,
+    underScheduled: (locationId: string, startDate: string, endDate: string) =>
+      [...queryKeys.fairness.all, 'under-scheduled', locationId, { startDate, endDate }] as const,
+    overScheduled: (locationId: string, startDate: string, endDate: string) =>
+      [...queryKeys.fairness.all, 'over-scheduled', locationId, { startDate, endDate }] as const,
   },
 
   // Callouts
@@ -90,5 +96,12 @@ export const queryKeys = {
     list: (queue: string, state: string) => [...queryKeys.jobs.all, 'list', queue, state] as const,
     detail: (queue: string, jobId: string) =>
       [...queryKeys.jobs.all, 'detail', queue, jobId] as const,
+  },
+
+  // Notifications
+  notifications: {
+    all: ['notifications'] as const,
+    list: (includeRead: boolean) => [...queryKeys.notifications.all, 'list', includeRead] as const,
+    preferences: () => [...queryKeys.notifications.all, 'preferences'] as const,
   },
 } as const;
