@@ -12,24 +12,31 @@ datasource db {
 // ============================================
 
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  passwordHash String
-  role         Role
-  firstName    String
-  lastName     String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                 String   @id @default(uuid())
+  email              String   @unique
+  passwordHash       String
+  role               Role
+  firstName          String
+  lastName           String
+  desiredWeeklyHours Float?   // Requirement 41: Desired hours tracking
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   // Relations
-  skills            UserSkill[]
-  certifications    LocationCertification[]
-  assignments       Assignment[]
-  swapRequestsFrom  SwapRequest[]           @relation("RequestorSwaps")
-  swapRequestsTo    SwapRequest[]           @relation("TargetSwaps")
-  managerLocations  ManagerLocation[]
-  auditLogs         AuditLog[]
-  callouts          Callout[]
+  skills                  UserSkill[]
+  certifications          LocationCertification[]
+  assignments             Assignment[]
+  swapRequestsFrom        SwapRequest[]           @relation("RequestorSwaps")
+  swapRequestsTo          SwapRequest[]           @relation("TargetSwaps")
+  dropRequestsFrom        DropRequest[]           @relation("DropRequestRequestor")
+  dropRequestsClaimed     DropRequest[]           @relation("DropRequestClaimedBy")
+  managerLocations        ManagerLocation[]
+  auditLogs               AuditLog[]
+  callouts                Callout[]
+  availabilityWindows     AvailabilityWindow[]    // Requirement 31: Staff availability
+  availabilityExceptions  AvailabilityException[] // Requirement 31: One-off exceptions
+  notifications           Notification[]          // Requirement 38: Notification system
+  notificationPreferences NotificationPreference? // Requirement 38: User preferences
 
   @@index([email])
   @@index([role])
@@ -123,13 +130,16 @@ model ManagerLocation {
 // ============================================
 
 model Shift {
-  id        String   @id @default(uuid())
-  locationId String
-  startTime DateTime // Stored in UTC, displayed in location timezone
-  endTime   DateTime // Stored in UTC, displayed in location timezone
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  createdBy String
+  id                String   @id @default(uuid())
+  locationId        String
+  startTime         DateTime // Stored in UTC, displayed in location timezone
+  endTime           DateTime // Stored in UTC, displayed in location timezone
+  requiredHeadcount Int      @default(1) // Requirement 42: Headcount tracking
+  isPublished       Boolean  @default(false) // Requirement 32: Schedule publishing
+  publishedAt       DateTime? // Requirement 32: Track when published
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  createdBy         String
 
   // Relations
   location     Location      @relation(fields: [locationId], references: [id], onDelete: Cascade)
@@ -137,11 +147,13 @@ model Shift {
   assignments  Assignment[]
   swapRequests SwapRequest[]
   callouts     Callout[]
+  dropRequests DropRequest[] // Requirement 33: Drop requests
 
   @@index([locationId])
   @@index([startTime])
   @@index([endTime])
   @@index([locationId, startTime, endTime])
+  @@index([isPublished])
 }
 
 model ShiftSkill {
@@ -160,7 +172,7 @@ model ShiftSkill {
 
 model Assignment {
   id         String   @id @default(uuid())
-  shiftId    String   @unique // One staff per shift
+  shiftId    String
   staffId    String
   assignedAt DateTime @default(now())
   assignedBy String
@@ -170,7 +182,9 @@ model Assignment {
   shift Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
   staff User  @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
+  @@unique([shiftId, staffId]) // Requirement 42: Allow multiple staff per shift, prevent duplicates
   @@index([staffId])
+  @@index([shiftId])
   @@index([shiftId, staffId])
 }
 
@@ -204,6 +218,7 @@ enum SwapStatus {
   PENDING
   APPROVED
   REJECTED
+  CANCELLED // Requirement 36, 37: Swap cancellation
 }
 
 // ============================================
@@ -231,19 +246,21 @@ model Callout {
 // ============================================
 
 model LocationConfig {
-  id                     String  @id @default(uuid())
-  locationId             String  @unique
-  dailyLimitEnabled      Boolean @default(false)
-  dailyLimitHours        Float?
-  weeklyLimitEnabled     Boolean @default(true)
-  weeklyLimitHours       Float   @default(40)
-  consecutiveDaysEnabled Boolean @default(false)
-  consecutiveDaysLimit   Int?
-  restPeriodHours        Float   @default(10) // Minimum hours between shifts
+  id                         String  @id @default(uuid())
+  locationId                 String  @unique
+  dailyLimitEnabled          Boolean @default(false)
+  dailyLimitHours            Float?
+  weeklyLimitEnabled         Boolean @default(true)
+  weeklyLimitHours           Float   @default(40)
+  consecutiveDaysEnabled     Boolean @default(false)
+  consecutiveDaysLimit       Int?
+  restPeriodHours            Float   @default(10) // Minimum hours between shifts
+  schedulePublishCutoffHours Int     @default(48) // Requirement 32: Unpublish cutoff
+  maxPendingRequests         Int     @default(3) // Requirement 35: Request limits
 
   // Relations
-  location              Location               @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  premiumShiftCriteria  PremiumShiftCriteria[]
+  location             Location               @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  premiumShiftCriteria PremiumShiftCriteria[]
 
   @@index([locationId])
 }
@@ -282,4 +299,109 @@ model AuditLog {
   @@index([userId])
   @@index([timestamp])
   @@index([action])
+}
+
+// ============================================
+// Drop Requests (Requirement 33)
+// ============================================
+
+model DropRequest {
+  id          String     @id @default(uuid())
+  shiftId     String
+  requestorId String
+  status      DropStatus @default(PENDING)
+  createdAt   DateTime   @default(now())
+  expiresAt   DateTime   // 24 hours before shift start
+  claimedBy   String?
+  claimedAt   DateTime?
+  reason      String?    // Optional reason for dropping shift
+
+  // Relations
+  shift           Shift  @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  requestor       User   @relation("DropRequestRequestor", fields: [requestorId], references: [id], onDelete: Cascade)
+  claimedByUser   User?  @relation("DropRequestClaimedBy", fields: [claimedBy], references: [id], onDelete: SetNull)
+
+  @@index([shiftId])
+  @@index([requestorId])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+enum DropStatus {
+  PENDING
+  CLAIMED
+  EXPIRED
+  CANCELLED
+}
+
+// ============================================
+// Staff Availability (Requirement 31)
+// ============================================
+
+model AvailabilityWindow {
+  id        String   @id @default(uuid())
+  userId    String
+  dayOfWeek Int      // 0 = Sunday, 6 = Saturday
+  startTime String   // HH:MM format (e.g., "09:00")
+  endTime   String   // HH:MM format (e.g., "17:00")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([dayOfWeek])
+}
+
+model AvailabilityException {
+  id        String   @id @default(uuid())
+  userId    String
+  date      DateTime // Specific date for exception
+  startTime String?  // If null, unavailable all day
+  endTime   String?  // If null, unavailable all day
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([date])
+}
+
+// ============================================
+// Notification System (Requirement 38)
+// ============================================
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String   // "SHIFT_ASSIGNED", "SHIFT_MODIFIED", "SWAP_REQUEST", etc.
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  metadata  Json?    // Additional context (shift ID, swap request ID, etc.)
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@index([userId, isRead])
+}
+
+model NotificationPreference {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  inAppEnabled Boolean  @default(true)
+  emailEnabled Boolean  @default(false) // Email simulation
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

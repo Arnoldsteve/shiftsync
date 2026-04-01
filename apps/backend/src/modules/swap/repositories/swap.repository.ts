@@ -80,4 +80,13 @@ export class SwapRepository {
       },
     });
   }
+
+  async countPendingByRequestor(requestorId: string): Promise<number> {
+    return this.prisma.swapRequest.count({
+      where: {
+        requestorId,
+        status: SwapStatus.PENDING,
+      },
+    });
+  }
 }

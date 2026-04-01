@@ -1,7 +1,10 @@
 import { Module } from '@nestjs/common';
 import { SwapService } from './swap.service';
+import { SwapRequestService } from './services/swap-request.service';
+import { DropRequestService } from './services/drop-request.service';
 import { SwapController } from './swap.controller';
 import { SwapRepository } from './repositories/swap.repository';
+import { DropRequestRepository } from './repositories/drop-request.repository';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { AuditModule } from '../audit/audit.module';
 import { CacheModule } from '../cache/cache.module';
@@ -21,7 +24,13 @@ import { UserModule } from '../user/user.module';
     UserModule,
   ],
   controllers: [SwapController],
-  providers: [SwapService, SwapRepository],
+  providers: [
+    SwapService,
+    SwapRequestService,
+    DropRequestService,
+    SwapRepository,
+    DropRequestRepository,
+  ],
   exports: [SwapService],
 })
 export class SwapModule {}

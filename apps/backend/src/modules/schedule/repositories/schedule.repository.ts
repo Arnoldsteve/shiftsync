@@ -48,9 +48,7 @@ export class ScheduleRepository {
     // If locationId is provided (single or array), add to filter.
     // If undefined (Admin viewing all), the filter is omitted.
     if (locationId) {
-      where.locationId = Array.isArray(locationId) 
-        ? { in: locationId } 
-        : locationId;
+      where.locationId = Array.isArray(locationId) ? { in: locationId } : locationId;
     }
 
     return this.prisma.shift.findMany({
@@ -88,8 +86,8 @@ export class ScheduleRepository {
       include: {
         shift: {
           include: {
-            location: true // Ensure location data is available for staff view too
-          }
+            location: true, // Ensure location data is available for staff view too
+          },
         },
       },
       orderBy: {
@@ -159,5 +157,89 @@ export class ScheduleRepository {
     });
 
     return staffMap;
+  }
+
+  /**
+   * Publish all shifts in a week for a location
+   * Requirements: 32.1
+   */
+  async publishShifts(locationId: string, weekStart: Date, weekEnd: Date): Promise<number> {
+    const result = await this.prisma.shift.updateMany({
+      where: {
+        locationId,
+        startTime: {
+          gte: weekStart,
+          lt: weekEnd,
+        },
+        isPublished: false,
+      },
+      data: {
+        isPublished: true,
+        publishedAt: new Date(),
+      },
+    });
+
+    return result.count;
+  }
+
+  /**
+   * Unpublish all shifts in a week for a location
+   * Requirements: 32.4
+   */
+  async unpublishShifts(locationId: string, weekStart: Date, weekEnd: Date): Promise<number> {
+    const result = await this.prisma.shift.updateMany({
+      where: {
+        locationId,
+        startTime: {
+          gte: weekStart,
+          lt: weekEnd,
+        },
+        isPublished: true,
+      },
+      data: {
+        isPublished: false,
+        publishedAt: null,
+      },
+    });
+
+    return result.count;
+  }
+
+  /**
+   * Find shifts by published status
+   * Requirements: 32.2, 32.3
+   */
+  async findPublishedShiftsByStaff(
+    staffId: string,
+    startDate?: Date,
+    endDate?: Date
+  ): Promise<Array<Shift & { assignment: Assignment }>> {
+    const assignments = await this.prisma.assignment.findMany({
+      where: {
+        staffId,
+        shift: {
+          isPublished: true,
+          startTime: startDate ? { gte: startDate } : undefined,
+          endTime: endDate ? { lte: endDate } : undefined,
+        },
+      },
+      include: {
+        shift: {
+          include: {
+            location: true,
+          },
+        },
+      },
+      orderBy: {
+        shift: {
+          startTime: 'asc',
+        },
+      },
+    });
+
+    return assignments.map((assignment) => ({
+      ...assignment.shift,
+      assignment,
+    }));
   }
 }

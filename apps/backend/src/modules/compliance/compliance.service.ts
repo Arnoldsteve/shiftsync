@@ -3,7 +3,9 @@ import { RestPeriodValidationService } from './services/rest-period-validation.s
 import { DailyLimitValidationService } from './services/daily-limit-validation.service';
 import { WeeklyLimitValidationService } from './services/weekly-limit-validation.service';
 import { ConsecutiveDaysValidationService } from './services/consecutive-days-validation.service';
-import { ValidationResult } from './interfaces';
+import { AvailabilityValidationService } from './services/availability-validation.service';
+import { EnhancedComplianceValidationService } from './services/enhanced-compliance-validation.service';
+import { ValidationResult, GraduatedValidationResult } from './interfaces';
 
 @Injectable()
 export class ComplianceService {
@@ -11,7 +13,9 @@ export class ComplianceService {
     private readonly restPeriodValidation: RestPeriodValidationService,
     private readonly dailyLimitValidation: DailyLimitValidationService,
     private readonly weeklyLimitValidation: WeeklyLimitValidationService,
-    private readonly consecutiveDaysValidation: ConsecutiveDaysValidationService
+    private readonly consecutiveDaysValidation: ConsecutiveDaysValidationService,
+    private readonly availabilityValidation: AvailabilityValidationService,
+    private readonly enhancedValidation: EnhancedComplianceValidationService
   ) {}
 
   /**
@@ -72,14 +76,15 @@ export class ComplianceService {
 
   /**
    * Validate all compliance rules
-   * Requirements: 4.5
+   * Requirements: 4.5, 31.3
    */
   async validateAll(
     locationId: string,
     staffId: string,
     newShiftStart: Date,
     newShiftEnd: Date,
-    staffTimezone: string
+    staffTimezone: string,
+    locationTimezone?: string
   ): Promise<ValidationResult[]> {
     const results: ValidationResult[] = [];
 
@@ -118,7 +123,56 @@ export class ComplianceService {
       staffTimezone
     );
     results.push(consecutiveDaysResult);
+    if (!consecutiveDaysResult.isValid) {
+      return results;
+    }
+
+    // Validate availability if locationTimezone provided
+    if (locationTimezone) {
+      const availabilityResult = await this.validateAvailability(
+        staffId,
+        newShiftStart,
+        newShiftEnd,
+        locationTimezone
+      );
+      results.push(availabilityResult);
+    }
 
     return results;
+  }
+
+  /**
+   * Validate staff availability for shift
+   * Requirements: 31.3, 31.4
+   */
+  async validateAvailability(
+    staffId: string,
+    shiftStart: Date,
+    shiftEnd: Date,
+    locationTimezone: string
+  ): Promise<ValidationResult> {
+    return this.availabilityValidation.validate(staffId, shiftStart, shiftEnd, locationTimezone);
+  }
+
+  /**
+   * Validate with graduated warnings and errors
+   * Requirements: 39.1, 39.2, 39.3, 39.4, 39.5
+   */
+  async validateWithGraduation(
+    locationId: string,
+    staffId: string,
+    newShiftStart: Date,
+    newShiftEnd: Date,
+    staffTimezone: string,
+    overrideReason?: string
+  ): Promise<GraduatedValidationResult> {
+    return this.enhancedValidation.validateWithGraduation(
+      locationId,
+      staffId,
+      newShiftStart,
+      newShiftEnd,
+      staffTimezone,
+      overrideReason
+    );
   }
 }

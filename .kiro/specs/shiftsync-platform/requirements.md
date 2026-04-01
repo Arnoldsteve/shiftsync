@@ -392,3 +392,151 @@ ShiftSync is a multi-location staff scheduling platform designed for restaurant 
 3. WHEN a user's JWT token expires, THE ShiftSync_Platform SHALL require re-authentication
 4. THE ShiftSync_Platform SHALL validate JWT tokens on every API request
 5. WHEN a user attempts an unauthorized action, THE ShiftSync_Platform SHALL return a 403 Forbidden error with a descriptive message
+
+### Requirement 31: Staff Availability Windows
+
+**User Story:** As a Staff member, I want to set my recurring weekly availability windows, so that I am only scheduled during times I can work.
+
+#### Acceptance Criteria
+
+1. THE User_Management_System SHALL allow Staff users to define recurring weekly availability windows with day of week, start time, and end time
+2. THE User_Management_System SHALL allow Staff users to define one-off availability exceptions with specific date and unavailable time range
+3. WHEN a Manager assigns a Staff user to a shift, THE Scheduling_Engine SHALL verify the shift falls within the Staff user's availability windows
+4. IF a shift falls outside availability windows, THEN THE Scheduling_Engine SHALL reject the assignment with a descriptive error message
+5. THE User_Management_System SHALL allow Staff users to modify their availability windows with changes taking effect for future shifts only
+
+### Requirement 32: Schedule Publishing and Unpublishing
+
+**User Story:** As a Manager, I want to publish schedules to make them visible to staff, so that I can finalize schedules before staff see them.
+
+#### Acceptance Criteria
+
+1. WHEN a Manager publishes a week's schedule, THE Scheduling_Engine SHALL mark all shifts in that week as published
+2. WHEN a schedule is published, THE Scheduling_Engine SHALL make all published shifts visible to assigned Staff users
+3. THE Scheduling_Engine SHALL display only published shifts to Staff users and all shifts to Managers
+4. THE Scheduling_Engine SHALL allow Managers to unpublish and edit schedules before a configurable cutoff time (default 48 hours before shift start)
+5. IF a Manager attempts to unpublish a schedule within the cutoff window, THEN THE Scheduling_Engine SHALL reject the action with a warning message
+
+### Requirement 33: Drop Requests Without Target Staff
+
+**User Story:** As a Staff member, I want to offer my shift up for grabs without specifying who takes it, so that any qualified staff can pick it up.
+
+#### Acceptance Criteria
+
+1. WHEN a Staff user creates a drop request, THE Swap_Workflow_Manager SHALL allow creation without specifying a target Staff user
+2. WHEN a drop request is created, THE Swap_Workflow_Manager SHALL mark the shift as available for pickup by any qualified Staff user
+3. THE Swap_Workflow_Manager SHALL automatically expire drop requests 24 hours before the shift start time if unclaimed
+4. WHEN counting pending requests, THE Swap_Workflow_Manager SHALL include drop requests in the Staff user's pending request count
+5. WHEN a drop request is expired, THE Swap_Workflow_Manager SHALL notify the requesting Staff user and restore the original assignment
+
+### Requirement 34: Shift Pickup by Staff
+
+**User Story:** As a Staff member, I want to pick up available shifts I'm qualified for, so that I can increase my hours.
+
+#### Acceptance Criteria
+
+1. THE Scheduling_Engine SHALL display available shifts from drop requests and unassigned shifts to Staff users
+2. WHEN displaying available shifts, THE Scheduling_Engine SHALL filter shifts to show only those where the Staff user has required skills and location certification
+3. WHEN a Staff user picks up an available shift, THE Scheduling_Engine SHALL validate all scheduling constraints (overlap, rest period, daily limit, weekly limit, consecutive days)
+4. IF validation passes, THEN THE Scheduling_Engine SHALL assign the Staff user to the shift and remove the shift from available listings
+5. IF validation fails, THEN THE Scheduling_Engine SHALL reject the pickup and return a descriptive error message
+
+### Requirement 35: Swap and Drop Request Limits
+
+**User Story:** As a Manager, I want to limit the number of pending swap and drop requests per staff member, so that staff don't create excessive administrative burden.
+
+#### Acceptance Criteria
+
+1. THE Swap_Workflow_Manager SHALL enforce a maximum of 3 pending swap and drop requests per Staff user
+2. WHEN counting pending requests, THE Swap_Workflow_Manager SHALL include both swap requests and drop requests
+3. WHEN a Staff user attempts to create a new request at the limit, THE Swap_Workflow_Manager SHALL reject the request with a descriptive error message
+4. WHEN a swap or drop request is approved, rejected, or expired, THE Swap_Workflow_Manager SHALL decrement the Staff user's pending request count
+5. THE Swap_Workflow_Manager SHALL allow Admins to configure the pending request limit per location
+
+### Requirement 36: Swap Cancellation on Shift Edit
+
+**User Story:** As a Manager, I want pending swap requests to be automatically cancelled when I edit the shift, so that swap requests remain valid for the actual shift details.
+
+#### Acceptance Criteria
+
+1. WHEN a Manager edits a shift with pending swap requests, THE Scheduling_Engine SHALL automatically cancel all pending swap requests for that shift
+2. WHEN cancelling swap requests due to shift edit, THE Scheduling_Engine SHALL notify the requesting Staff user and target Staff user (if specified)
+3. WHEN cancelling swap requests due to shift edit, THE Audit_Logger SHALL record the cancellation with the reason "shift edited by manager"
+4. THE Scheduling_Engine SHALL allow the Manager to proceed with the shift edit after cancelling swap requests
+5. WHEN swap requests are cancelled, THE Swap_Workflow_Manager SHALL decrement the pending request count for affected Staff users
+
+### Requirement 37: Swap Cancellation by Requestor
+
+**User Story:** As a Staff member, I want to cancel my own pending swap requests, so that I can change my mind before manager approval.
+
+#### Acceptance Criteria
+
+1. THE Swap_Workflow_Manager SHALL allow Staff users to cancel their own pending swap requests before manager approval
+2. WHEN a Staff user cancels a swap request, THE Swap_Workflow_Manager SHALL update the request status to "cancelled"
+3. WHEN a swap request is cancelled by the requestor, THE Swap_Workflow_Manager SHALL notify the target Staff user (if specified) and the Manager
+4. WHEN a swap request is cancelled, THE Audit_Logger SHALL record the cancellation with timestamp and requestor
+5. WHEN a swap request is cancelled, THE Swap_Workflow_Manager SHALL decrement the requestor's pending request count
+
+### Requirement 38: Notification System
+
+**User Story:** As a user, I want to receive notifications for important events, so that I stay informed about schedule changes and requests.
+
+#### Acceptance Criteria
+
+1. THE ShiftSync_Platform SHALL maintain a persistent notification center with read and unread status for each notification
+2. THE ShiftSync_Platform SHALL allow users to configure notification preferences (in-app only, or in-app plus email simulation)
+3. THE ShiftSync_Platform SHALL store all notifications in a notification history viewable by the recipient
+4. WHEN a shift is assigned to a Staff user, THE ShiftSync_Platform SHALL create a notification for that Staff user
+5. WHEN a shift is modified or deleted, THE ShiftSync_Platform SHALL create a notification for the assigned Staff user
+6. WHEN a swap request is created, approved, or rejected, THE ShiftSync_Platform SHALL create notifications for the requestor, target Staff user, and Manager
+7. WHEN a schedule is published, THE ShiftSync_Platform SHALL create notifications for all Staff users with shifts in that schedule
+8. WHEN a Staff user approaches overtime (35+ hours), THE ShiftSync_Platform SHALL create a notification for that Staff user and their Manager
+9. WHEN a Staff user modifies their availability, THE ShiftSync_Platform SHALL create a notification for all Managers at their authorized locations
+
+### Requirement 39: Enhanced Compliance Warnings
+
+**User Story:** As a Manager, I want graduated warnings for compliance violations, so that I can make informed decisions about constraint overrides.
+
+#### Acceptance Criteria
+
+1. WHEN a shift assignment would result in 8 hours worked in a day, THE Compliance_Monitor SHALL generate a warning notification without blocking the assignment
+2. WHEN a shift assignment would result in more than 12 hours worked in a day, THE Compliance_Monitor SHALL block the assignment with a hard error
+3. WHEN a Staff user has worked 6 consecutive days, THE Compliance_Monitor SHALL generate a warning notification without blocking the next day's assignment
+4. WHEN a Staff user has worked 7 consecutive days, THE Compliance_Monitor SHALL require manager override with documented reason to proceed with assignment
+5. WHEN a Staff user has 35 or more hours in a 7-day period, THE Compliance_Monitor SHALL generate a warning notification indicating proximity to the 40-hour limit
+
+### Requirement 40: Alternative Staff Suggestions
+
+**User Story:** As a Manager, I want to see alternative staff suggestions when a constraint is violated, so that I can quickly find a suitable replacement.
+
+#### Acceptance Criteria
+
+1. WHEN a shift assignment is rejected due to constraint violation, THE Scheduling_Engine SHALL identify alternative Staff users who meet all requirements
+2. WHEN identifying alternatives, THE Scheduling_Engine SHALL verify each candidate has required skills, location certification, and availability
+3. WHEN identifying alternatives, THE Scheduling_Engine SHALL validate that each candidate would not violate scheduling constraints
+4. THE Scheduling_Engine SHALL rank alternative Staff users by current hour totals in ascending order to promote fairness
+5. THE Scheduling_Engine SHALL display the top 5 alternative Staff users with their current hour totals and availability status
+
+### Requirement 41: Desired Hours Tracking
+
+**User Story:** As a Staff member, I want to set my desired weekly hours, so that managers can schedule me fairly according to my preferences.
+
+#### Acceptance Criteria
+
+1. THE User_Management_System SHALL allow Staff users to set their desired weekly hours
+2. THE Fairness_Analyzer SHALL compare actual scheduled hours to desired hours for each Staff user
+3. THE Fairness_Analyzer SHALL identify Staff users who are under-scheduled (actual hours significantly below desired hours)
+4. THE Fairness_Analyzer SHALL identify Staff users who are over-scheduled (actual hours significantly above desired hours)
+5. THE Fairness_Analyzer SHALL display desired hours vs actual hours in fairness analytics reports for Managers
+
+### Requirement 42: Headcount Tracking
+
+**User Story:** As a Manager, I want to specify required headcount for shifts, so that I can schedule multiple staff members for the same shift.
+
+#### Acceptance Criteria
+
+1. WHEN a Manager creates a shift, THE Scheduling_Engine SHALL allow specification of required headcount (default 1)
+2. THE Scheduling_Engine SHALL allow multiple Staff users to be assigned to the same shift up to the required headcount
+3. THE Scheduling_Engine SHALL track filled headcount vs required headcount for each shift
+4. THE Scheduling_Engine SHALL display shifts with unfilled headcount as partially covered in the schedule view
+5. WHEN all headcount positions are filled, THE Scheduling_Engine SHALL mark the shift as fully covered and remove it from available shift listings

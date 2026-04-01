@@ -1,11 +1,15 @@
 export interface Shift {
   id: string;
   locationId: string;
+  locationName?: string;
   startTime: string;
   endTime: string;
   timezone: string;
   requiredSkills: string[];
   assignment?: Assignment;
+  isPublished?: boolean;
+  publishedAt?: string;
+  requiredHeadcount?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -42,4 +46,14 @@ export interface ShiftFilters {
 export interface AssignStaffDto {
   shiftId: string;
   staffId: string;
+}
+
+export interface PublishScheduleDto {
+  locationId: string;
+  weekStartDate: string;
+}
+
+export interface UnpublishScheduleDto {
+  locationId: string;
+  weekStartDate: string;
 }

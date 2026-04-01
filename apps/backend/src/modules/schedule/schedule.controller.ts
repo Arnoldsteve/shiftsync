@@ -129,10 +129,61 @@ export class ScheduleController {
   @CheckPolicies((ability) => ability.can(Action.Delete, 'Assignment'))
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiUnassignStaffDocs()
-  async unassignStaff(
-    @Param('id') shiftId: string, 
-    @CurrentUser('id') unassignedBy: string
-  ) {
+  async unassignStaff(@Param('id') shiftId: string, @CurrentUser('id') unassignedBy: string) {
     await this.scheduleService.unassignStaff(shiftId, unassignedBy);
+  }
+
+  /**
+   * Publish schedule for a week - Manager only
+   * Requirements: 32.1, 32.5
+   */
+  @Post('publish')
+  @CheckPolicies((ability) => ability.can(Action.Update, 'Shift'))
+  async publishSchedule(
+    @Body() data: { locationId: string; weekStartDate: string },
+    @CurrentUser() user: any
+  ) {
+    return this.scheduleService.publishSchedule(
+      data.locationId,
+      new Date(data.weekStartDate),
+      user.id,
+      user.managedLocationIds
+    );
+  }
+
+  /**
+   * Unpublish schedule for a week - Manager only
+   * Requirements: 32.4
+   */
+  @Post('unpublish')
+  @CheckPolicies((ability) => ability.can(Action.Update, 'Shift'))
+  async unpublishSchedule(
+    @Body() data: { locationId: string; weekStartDate: string },
+    @CurrentUser() user: any
+  ) {
+    return this.scheduleService.unpublishSchedule(
+      data.locationId,
+      new Date(data.weekStartDate),
+      user.id,
+      user.managedLocationIds
+    );
+  }
+
+  /**
+   * Get published schedule for staff - Staff role
+   * Requirements: 32.2, 32.3
+   */
+  @Get('staff/:id/published-shifts')
+  @CheckPolicies((ability) => ability.can(Action.Read, 'Shift'))
+  async getPublishedStaffSchedule(
+    @Param('id') staffId: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string
+  ) {
+    return this.scheduleService.getStaffSchedulePublished(
+      staffId,
+      startDate ? new Date(startDate) : undefined,
+      endDate ? new Date(endDate) : undefined
+    );
   }
 }

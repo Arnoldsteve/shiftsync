@@ -5,3 +5,6 @@ export * from './schemas/swap.schema';
 export * from './schemas/location.schema';
 export * from './schemas/auth.schema';
 export * from './types';
+export * from './dtos/availability';
+export * from './dtos/schedule';
+export * from './dtos/swap';

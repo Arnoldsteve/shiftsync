@@ -96,6 +96,48 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test database connection and basic CRUD operations
     - _Requirements: Foundation for all data operations_
 
+  - [ ] 2.6 Create Prisma models for new features (Requirements 31-42)
+    - [x] 2.6.1 Add AvailabilityWindow and AvailabilityException models
+      - Implement AvailabilityWindow with userId, dayOfWeek, startTime, endTime
+      - Implement AvailabilityException with userId, date, startTime, endTime
+      - Add indexes for userId and date/dayOfWeek lookups
+      - _Requirements: 31.1, 31.2_
+    - [x] 2.6.2 Add schedule publishing fields to Shift model
+      - Add isPublished Boolean field (default false)
+      - Add publishedAt DateTime field (nullable)
+      - Add index for isPublished for filtering queries
+      - _Requirements: 32.1, 32.2_
+    - [x] 2.6.3 Add DropRequest model
+      - Implement DropRequest with shiftId, requestorId, status, expiresAt, claimedBy, claimedAt
+      - Add DropStatus enum (PENDING, CLAIMED, EXPIRED, CANCELLED)
+      - Add indexes for shiftId, requestorId, status, expiresAt
+      - _Requirements: 33.1, 33.2, 33.3_
+    - [x] 2.6.4 Add CANCELLED status to SwapStatus enum
+      - Update SwapStatus enum to include CANCELLED
+      - _Requirements: 36.1, 37.1_
+    - [x] 2.6.5 Add Notification and NotificationPreference models
+      - Implement Notification with userId, type, title, message, isRead, metadata
+      - Implement NotificationPreference with userId, inAppEnabled, emailEnabled
+      - Add indexes for userId, isRead, createdAt
+      - _Requirements: 38.1, 38.2, 38.3_
+    - [x] 2.6.6 Add compliance configuration fields to LocationConfig
+      - Add schedulePublishCutoffHours Int field (default 48)
+      - Add maxPendingRequests Int field (default 3)
+      - _Requirements: 32.4, 35.1_
+    - [x] 2.6.7 Add desiredWeeklyHours to User model
+      - Add desiredWeeklyHours Float field (nullable)
+      - _Requirements: 41.1_
+    - [x] 2.6.8 Add requiredHeadcount to Shift model
+      - Add requiredHeadcount Int field (default 1)
+      - Update Assignment unique constraint from [shiftId] to [shiftId, staffId]
+      - _Requirements: 42.1, 42.2_
+    - [x] 2.6.9 Generate and apply migration for new features
+      - Generate Prisma migration for all new models and fields
+      - Apply migration to development database
+      - Verify all new tables, fields, and indexes created correctly
+      - Update seed scripts to include sample availability windows and notifications
+      - _Requirements: 31-42_
+
 - [x] 3. Checkpoint - Database layer complete
   - Ensure all migrations applied successfully, Prisma Client generates without errors, and test data seeded correctly. Ask the user if questions arise.
 
@@ -144,6 +186,38 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test role assignment validation
     - Test skill and certification assignment with timestamps
     - Test getUsersByLocation filtering
+
+  - [x] 4.9 Implement availability management methods (Requirement 31)
+    - Implement setAvailabilityWindow to create recurring weekly availability
+    - Implement removeAvailabilityWindow to delete availability window
+    - Implement addAvailabilityException for one-off unavailability
+    - Implement getAvailability to retrieve windows and exceptions
+    - Validate time format (HH:MM) and day of week (0-6)
+    - _Requirements: 31.1, 31.2, 31.5_
+
+  - [ ]\* 4.10 Write property test for availability window round trip
+    - **Property 75: Availability Window Round Trip**
+    - **Validates: Requirements 31.1**
+
+  - [ ]\* 4.11 Write property test for availability exception round trip
+    - **Property 76: Availability Exception Round Trip**
+    - **Validates: Requirements 31.2**
+
+  - [x] 4.12 Implement desired hours tracking (Requirement 41)
+    - Implement setDesiredWeeklyHours to set staff desired hours
+    - Implement getDesiredWeeklyHours to retrieve desired hours
+    - Validate hours value (positive number)
+    - _Requirements: 41.1_
+
+  - [ ]\* 4.13 Write property test for desired hours round trip
+    - **Property 121: Desired Hours Round Trip**
+    - **Validates: Requirements 41.1**
+
+  - [ ]\* 4.14 Write unit tests for availability and desired hours
+    - Test availability window creation and retrieval
+    - Test availability exception creation
+    - Test desired hours setting and retrieval
+    - Test validation for invalid time formats and values
 
 - [x] 5. Implement Audit Logger service
   - [x] 5.1 Create Audit Service with logging methods
@@ -292,6 +366,56 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Short-circuit on first failure for performance
     - _Requirements: 4.5_
 
+  - [x] 10.13 Implement availability validation (Requirement 31)
+    - Implement validateAvailability to check shift falls within staff availability windows
+    - Check recurring weekly windows by day of week and time
+    - Check one-off exceptions for specific dates
+    - Return validation result with pass/fail and violation details
+    - _Requirements: 31.3, 31.4_
+
+  - [ ]\* 10.14 Write property test for shift assignment respects availability
+    - **Property 77: Shift Assignment Respects Availability**
+    - **Validates: Requirements 31.3**
+
+  - [ ]\* 10.15 Write property test for availability changes affect future shifts only
+    - **Property 78: Availability Changes Affect Future Shifts Only**
+    - **Validates: Requirements 31.5**
+
+  - [x] 10.16 Implement enhanced compliance warnings (Requirement 39)
+    - Implement validateWithGraduation method returning errors and warnings separately
+    - 8-hour day: warning only, allow assignment
+    - 12-hour day: hard error, block assignment
+    - 6 consecutive days: warning only, allow assignment
+    - 7 consecutive days: require override with documented reason
+    - 35+ hours in 7 days: warning for overtime proximity
+    - _Requirements: 39.1, 39.2, 39.3, 39.4, 39.5_
+
+  - [ ]\* 10.17 Write property test for eight hour day warning
+    - **Property 111: Eight Hour Day Warning Without Block**
+    - **Validates: Requirements 39.1**
+
+  - [ ]\* 10.18 Write property test for twelve hour day hard block
+    - **Property 112: Twelve Hour Day Hard Block**
+    - **Validates: Requirements 39.2**
+
+  - [ ]\* 10.19 Write property test for six consecutive days warning
+    - **Property 113: Six Consecutive Days Warning**
+    - **Validates: Requirements 39.3**
+
+  - [ ]\* 10.20 Write property test for seven consecutive days override
+    - **Property 114: Seven Consecutive Days Requires Override**
+    - **Validates: Requirements 39.4**
+
+  - [ ]\* 10.21 Write property test for thirty-five hour proximity warning
+    - **Property 115: Thirty-Five Hour Proximity Warning**
+    - **Validates: Requirements 39.5**
+
+  - [ ]\* 10.22 Write unit tests for enhanced compliance
+    - Test graduated warnings for 8-hour and 6-day scenarios
+    - Test hard blocks for 12-hour and 7-day scenarios
+    - Test overtime proximity warnings
+    - Test override mechanism for 7-day scenario
+
   - [ ]\* 10.13 Write unit tests for Compliance Monitor
     - Test rest period validation with various shift gaps
     - Test daily limit with overnight shifts
@@ -368,6 +492,112 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test getSchedule with timezone conversion
     - Test cache invalidation on updates
 
+  - [x] 11.13 Implement schedule publishing (Requirement 32)
+    - Implement publishSchedule to mark all shifts in a week as published
+    - Implement unpublishSchedule with cutoff time enforcement
+    - Filter staff queries to show only published shifts
+    - Managers see all shifts regardless of published status
+    - Integrate with Notification Service to notify staff on publishing
+    - _Requirements: 32.1, 32.2, 32.3, 32.4, 32.5_
+
+  - [ ]\* 11.14 Write property test for schedule publishing marks all shifts
+    - **Property 79: Schedule Publishing Marks All Shifts**
+    - **Validates: Requirements 32.1**
+
+  - [ ]\* 11.15 Write property test for published shifts visible to staff
+    - **Property 80: Published Shifts Visible to Staff**
+    - **Validates: Requirements 32.2, 32.3**
+
+  - [ ]\* 11.16 Write property test for unpublish cutoff enforcement
+    - **Property 81: Unpublish Cutoff Enforcement**
+    - **Validates: Requirements 32.4**
+
+  - [ ] 11.17 Implement shift pickup (Requirement 34)
+    - Implement getAvailableShifts to show unassigned shifts and drop requests
+    - Filter by staff qualifications (skills, certifications)
+    - Filter by staff availability windows
+    - Implement pickupShift with full constraint validation
+    - Remove shift from available listings on successful pickup
+    - _Requirements: 34.1, 34.2, 34.3, 34.4_
+
+  - [ ]\* 11.18 Write property test for available shifts include drop requests
+    - **Property 87: Available Shifts Include Drop Requests**
+    - **Validates: Requirements 34.1**
+
+  - [ ]\* 11.19 Write property test for available shifts filtered by qualifications
+    - **Property 88: Available Shifts Filtered by Qualifications**
+    - **Validates: Requirements 34.2**
+
+  - [ ]\* 11.20 Write property test for shift pickup validates constraints
+    - **Property 89: Shift Pickup Validates Constraints**
+    - **Validates: Requirements 34.3**
+
+  - [ ]\* 11.21 Write property test for successful pickup assigns and removes
+    - **Property 90: Successful Pickup Assigns and Removes from Available**
+    - **Validates: Requirements 34.4**
+
+  - [ ] 11.22 Implement alternative staff suggestions (Requirement 40)
+    - Implement getAlternativeStaff for constraint violation scenarios
+    - Verify candidates have required skills, certifications, and availability
+    - Validate candidates would not violate scheduling constraints
+    - Rank candidates by current hour totals (ascending)
+    - Return top 5 suggestions with hours and availability status
+    - _Requirements: 40.1, 40.2, 40.3, 40.4, 40.5_
+
+  - [ ]\* 11.23 Write property test for constraint violation provides alternatives
+    - **Property 116: Constraint Violation Provides Alternatives**
+    - **Validates: Requirements 40.1**
+
+  - [ ]\* 11.24 Write property test for alternative staff meet requirements
+    - **Property 117: Alternative Staff Meet Requirements**
+    - **Validates: Requirements 40.2**
+
+  - [ ]\* 11.25 Write property test for alternative staff pass validation
+    - **Property 118: Alternative Staff Pass Constraint Validation**
+    - **Validates: Requirements 40.3**
+
+  - [ ]\* 11.26 Write property test for alternative staff ranked by hours
+    - **Property 119: Alternative Staff Ranked by Hours**
+    - **Validates: Requirements 40.4**
+
+  - [ ]\* 11.27 Write property test for alternative staff limited to five
+    - **Property 120: Alternative Staff Limited to Five**
+    - **Validates: Requirements 40.5**
+
+  - [ ] 11.28 Implement headcount tracking (Requirement 42)
+    - Implement getShiftHeadcountStatus to return filled vs required headcount
+    - Validate assignments don't exceed required headcount
+    - Mark shifts as fully covered when headcount reached
+    - Remove fully covered shifts from available listings
+    - Display partially covered status for unfilled headcount
+    - _Requirements: 42.1, 42.2, 42.3, 42.4, 42.5_
+
+  - [ ]\* 11.29 Write property test for shift headcount storage and retrieval
+    - **Property 126: Shift Headcount Storage and Retrieval**
+    - **Validates: Requirements 42.1**
+
+  - [ ]\* 11.30 Write property test for multiple assignments up to headcount
+    - **Property 127: Multiple Assignments Up to Headcount**
+    - **Validates: Requirements 42.2**
+
+  - [ ]\* 11.31 Write property test for filled headcount matches assignments
+    - **Property 128: Filled Headcount Matches Assignments**
+    - **Validates: Requirements 42.3**
+
+  - [ ]\* 11.32 Write property test for partially filled shift status
+    - **Property 129: Partially Filled Shift Status**
+    - **Validates: Requirements 42.4**
+
+  - [ ]\* 11.33 Write property test for fully filled shift removed
+    - **Property 130: Fully Filled Shift Removed from Available**
+    - **Validates: Requirements 42.5**
+
+  - [ ]\* 11.34 Write unit tests for new Schedule Service features
+    - Test schedule publishing and unpublishing
+    - Test shift pickup with constraint validation
+    - Test alternative staff suggestions ranking
+    - Test headcount tracking and validation
+
 - [x] 12. Checkpoint - Schedule Service complete
   - Ensure Schedule Service creates shifts, assigns staff with full validation, and handles timezones correctly. Run all tests. Ask the user if questions arise.
 
@@ -442,6 +672,109 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test swap approval transaction rollback on failure
     - Test swap rejection with reason storage
     - Test getPendingSwaps filtering
+
+  - [x] 13.14 Implement drop requests (Requirement 33)
+    - Implement createDropRequest without target staff specification
+    - Mark shift as available for pickup by any qualified staff
+    - Set expiration time to 24 hours before shift start
+    - Implement expireDropRequests background job to auto-expire unclaimed requests
+    - Notify requestor on expiration and restore original assignment
+    - Include drop requests in pending request count
+    - _Requirements: 33.1, 33.2, 33.3, 33.4, 33.5_
+
+  - [ ]\* 13.15 Write property test for drop request without target staff
+    - **Property 82: Drop Request Without Target Staff**
+    - **Validates: Requirements 33.1**
+
+  - [ ]\* 13.16 Write property test for drop request makes shift available
+    - **Property 83: Drop Request Makes Shift Available**
+    - **Validates: Requirements 33.2**
+
+  - [ ]\* 13.17 Write property test for drop request auto-expiration
+    - **Property 84: Drop Request Auto-Expiration**
+    - **Validates: Requirements 33.3**
+
+  - [ ]\* 13.18 Write property test for drop requests count toward limit
+    - **Property 85: Drop Requests Count Toward Pending Limit**
+    - **Validates: Requirements 33.4, 35.2**
+
+  - [ ]\* 13.19 Write property test for drop request expiration restores assignment
+    - **Property 86: Drop Request Expiration Restores Assignment**
+    - **Validates: Requirements 33.5**
+
+  - [ ] 13.20 Implement request limits (Requirement 35)
+    - Implement getPendingRequestCount including swap and drop requests
+    - Enforce maximum pending requests (configurable per location, default 3)
+    - Reject new requests when at limit with descriptive error
+    - Decrement count when requests are approved, rejected, expired, or cancelled
+    - _Requirements: 35.1, 35.2, 35.3, 35.4, 35.5_
+
+  - [ ]\* 13.21 Write property test for pending request limit enforcement
+    - **Property 91: Pending Request Limit Enforcement**
+    - **Validates: Requirements 35.1**
+
+  - [ ]\* 13.22 Write property test for request status change decrements count
+    - **Property 92: Request Status Change Decrements Count**
+    - **Validates: Requirements 35.4**
+
+  - [ ]\* 13.23 Write property test for pending request limit configuration
+    - **Property 93: Pending Request Limit Configuration**
+    - **Validates: Requirements 35.5**
+
+  - [ ] 13.24 Implement swap cancellation on shift edit (Requirement 36)
+    - Detect pending swap requests when shift is edited
+    - Automatically cancel all pending swaps for that shift
+    - Notify requestor and target staff of cancellation
+    - Log cancellation with reason "shift edited by manager"
+    - Decrement pending request count for affected staff
+    - _Requirements: 36.1, 36.2, 36.3, 36.4, 36.5_
+
+  - [ ]\* 13.25 Write property test for shift edit cancels pending swaps
+    - **Property 94: Shift Edit Cancels Pending Swaps**
+    - **Validates: Requirements 36.1**
+
+  - [ ]\* 13.26 Write property test for swap cancellation notifications
+    - **Property 95: Swap Cancellation Notifications**
+    - **Validates: Requirements 36.2**
+
+  - [ ]\* 13.27 Write property test for swap cancellation audit log
+    - **Property 96: Swap Cancellation Audit Log**
+    - **Validates: Requirements 36.3**
+
+  - [ ]\* 13.28 Write property test for swap cancellation decrements count
+    - **Property 97: Swap Cancellation Decrements Count**
+    - **Validates: Requirements 36.5, 37.5**
+
+  - [ ] 13.29 Implement swap cancellation by requestor (Requirement 37)
+    - Implement cancelSwapRequest allowing staff to cancel own pending swaps
+    - Update request status to "cancelled"
+    - Notify target staff and manager of cancellation
+    - Log cancellation with timestamp and requestor
+    - Decrement requestor's pending request count
+    - _Requirements: 37.1, 37.2, 37.3, 37.4, 37.5_
+
+  - [ ]\* 13.30 Write property test for staff can cancel own pending swaps
+    - **Property 98: Staff Can Cancel Own Pending Swaps**
+    - **Validates: Requirements 37.1**
+
+  - [ ]\* 13.31 Write property test for swap cancellation updates status
+    - **Property 99: Swap Cancellation Updates Status**
+    - **Validates: Requirements 37.2**
+
+  - [ ]\* 13.32 Write property test for requestor cancellation notifications
+    - **Property 100: Requestor Cancellation Notifications**
+    - **Validates: Requirements 37.3**
+
+  - [ ]\* 13.33 Write property test for requestor cancellation audit log
+    - **Property 101: Requestor Cancellation Audit Log**
+    - **Validates: Requirements 37.4**
+
+  - [ ]\* 13.34 Write unit tests for drop requests and cancellations
+    - Test drop request creation and expiration
+    - Test request limit enforcement
+    - Test swap cancellation on shift edit
+    - Test swap cancellation by requestor
+    - Test pending count updates
 
 - [ ] 14. Implement Overtime Tracker service
   - [x] 14.1 Create Overtime Service with hour calculation
@@ -538,6 +871,37 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test outlier detection at boundary conditions
     - Test percentage calculations with edge cases
 
+  - [ ] 15.12 Implement desired hours comparison (Requirement 41)
+    - Implement compareActualToDesiredHours for location and date range
+    - Calculate actual scheduled hours for each staff user
+    - Compare to desired weekly hours (if set)
+    - Identify under-scheduled staff (actual significantly below desired)
+    - Identify over-scheduled staff (actual significantly above desired)
+    - Include desired vs actual hours in fairness reports
+    - _Requirements: 41.2, 41.3, 41.4, 41.5_
+
+  - [ ]\* 15.13 Write property test for actual vs desired hours comparison
+    - **Property 122: Actual vs Desired Hours Comparison Accuracy**
+    - **Validates: Requirements 41.2**
+
+  - [ ]\* 15.14 Write property test for under-scheduled identification
+    - **Property 123: Under-Scheduled Staff Identification**
+    - **Validates: Requirements 41.3**
+
+  - [ ]\* 15.15 Write property test for over-scheduled identification
+    - **Property 124: Over-Scheduled Staff Identification**
+    - **Validates: Requirements 41.4**
+
+  - [ ]\* 15.16 Write property test for fairness report includes desired hours
+    - **Property 125: Fairness Report Includes Desired Hours**
+    - **Validates: Requirements 41.5**
+
+  - [ ]\* 15.17 Write unit tests for desired hours comparison
+    - Test comparison with various actual vs desired scenarios
+    - Test under-scheduled identification
+    - Test over-scheduled identification
+    - Test fairness report with desired hours display
+
 - [x] 16. Checkpoint - Business logic services complete
   - Ensure Swap Service, Overtime Tracker, and Fairness Analyzer are working correctly. Run all tests. Ask the user if questions arise.
 
@@ -550,6 +914,15 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Set up job processors for different job types
     - Mount BullBoard UI at /admin/queues endpoint (Admin only)
     - _Requirements: 24.1, 24.5, 29.4_
+
+  - [ ] 17.1a Implement drop request expiration job (Requirement 33)
+    - Create job processor for "drop-request-expiration" job type
+    - Schedule job to run periodically (e.g., every 15 minutes)
+    - Query for drop requests with expiresAt < now and status PENDING
+    - Update status to EXPIRED
+    - Restore original staff assignment
+    - Notify requestor of expiration
+    - _Requirements: 33.3, 33.5_
 
   - [x] 17.2 Implement fairness report background job
     - Create job processor for "fairness-report" job type
@@ -615,6 +988,16 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Implement callout:reported event
     - Broadcast events to appropriate rooms (location-based, staff-based)
     - _Requirements: 15.1, 15.2, 16.4, 22.2, 24.4_
+
+  - [ ] 18.4a Implement new real-time events (Requirements 32-38)
+    - Implement shift:published event for schedule publishing
+    - Implement swap:cancelled event for swap cancellations
+    - Implement drop:created event for drop request creation
+    - Implement drop:claimed event for shift pickup
+    - Implement drop:expired event for drop request expiration
+    - Implement notification:new event for notification system
+    - Broadcast events to appropriate rooms
+    - _Requirements: 32.1, 33.2, 33.3, 34.4, 36.2, 37.3, 38.4_
 
   - [ ]\* 18.5 Write property test for real-time shift change broadcast
     - **Property 39: Real-Time Shift Change Broadcast**
@@ -726,6 +1109,74 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
 - [x] 20. Checkpoint - Real-time and callout features complete
   - Ensure background jobs, WebSocket communication, and callout management are working correctly. Run all tests. Ask the user if questions arise.
 
+- [ ] 20a. Implement Notification Service (Requirement 38)
+  - [ ] 20a.1 Create Notification Service with CRUD operations
+    - Implement createNotification with userId, type, title, message, metadata
+    - Implement getNotifications with optional includeRead filter
+    - Implement markAsRead for single notification
+    - Implement markAllAsRead for user
+    - Store notifications with read/unread status
+    - _Requirements: 38.1, 38.3_
+
+  - [ ]\* 20a.2 Write property test for notification persistence with status
+    - **Property 102: Notification Persistence with Status**
+    - **Validates: Requirements 38.1**
+
+  - [ ]\* 20a.3 Write property test for notification history completeness
+    - **Property 104: Notification History Completeness**
+    - **Validates: Requirements 38.3**
+
+  - [ ] 20a.4 Implement notification preferences
+    - Implement setNotificationPreferences with inAppEnabled, emailEnabled
+    - Implement getNotificationPreferences
+    - Default: in-app enabled, email disabled
+    - _Requirements: 38.2_
+
+  - [ ]\* 20a.5 Write property test for notification preferences round trip
+    - **Property 103: Notification Preferences Round Trip**
+    - **Validates: Requirements 38.2**
+
+  - [ ] 20a.6 Implement event-triggered notifications
+    - Implement notifyShiftAssignment for staff assignments
+    - Implement notifyShiftModification for shift changes
+    - Implement notifySwapRequest for swap creation, approval, rejection
+    - Implement notifySchedulePublished for bulk staff notification
+    - Implement notifyOvertimeApproaching for 35+ hour warnings
+    - Implement notifyAvailabilityChange for manager notifications
+    - Integrate with real-time sync to emit notification:new events
+    - _Requirements: 38.4, 38.5, 38.6, 38.7, 38.8, 38.9_
+
+  - [ ]\* 20a.7 Write property test for shift assignment creates notification
+    - **Property 105: Shift Assignment Creates Notification**
+    - **Validates: Requirements 38.4**
+
+  - [ ]\* 20a.8 Write property test for shift modification creates notification
+    - **Property 106: Shift Modification Creates Notification**
+    - **Validates: Requirements 38.5**
+
+  - [ ]\* 20a.9 Write property test for swap request creates notifications
+    - **Property 107: Swap Request Creates Notifications**
+    - **Validates: Requirements 38.6**
+
+  - [ ]\* 20a.10 Write property test for schedule publishing creates notifications
+    - **Property 108: Schedule Publishing Creates Notifications**
+    - **Validates: Requirements 38.7**
+
+  - [ ]\* 20a.11 Write property test for overtime approaching creates notifications
+    - **Property 109: Overtime Approaching Creates Notifications**
+    - **Validates: Requirements 38.8**
+
+  - [ ]\* 20a.12 Write property test for availability change creates notifications
+    - **Property 110: Availability Change Creates Notifications**
+    - **Validates: Requirements 38.9**
+
+  - [ ]\* 20a.13 Write unit tests for Notification Service
+    - Test notification creation and retrieval
+    - Test read/unread status management
+    - Test notification preferences
+    - Test event-triggered notifications
+    - Test real-time notification broadcasting
+
 - [ ] 21. Implement Configuration Management
   - [x] 21.1 Create configuration service
     - Implement methods to get and update location configuration
@@ -797,6 +1248,17 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Document all endpoints with Swagger/Scalar decorators
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 2.1, 2.2, 2.3, 2.4, 2.5, 30.1, 30.4, 30.5_
 
+  - [ ] 23.1a Create Availability and Desired Hours API endpoints (Requirements 31, 41)
+    - POST /api/users/:id/availability/windows - Set availability window (Staff)
+    - DELETE /api/users/:id/availability/windows/:windowId - Remove availability window (Staff)
+    - POST /api/users/:id/availability/exceptions - Add availability exception (Staff)
+    - GET /api/users/:id/availability - Get availability windows and exceptions (Staff/Manager)
+    - PUT /api/users/:id/desired-hours - Set desired weekly hours (Staff)
+    - GET /api/users/:id/desired-hours - Get desired weekly hours (Staff/Manager)
+    - Add authentication and authorization guards
+    - Add input validation with Zod schemas
+    - _Requirements: 31.1, 31.2, 31.5, 41.1_
+
   - [ ]\* 23.2 Write property test for API authentication requirement
     - **Property 71: API Authentication Requirement**
     - **Validates: Requirements 30.1**
@@ -821,6 +1283,17 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Document all endpoints with Swagger/Scalar decorators
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 4.1, 4.2, 4.3, 4.4, 4.5, 17.1, 17.5_
 
+  - [ ] 23.5a Create Schedule Publishing and Pickup API endpoints (Requirements 32, 34, 40, 42)
+    - POST /api/schedules/:locationId/publish - Publish week's schedule (Manager)
+    - POST /api/schedules/:locationId/unpublish - Unpublish schedule (Manager)
+    - GET /api/shifts/available - Get available shifts for staff (Staff)
+    - POST /api/shifts/:id/pickup - Pick up available shift (Staff)
+    - GET /api/shifts/:id/alternatives - Get alternative staff suggestions (Manager)
+    - GET /api/shifts/:id/headcount - Get shift headcount status (Manager)
+    - Add authentication and authorization guards
+    - Add input validation with Zod schemas
+    - _Requirements: 32.1, 32.4, 34.1, 34.3, 40.1, 42.3_
+
   - [x] 23.6 Create Swap Workflow API endpoints
     - POST /api/swaps - Create swap request (Staff)
     - GET /api/swaps/pending - Get pending swaps (Manager)
@@ -831,6 +1304,15 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Add input validation with DTOs
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 8.1, 8.2, 8.3, 8.4, 8.5_
 
+  - [ ] 23.6a Create Drop Request and Cancellation API endpoints (Requirements 33, 35, 37)
+    - POST /api/drops - Create drop request (Staff)
+    - GET /api/staff/:id/drops - Get drop requests by staff (Staff)
+    - DELETE /api/swaps/:id/cancel - Cancel swap request (Staff)
+    - GET /api/staff/:id/pending-count - Get pending request count (Staff)
+    - Add authentication and authorization guards
+    - Add input validation with DTOs
+    - _Requirements: 33.1, 35.1, 37.1_
+
   - [x] 23.7 Create Overtime and Fairness API endpoints
     - GET /api/overtime/:staffId - Calculate overtime for staff
     - GET /api/overtime/report/:locationId - Get overtime report for location
@@ -839,6 +1321,13 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - POST /api/fairness/:locationId/report - Generate fairness report (background job)
     - Add authentication and authorization guards
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 13.1, 13.2, 13.3, 13.4, 13.5, 14.1, 14.2, 14.3, 14.4, 24.2, 24.3_
+
+  - [ ] 23.7a Create Desired Hours Fairness API endpoints (Requirement 41)
+    - GET /api/fairness/:locationId/desired-hours - Get desired vs actual hours comparison
+    - GET /api/fairness/:locationId/under-scheduled - Get under-scheduled staff
+    - GET /api/fairness/:locationId/over-scheduled - Get over-scheduled staff
+    - Add authentication and authorization guards
+    - _Requirements: 41.2, 41.3, 41.4_
 
   - [x] 23.8 Create Callout and Coverage API endpoints
     - POST /api/callouts - Report callout (Staff)
@@ -865,6 +1354,15 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - POST /api/jobs/:id/retry - Retry failed job (Admin)
     - Add authentication and authorization guards
     - _Requirements: 24.5_
+
+  - [ ] 23.10a Create Notification API endpoints (Requirement 38)
+    - GET /api/notifications - Get notifications for current user (Staff/Manager/Admin)
+    - PUT /api/notifications/:id/read - Mark notification as read
+    - PUT /api/notifications/read-all - Mark all notifications as read
+    - GET /api/notifications/preferences - Get notification preferences
+    - PUT /api/notifications/preferences - Set notification preferences
+    - Add authentication and authorization guards
+    - _Requirements: 38.1, 38.2, 38.3_
 
   - [ ]\* 23.11 Write integration tests for API endpoints
     - Test authentication and authorization for all endpoints
@@ -941,6 +1439,25 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test role assignment interface
     - Test error handling and display
 
+  - [ ] 26.4 Create availability management interface (Requirement 31)
+    - Build availability windows form with day of week and time range
+    - Build availability exceptions form with date and time range
+    - Display current availability windows and exceptions
+    - Implement add/remove functionality for windows
+    - Show validation errors for invalid time formats
+    - _Requirements: 31.1, 31.2, 31.5_
+
+  - [ ] 26.5 Create desired hours interface (Requirement 41)
+    - Build desired weekly hours input field
+    - Display current desired hours value
+    - Show validation for positive numbers
+    - _Requirements: 41.1_
+
+  - [ ]\* 26.6 Write unit tests for availability and desired hours components
+    - Test availability window form validation
+    - Test availability exception creation
+    - Test desired hours input validation
+
 - [ ] 27. Implement frontend schedule management features
   - [x] 27.1 Create schedule calendar view
     - Build calendar component displaying shifts by location
@@ -979,6 +1496,54 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test staff assignment interface
     - Test real-time update handling
 
+  - [ ] 27.6 Create schedule publishing interface (Requirement 32)
+    - Build publish/unpublish buttons for week view
+    - Show published status indicator on shifts
+    - Display cutoff time warning for unpublish attempts
+    - Filter staff view to show only published shifts
+    - Show all shifts to managers regardless of published status
+    - _Requirements: 32.1, 32.2, 32.3, 32.4_
+
+  - [ ] 27.7 Create available shifts and pickup interface (Requirement 34)
+    - Build available shifts list for staff
+    - Display shift details (location, time, skills required)
+    - Filter by staff qualifications automatically
+    - Implement pickup button with constraint validation
+    - Show validation errors if pickup fails
+    - Remove shift from list on successful pickup
+    - _Requirements: 34.1, 34.2, 34.3, 34.4_
+
+  - [ ] 27.8 Create alternative staff suggestions interface (Requirement 40)
+    - Display alternative staff list on constraint violation
+    - Show staff current hours and availability status
+    - Rank staff by hours (ascending)
+    - Limit display to top 5 suggestions
+    - Implement quick assign button for alternatives
+    - _Requirements: 40.1, 40.2, 40.3, 40.4, 40.5_
+
+  - [ ] 27.9 Create headcount tracking interface (Requirement 42)
+    - Add headcount input field to shift creation form
+    - Display filled vs required headcount on shifts
+    - Show partially covered indicator for unfilled headcount
+    - Show fully covered indicator when headcount reached
+    - Allow multiple staff assignments up to headcount
+    - _Requirements: 42.1, 42.2, 42.3, 42.4, 42.5_
+
+  - [ ] 27.10 Implement enhanced compliance warnings display (Requirement 39)
+    - Display graduated warnings (8-hour, 6-day) with yellow indicator
+    - Display hard errors (12-hour, 7-day) with red indicator
+    - Show override option for 7-day scenario with reason input
+    - Display 35+ hour proximity warnings
+    - Differentiate warnings from errors in UI
+    - _Requirements: 39.1, 39.2, 39.3, 39.4, 39.5_
+
+  - [ ]\* 27.11 Write unit tests for new schedule features
+    - Test schedule publishing interface
+    - Test available shifts and pickup
+    - Test alternative staff suggestions display
+    - Test headcount tracking interface
+    - Test enhanced compliance warnings
+
 - [ ] 28. Implement frontend swap workflow features
   - [x] 28.1 Create swap request interface (Staff)
     - Build swap request form with shift selection and target staff selection
@@ -1006,6 +1571,33 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test swap approval interface
     - Test real-time notification handling
 
+  - [ ] 28.5 Create drop request interface (Requirement 33)
+    - Build drop request form without target staff selection
+    - Display staff's own shifts available for dropping
+    - Show expiration time (24 hours before shift)
+    - Display drop request status (pending, claimed, expired)
+    - Show notification on expiration
+    - _Requirements: 33.1, 33.2, 33.3, 33.5_
+
+  - [ ] 28.6 Create request limits display (Requirement 35)
+    - Display pending request count (swap + drop)
+    - Show limit indicator (e.g., "2/3 pending requests")
+    - Disable request buttons when at limit
+    - Show error message when limit reached
+    - _Requirements: 35.1, 35.2, 35.3_
+
+  - [ ] 28.7 Create swap cancellation interface (Requirement 37)
+    - Add cancel button to pending swap requests
+    - Show confirmation dialog for cancellation
+    - Display cancellation notification to target staff
+    - Update pending count on cancellation
+    - _Requirements: 37.1, 37.2, 37.3_
+
+  - [ ]\* 28.8 Write unit tests for drop and cancellation components
+    - Test drop request form
+    - Test request limits display
+    - Test swap cancellation interface
+
 - [ ] 29. Implement frontend overtime and fairness features
   - [x] 29.1 Create overtime dashboard
     - Build overtime summary view for location
@@ -1030,6 +1622,19 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test fairness analytics charts
     - Test date range filtering
     - Test background job status display
+
+  - [ ] 29.4 Add desired hours to fairness dashboard (Requirement 41)
+    - Display desired vs actual hours comparison table
+    - Show under-scheduled staff with indicator
+    - Show over-scheduled staff with indicator
+    - Add desired hours column to fairness analytics
+    - Highlight significant deviations
+    - _Requirements: 41.2, 41.3, 41.4, 41.5_
+
+  - [ ]\* 29.5 Write unit tests for desired hours fairness display
+    - Test desired vs actual hours comparison
+    - Test under-scheduled identification display
+    - Test over-scheduled identification display
 
 - [x] 30. Implement frontend callout and coverage features
   - [x] 30.1 Create callout reporting interface (Staff)
@@ -1065,6 +1670,36 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Test dashboard rendering and updates
     - Test available staff list and ranking
     - Test real-time notification handling
+
+- [ ] 30a. Implement frontend notification center (Requirement 38)
+  - [ ] 30a.1 Create notification center UI
+    - Build notification bell icon with unread count badge
+    - Build notification dropdown/panel with list of notifications
+    - Display notification title, message, and timestamp
+    - Show read/unread status with visual indicator
+    - Implement mark as read on click
+    - Implement mark all as read button
+    - _Requirements: 38.1, 38.3_
+
+  - [ ] 30a.2 Create notification preferences interface
+    - Build preferences form with in-app and email toggles
+    - Display current preference values
+    - Save preferences on change
+    - _Requirements: 38.2_
+
+  - [ ] 30a.3 Implement real-time notification updates
+    - Subscribe to notification:new events via WebSocket
+    - Display toast notification using Sonner for new notifications
+    - Update notification center in real-time
+    - Update unread count badge
+    - Play notification sound (optional)
+    - _Requirements: 38.4, 38.5, 38.6, 38.7, 38.8, 38.9_
+
+  - [ ]\* 30a.4 Write unit tests for notification center
+    - Test notification list rendering
+    - Test read/unread status updates
+    - Test notification preferences
+    - Test real-time notification updates
 
 - [x] 31. Implement frontend configuration and audit features
   - [x] 31.1 Create location configuration interface (Admin)

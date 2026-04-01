@@ -136,9 +136,81 @@ graph TB
 
 1. **Synchronous REST API**: Standard CRUD operations, authentication, queries
 2. **WebSocket (Socket.io)**: Real-time updates for schedule changes, conflict notifications, job completion
-3. **Background Jobs**: Long-running analytics, bulk operations, scheduled tasks
+3. **Background Jobs**: Long-running analytics, bulk operations, scheduled tasks, drop request expiration
 4. **Database Transactions**: Atomic operations for critical state changes
 5. **Distributed Locks**: Serialization of concurrent operations on shared resources
+6. **Event-Driven Notifications**: Triggered notifications for shift assignments, swap requests, schedule publishing, overtime warnings
+
+### New Feature Integration
+
+The following new features integrate with the existing architecture:
+
+**Staff Availability (Req 31):**
+
+- Availability windows and exceptions stored in User Management System
+- Validation integrated into Scheduling Engine constraint checking
+- Availability changes trigger notifications to managers
+
+**Schedule Publishing (Req 32):**
+
+- Published status tracked on Shift model
+- Visibility filtering in Schedule Service based on user role
+- Cutoff time enforcement prevents late unpublishing
+- Publishing triggers bulk notifications to staff
+
+**Drop Requests (Req 33-34):**
+
+- New DropRequest model parallel to SwapRequest
+- Auto-expiration handled by background job
+- Available shifts query combines unassigned shifts and drop requests
+- Pickup flow validates constraints like regular assignments
+
+**Request Limits (Req 35):**
+
+- Pending count tracked across swap and drop requests
+- Configurable per location in LocationConfig
+- Enforced at request creation time
+
+**Swap Cancellation (Req 36-37):**
+
+- Shift edits trigger cascading cancellation
+- Staff can self-cancel pending requests
+- Cancellation decrements pending count and triggers notifications
+
+**Notification System (Req 38):**
+
+- Persistent notification storage with read/unread status
+- User preferences for in-app and email (simulated)
+- Event-driven triggers throughout the system
+- Notification history queryable by user
+
+**Enhanced Compliance (Req 39):**
+
+- Graduated warnings vs hard errors
+- 8-hour and 6-day warnings allow assignment
+- 12-hour and 7-day require override or block
+- 35-hour proximity warnings for overtime
+
+**Alternative Suggestions (Req 40):**
+
+- Generated on constraint violation
+- Filtered by qualifications and constraints
+- Ranked by current hours for fairness
+- Limited to top 5 suggestions
+
+**Desired Hours (Req 41):**
+
+- Stored on User model
+- Compared to actual hours in Fairness Analyzer
+- Under/over-scheduled identification
+- Displayed in fairness reports
+
+**Headcount Tracking (Req 42):**
+
+- Required headcount stored on Shift model
+- Multiple assignments allowed up to headcount
+- Filled vs required tracked and displayed
+- Fully filled shifts removed from available listings
 
 ## Components and Interfaces
 
@@ -162,12 +234,31 @@ interface UserService {
   assignRole(userId: string, role: Role, locationIds?: string[]): Promise<User>;
   addSkill(userId: string, skillId: string): Promise<void>;
   addLocationCertification(userId: string, locationId: string): Promise<void>;
-  authenticate(
-    email: string,
-    password: string,
-  ): Promise<{ token: string; user: User }>;
+  authenticate(email: string, password: string): Promise<{ token: string; user: User }>;
   validateToken(token: string): Promise<User>;
   getUsersByLocation(locationId: string): Promise<User[]>;
+
+  // Requirement 31: Availability management
+  setAvailabilityWindow(
+    userId: string,
+    dayOfWeek: number,
+    startTime: string,
+    endTime: string
+  ): Promise<void>;
+  removeAvailabilityWindow(windowId: string): Promise<void>;
+  addAvailabilityException(
+    userId: string,
+    date: Date,
+    startTime?: string,
+    endTime?: string
+  ): Promise<void>;
+  getAvailability(
+    userId: string
+  ): Promise<{ windows: AvailabilityWindow[]; exceptions: AvailabilityException[] }>;
+
+  // Requirement 41: Desired hours tracking
+  setDesiredWeeklyHours(userId: string, hours: number): Promise<void>;
+  getDesiredWeeklyHours(userId: string): Promise<number | null>;
 }
 ```
 
@@ -188,23 +279,29 @@ Handles shift creation, assignment, and validation with constraint checking.
 ```typescript
 interface ScheduleService {
   createShift(data: CreateShiftDto, managerId: string): Promise<Shift>;
-  assignStaff(
-    shiftId: string,
-    staffId: string,
-    managerId: string,
-  ): Promise<Assignment>;
+  assignStaff(shiftId: string, staffId: string, managerId: string): Promise<Assignment>;
   unassignStaff(assignmentId: string, managerId: string): Promise<void>;
   getSchedule(
     locationId: string,
     startDate: Date,
     endDate: Date,
-    timezone: string,
+    timezone: string
   ): Promise<Shift[]>;
-  getStaffSchedule(
-    staffId: string,
-    startDate: Date,
-    endDate: Date,
-  ): Promise<Shift[]>;
+  getStaffSchedule(staffId: string, startDate: Date, endDate: Date): Promise<Shift[]>;
+
+  // Requirement 32: Schedule publishing
+  publishSchedule(locationId: string, weekStart: Date, managerId: string): Promise<void>;
+  unpublishSchedule(locationId: string, weekStart: Date, managerId: string): Promise<void>;
+
+  // Requirement 34: Shift pickup
+  getAvailableShifts(staffId: string): Promise<Shift[]>;
+  pickupShift(shiftId: string, staffId: string): Promise<Assignment>;
+
+  // Requirement 40: Alternative staff suggestions
+  getAlternativeStaff(shiftId: string, excludeStaffId?: string): Promise<StaffSuggestion[]>;
+
+  // Requirement 42: Headcount tracking
+  getShiftHeadcountStatus(shiftId: string): Promise<{ filled: number; required: number }>;
 }
 ```
 
@@ -227,7 +324,7 @@ interface ConflictDetector {
     staffId: string,
     shiftStart: Date,
     shiftEnd: Date,
-    excludeShiftId?: string,
+    excludeShiftId?: string
   ): Promise<Shift | null>;
   acquireLock(staffId: string, timeoutMs: number): Promise<Lock>;
   releaseLock(lock: Lock): Promise<void>;
@@ -262,26 +359,40 @@ interface ComplianceMonitor {
   validateRestPeriod(
     staffId: string,
     newShiftStart: Date,
-    newShiftEnd: Date,
+    newShiftEnd: Date
   ): Promise<ValidationResult>;
   validateDailyLimit(
     staffId: string,
     shiftStart: Date,
     shiftEnd: Date,
-    locationId: string,
+    locationId: string
   ): Promise<ValidationResult>;
   validateWeeklyLimit(
     staffId: string,
     shiftStart: Date,
     shiftEnd: Date,
-    locationId: string,
+    locationId: string
   ): Promise<ValidationResult>;
   validateConsecutiveDays(
     staffId: string,
     shiftDate: Date,
-    locationId: string,
+    locationId: string
   ): Promise<ValidationResult>;
   validateAll(staffId: string, shift: ShiftData): Promise<ValidationResult[]>;
+
+  // Requirement 31: Availability validation
+  validateAvailability(
+    staffId: string,
+    shiftStart: Date,
+    shiftEnd: Date
+  ): Promise<ValidationResult>;
+
+  // Requirement 39: Enhanced compliance warnings
+  validateWithGraduation(
+    staffId: string,
+    shift: ShiftData,
+    allowOverride?: boolean
+  ): Promise<{ errors: ValidationResult[]; warnings: ValidationResult[] }>;
 }
 ```
 
@@ -303,16 +414,22 @@ interface SwapService {
   createSwapRequest(
     requestorId: string,
     shiftId: string,
-    targetStaffId: string,
+    targetStaffId: string
   ): Promise<SwapRequest>;
   approveSwap(swapRequestId: string, managerId: string): Promise<void>;
-  rejectSwap(
-    swapRequestId: string,
-    managerId: string,
-    reason: string,
-  ): Promise<void>;
+  rejectSwap(swapRequestId: string, managerId: string, reason: string): Promise<void>;
   getPendingSwaps(managerId: string): Promise<SwapRequest[]>;
   getSwapsByStaff(staffId: string): Promise<SwapRequest[]>;
+
+  // Requirement 33: Drop requests
+  createDropRequest(requestorId: string, shiftId: string): Promise<DropRequest>;
+  expireDropRequests(): Promise<void>; // Background job
+
+  // Requirement 35: Request limits
+  getPendingRequestCount(staffId: string): Promise<number>;
+
+  // Requirement 37: Swap cancellation by requestor
+  cancelSwapRequest(swapRequestId: string, requestorId: string): Promise<void>;
 }
 ```
 
@@ -331,19 +448,9 @@ Calculates and tracks overtime hours for staff members.
 
 ```typescript
 interface OvertimeService {
-  calculateHours(
-    staffId: string,
-    startDate: Date,
-    endDate: Date,
-  ): Promise<HoursSummary>;
-  getOvertimeReport(
-    locationId: string,
-    weekStart: Date,
-  ): Promise<OvertimeReport[]>;
-  checkOvertimeWarning(
-    staffId: string,
-    newShift: ShiftData,
-  ): Promise<OvertimeWarning | null>;
+  calculateHours(staffId: string, startDate: Date, endDate: Date): Promise<HoursSummary>;
+  getOvertimeReport(locationId: string, weekStart: Date): Promise<OvertimeReport[]>;
+  checkOvertimeWarning(staffId: string, newShift: ShiftData): Promise<OvertimeWarning | null>;
   generatePayPeriodReport(startDate: Date, endDate: Date): Promise<void>; // Background job
 }
 ```
@@ -366,19 +473,24 @@ interface FairnessService {
   calculateHourDistribution(
     locationId: string,
     startDate: Date,
-    endDate: Date,
+    endDate: Date
   ): Promise<HourDistribution>;
   calculatePremiumShiftDistribution(
     locationId: string,
     startDate: Date,
-    endDate: Date,
+    endDate: Date
   ): Promise<PremiumShiftDistribution>;
   identifyOutliers(distribution: HourDistribution): Promise<StaffOutlier[]>;
-  generateFairnessReport(
+  generateFairnessReport(locationId: string, startDate: Date, endDate: Date): Promise<void>; // Background job
+
+  // Requirement 41: Desired hours tracking
+  compareActualToDesiredHours(
     locationId: string,
     startDate: Date,
-    endDate: Date,
-  ): Promise<void>; // Background job
+    endDate: Date
+  ): Promise<DesiredHoursComparison[]>;
+  identifyUnderScheduled(comparison: DesiredHoursComparison[]): Promise<StaffOutlier[]>;
+  identifyOverScheduled(comparison: DesiredHoursComparison[]): Promise<StaffOutlier[]>;
 }
 ```
 
@@ -397,32 +509,79 @@ Records all system changes with immutable audit trail.
 
 ```typescript
 interface AuditService {
-  logShiftChange(
-    action: AuditAction,
-    shiftId: string,
-    userId: string,
-    changes: any,
-  ): Promise<void>;
+  logShiftChange(action: AuditAction, shiftId: string, userId: string, changes: any): Promise<void>;
   logAssignmentChange(
     action: AuditAction,
     assignmentId: string,
     userId: string,
-    changes: any,
+    changes: any
   ): Promise<void>;
   logSwapAction(
     action: AuditAction,
     swapRequestId: string,
     userId: string,
-    decision?: string,
+    decision?: string
   ): Promise<void>;
   logUserChange(
     action: AuditAction,
     targetUserId: string,
     actorUserId: string,
-    changes: any,
+    changes: any
   ): Promise<void>;
   queryAuditLog(filters: AuditQueryFilters): Promise<AuditRecord[]>;
   verifyIntegrity(recordId: string): Promise<boolean>;
+}
+```
+
+### Notification Service
+
+Manages persistent notifications and user notification preferences.
+
+**Responsibilities:**
+
+- Notification creation and storage
+- Read/unread status tracking
+- Notification history management
+- User notification preferences
+- Triggered notifications for system events
+
+**Key Methods:**
+
+```typescript
+interface NotificationService {
+  // Requirement 38: Notification system
+  createNotification(
+    userId: string,
+    type: string,
+    title: string,
+    message: string,
+    metadata?: any
+  ): Promise<Notification>;
+
+  getNotifications(userId: string, includeRead?: boolean): Promise<Notification[]>;
+  markAsRead(notificationId: string): Promise<void>;
+  markAllAsRead(userId: string): Promise<void>;
+
+  setNotificationPreferences(
+    userId: string,
+    inAppEnabled: boolean,
+    emailEnabled: boolean
+  ): Promise<void>;
+
+  getNotificationPreferences(userId: string): Promise<NotificationPreference>;
+
+  // Event-triggered notifications
+  notifyShiftAssignment(staffId: string, shiftId: string): Promise<void>;
+  notifyShiftModification(staffId: string, shiftId: string): Promise<void>;
+  notifySwapRequest(
+    requestorId: string,
+    targetStaffId: string,
+    managerId: string,
+    swapRequestId: string
+  ): Promise<void>;
+  notifySchedulePublished(staffIds: string[], weekStart: Date): Promise<void>;
+  notifyOvertimeApproaching(staffId: string, managerId: string, hours: number): Promise<void>;
+  notifyAvailabilityChange(staffId: string, managerIds: string[]): Promise<void>;
 }
 ```
 
@@ -442,23 +601,29 @@ Manages WebSocket connections and broadcasts updates.
 ```typescript
 // Server -> Client events
 interface ServerEvents {
-  "shift:created": (shift: Shift) => void;
-  "shift:updated": (shift: Shift) => void;
-  "shift:deleted": (shiftId: string) => void;
-  "assignment:changed": (assignment: Assignment) => void;
-  "swap:created": (swapRequest: SwapRequest) => void;
-  "swap:updated": (swapRequest: SwapRequest) => void;
-  "conflict:detected": (conflict: ConflictNotification) => void;
-  "job:completed": (jobId: string, result: any) => void;
-  "callout:reported": (callout: CalloutNotification) => void;
+  'shift:created': (shift: Shift) => void;
+  'shift:updated': (shift: Shift) => void;
+  'shift:deleted': (shiftId: string) => void;
+  'shift:published': (locationId: string, weekStart: Date) => void; // Requirement 32
+  'assignment:changed': (assignment: Assignment) => void;
+  'swap:created': (swapRequest: SwapRequest) => void;
+  'swap:updated': (swapRequest: SwapRequest) => void;
+  'swap:cancelled': (swapRequestId: string, reason: string) => void; // Requirement 36, 37
+  'drop:created': (dropRequest: DropRequest) => void; // Requirement 33
+  'drop:claimed': (dropRequestId: string, staffId: string) => void; // Requirement 34
+  'drop:expired': (dropRequestId: string) => void; // Requirement 33
+  'conflict:detected': (conflict: ConflictNotification) => void;
+  'job:completed': (jobId: string, result: any) => void;
+  'callout:reported': (callout: CalloutNotification) => void;
+  'notification:new': (notification: Notification) => void; // Requirement 38
 }
 
 // Client -> Server events
 interface ClientEvents {
-  "subscribe:location": (locationId: string) => void;
-  "subscribe:staff": (staffId: string) => void;
-  "unsubscribe:location": (locationId: string) => void;
-  "unsubscribe:staff": (staffId: string) => void;
+  'subscribe:location': (locationId: string) => void;
+  'subscribe:staff': (staffId: string) => void;
+  'unsubscribe:location': (locationId: string) => void;
+  'unsubscribe:staff': (staffId: string) => void;
 }
 ```
 
@@ -491,6 +656,8 @@ Processes time-intensive operations asynchronously using BullMQ.
 - `overtime-report`: Calculate overtime for multiple pay periods
 - `schedule-import`: Parse and validate CSV schedule imports
 - `cache-warm`: Pre-populate cache for upcoming schedules
+- `drop-request-expiration`: Expire unclaimed drop requests 24 hours before shift start (Requirement 33)
+- `notification-digest`: Send batched notification emails (Requirement 38)
 
 **Job Configuration:**
 
@@ -498,7 +665,7 @@ Processes time-intensive operations asynchronously using BullMQ.
 interface JobConfig {
   attempts: 3;
   backoff: {
-    type: "exponential";
+    type: 'exponential';
     delay: 2000;
   };
   removeOnComplete: 100; // Keep last 100 completed jobs
@@ -519,6 +686,7 @@ model User {
   role              Role
   firstName         String
   lastName          String
+  desiredWeeklyHours Float?  // Requirement 41: Desired hours tracking
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -530,6 +698,10 @@ model User {
   managerLocations  ManagerLocation[]
   auditLogs         AuditLog[]
   callouts          Callout[]
+  availabilityWindows AvailabilityWindow[]  // Requirement 31: Staff availability
+  availabilityExceptions AvailabilityException[]  // Requirement 31: One-off exceptions
+  notifications     Notification[]  // Requirement 38: Notification system
+  notificationPreferences NotificationPreference?  // Requirement 38: User preferences
 
   @@index([email])
   @@index([role])
@@ -620,6 +792,9 @@ id String @id @default(uuid())
 locationId String
 startTime DateTime // Stored in UTC, displayed in location timezone
 endTime DateTime // Stored in UTC, displayed in location timezone
+requiredHeadcount Int @default(1) // Requirement 42: Headcount tracking
+isPublished Boolean @default(false) // Requirement 32: Schedule publishing
+publishedAt DateTime? // Requirement 32: Track when published
 createdAt DateTime @default(now())
 updatedAt DateTime @updatedAt
 createdBy String
@@ -629,11 +804,13 @@ skills ShiftSkill[]
 assignments Assignment[]
 swapRequests SwapRequest[]
 callouts Callout[]
+dropRequests DropRequest[] // Requirement 33: Drop requests
 
 @@index([locationId])
 @@index([startTime])
 @@index([endTime])
 @@index([locationId, startTime, endTime])
+@@index([isPublished])
 }
 
 model ShiftSkill {
@@ -660,8 +837,9 @@ version Int @default(1) // Optimistic locking
 shift Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
 staff User @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
-@@unique([shiftId]) // One staff per shift
+@@unique([shiftId, staffId]) // Requirement 42: Allow multiple staff per shift, but prevent duplicate assignments
 @@index([staffId])
+@@index([shiftId])
 @@index([shiftId, staffId])
 }
 
@@ -691,6 +869,7 @@ enum SwapStatus {
 PENDING
 APPROVED
 REJECTED
+CANCELLED // Requirement 36, 37: Swap cancellation
 }
 
 // Callouts
@@ -709,6 +888,96 @@ staff User @relation(fields: [staffId], references: [id], onDelete: Cascade)
 @@index([reportedAt])
 }
 
+// Requirement 33: Drop Requests
+model DropRequest {
+id String @id @default(uuid())
+shiftId String
+requestorId String
+status DropStatus @default(PENDING)
+createdAt DateTime @default(now())
+expiresAt DateTime // 24 hours before shift start
+claimedBy String?
+claimedAt DateTime?
+
+shift Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+
+@@index([shiftId])
+@@index([requestorId])
+@@index([status])
+@@index([expiresAt])
+}
+
+enum DropStatus {
+PENDING
+CLAIMED
+EXPIRED
+CANCELLED
+}
+
+// Requirement 31: Staff Availability Windows
+model AvailabilityWindow {
+id String @id @default(uuid())
+userId String
+dayOfWeek Int // 0 = Sunday, 6 = Saturday
+startTime String // HH:MM format (e.g., "09:00")
+endTime String // HH:MM format (e.g., "17:00")
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+
+user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+@@index([userId])
+@@index([dayOfWeek])
+}
+
+// Requirement 31: One-off Availability Exceptions
+model AvailabilityException {
+id String @id @default(uuid())
+userId String
+date DateTime // Specific date for exception
+startTime String? // If null, unavailable all day
+endTime String? // If null, unavailable all day
+createdAt DateTime @default(now())
+
+user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+@@index([userId])
+@@index([date])
+}
+
+// Requirement 38: Notification System
+model Notification {
+id String @id @default(uuid())
+userId String
+type String // "SHIFT_ASSIGNED", "SHIFT_MODIFIED", "SWAP_REQUEST", etc.
+title String
+message String
+isRead Boolean @default(false)
+createdAt DateTime @default(now())
+metadata Json? // Additional context (shift ID, swap request ID, etc.)
+
+user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+@@index([userId])
+@@index([isRead])
+@@index([createdAt])
+@@index([userId, isRead])
+}
+
+// Requirement 38: Notification Preferences
+model NotificationPreference {
+id String @id @default(uuid())
+userId String @unique
+inAppEnabled Boolean @default(true)
+emailEnabled Boolean @default(false) // Email simulation
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+
+user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+@@index([userId])
+}
+
 // Configuration
 model LocationConfig {
 id String @id @default(uuid())
@@ -719,6 +988,8 @@ weeklyLimitEnabled Boolean @default(true)
 weeklyLimitHours Float @default(40)
 consecutiveDaysEnabled Boolean @default(false)
 consecutiveDaysLimit Int?
+schedulePublishCutoffHours Int @default(48) // Requirement 32: Unpublish cutoff
+maxPendingRequests Int @default(3) // Requirement 35: Request limits
 
 location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
 premiumShiftCriteria PremiumShiftCriteria[]
@@ -782,6 +1053,30 @@ user User @relation(fields: [userId], references: [id])
 - Lock keys: `lock:staff:{staffId}`
 - Default TTL: 5 seconds
 - Automatic expiration prevents deadlocks
+
+**Availability Windows (Requirement 31):**
+- Recurring windows stored with day of week (0-6) and time strings (HH:MM format)
+- One-off exceptions stored with specific date and optional time range
+- Validation happens at assignment time, not at window creation
+- Past assignments unaffected by availability changes
+
+**Schedule Publishing (Requirement 32):**
+- Published status tracked per shift, not per week (allows partial publishing)
+- Cutoff time configurable per location (default 48 hours)
+- Staff queries filtered by published status at database level for performance
+- Publishing triggers bulk notification creation
+
+**Drop Requests vs Swap Requests (Requirement 33):**
+- Separate DropRequest model (not nullable targetStaffId on SwapRequest)
+- Clearer semantics and simpler queries
+- Drop requests auto-expire via scheduled background job
+- Both count toward pending request limit
+
+**Headcount Model (Requirement 42):**
+- Changed Assignment unique constraint from `[shiftId]` to `[shiftId, staffId]`
+- Allows multiple staff per shift while preventing duplicate assignments
+- Headcount validation happens at assignment time
+- Filled count computed dynamically from assignment count
 ```
 
 ## Correctness Properties
@@ -1232,6 +1527,342 @@ _For any_ user attempting an action they are not authorized to perform, the syst
 
 **Validates: Requirements 30.5**
 
+### Property 75: Availability Window Round Trip
+
+_For any_ staff user and availability window data, setting an availability window then retrieving the user's availability should return the same window data.
+
+**Validates: Requirements 31.1**
+
+### Property 76: Availability Exception Round Trip
+
+_For any_ staff user and availability exception data, adding an exception then retrieving the user's availability should return the same exception data.
+
+**Validates: Requirements 31.2**
+
+### Property 77: Shift Assignment Respects Availability
+
+_For any_ staff assignment to a shift, the system should reject the assignment if the shift falls outside the staff user's availability windows.
+
+**Validates: Requirements 31.3**
+
+### Property 78: Availability Changes Affect Future Shifts Only
+
+_For any_ staff user with existing shift assignments, modifying their availability windows should not affect those existing assignments.
+
+**Validates: Requirements 31.5**
+
+### Property 79: Schedule Publishing Marks All Shifts
+
+_For any_ week's schedule at a location, publishing the schedule should mark all shifts in that week as published.
+
+**Validates: Requirements 32.1**
+
+### Property 80: Published Shifts Visible to Staff
+
+_For any_ staff user, querying their schedule should return only published shifts, while manager queries should return all shifts.
+
+**Validates: Requirements 32.2, 32.3**
+
+### Property 81: Unpublish Cutoff Enforcement
+
+_For any_ schedule unpublish attempt, the system should allow unpublishing before the cutoff time and reject unpublishing within the cutoff window.
+
+**Validates: Requirements 32.4**
+
+### Property 82: Drop Request Without Target Staff
+
+_For any_ drop request creation, the system should allow creation without specifying a target staff user.
+
+**Validates: Requirements 33.1**
+
+### Property 83: Drop Request Makes Shift Available
+
+_For any_ drop request creation, the shift should appear in the available shifts listing for qualified staff.
+
+**Validates: Requirements 33.2**
+
+### Property 84: Drop Request Auto-Expiration
+
+_For any_ drop request created more than 24 hours before shift start, the request should automatically expire 24 hours before the shift if unclaimed.
+
+**Validates: Requirements 33.3**
+
+### Property 85: Drop Requests Count Toward Pending Limit
+
+_For any_ staff user, the pending request count should include both swap requests and drop requests.
+
+**Validates: Requirements 33.4, 35.2**
+
+### Property 86: Drop Request Expiration Restores Assignment
+
+_For any_ expired drop request, the original staff assignment should be restored.
+
+**Validates: Requirements 33.5**
+
+### Property 87: Available Shifts Include Drop Requests
+
+_For any_ staff user querying available shifts, the results should include both unassigned shifts and shifts from drop requests.
+
+**Validates: Requirements 34.1**
+
+### Property 88: Available Shifts Filtered by Qualifications
+
+_For any_ staff user querying available shifts, all returned shifts should require only skills and certifications that the staff user possesses.
+
+**Validates: Requirements 34.2**
+
+### Property 89: Shift Pickup Validates Constraints
+
+_For any_ staff user picking up an available shift, the system should validate all scheduling constraints and reject pickup if any constraint is violated.
+
+**Validates: Requirements 34.3**
+
+### Property 90: Successful Pickup Assigns and Removes from Available
+
+_For any_ successful shift pickup, the staff user should be assigned to the shift and the shift should be removed from available listings.
+
+**Validates: Requirements 34.4**
+
+### Property 91: Pending Request Limit Enforcement
+
+_For any_ staff user with 3 pending requests (swap + drop), attempting to create another request should be rejected.
+
+**Validates: Requirements 35.1**
+
+### Property 92: Request Status Change Decrements Count
+
+_For any_ swap or drop request that is approved, rejected, or expired, the staff user's pending request count should decrease by one.
+
+**Validates: Requirements 35.4**
+
+### Property 93: Pending Request Limit Configuration
+
+_For any_ location, admins should be able to configure the pending request limit, and the system should enforce that configured limit.
+
+**Validates: Requirements 35.5**
+
+### Property 94: Shift Edit Cancels Pending Swaps
+
+_For any_ shift with pending swap requests, editing the shift should automatically cancel all pending swap requests for that shift.
+
+**Validates: Requirements 36.1**
+
+### Property 95: Swap Cancellation Notifications
+
+_For any_ swap request cancelled due to shift edit, notifications should be created for the requestor and target staff user.
+
+**Validates: Requirements 36.2**
+
+### Property 96: Swap Cancellation Audit Log
+
+_For any_ swap request cancelled due to shift edit, an audit log entry should be created with the reason "shift edited by manager".
+
+**Validates: Requirements 36.3**
+
+### Property 97: Swap Cancellation Decrements Count
+
+_For any_ cancelled swap request, the requestor's pending request count should decrease by one.
+
+**Validates: Requirements 36.5, 37.5**
+
+### Property 98: Staff Can Cancel Own Pending Swaps
+
+_For any_ staff user with a pending swap request, the staff user should be able to cancel their own request before manager approval.
+
+**Validates: Requirements 37.1**
+
+### Property 99: Swap Cancellation Updates Status
+
+_For any_ swap request cancelled by the requestor, the request status should be updated to "cancelled".
+
+**Validates: Requirements 37.2**
+
+### Property 100: Requestor Cancellation Notifications
+
+_For any_ swap request cancelled by the requestor, notifications should be created for the target staff user and the manager.
+
+**Validates: Requirements 37.3**
+
+### Property 101: Requestor Cancellation Audit Log
+
+_For any_ swap request cancelled by the requestor, an audit log entry should be created with timestamp and requestor.
+
+**Validates: Requirements 37.4**
+
+### Property 102: Notification Persistence with Status
+
+_For any_ created notification, the notification should persist in the database with read/unread status.
+
+**Validates: Requirements 38.1**
+
+### Property 103: Notification Preferences Round Trip
+
+_For any_ user notification preferences, setting preferences then retrieving them should return the same preference values.
+
+**Validates: Requirements 38.2**
+
+### Property 104: Notification History Completeness
+
+_For any_ user, querying notification history should return all notifications created for that user.
+
+**Validates: Requirements 38.3**
+
+### Property 105: Shift Assignment Creates Notification
+
+_For any_ staff assignment to a shift, a notification should be created for that staff user.
+
+**Validates: Requirements 38.4**
+
+### Property 106: Shift Modification Creates Notification
+
+_For any_ shift modification or deletion, a notification should be created for the assigned staff user.
+
+**Validates: Requirements 38.5**
+
+### Property 107: Swap Request Creates Notifications
+
+_For any_ swap request creation, approval, or rejection, notifications should be created for the requestor, target staff user, and manager.
+
+**Validates: Requirements 38.6**
+
+### Property 108: Schedule Publishing Creates Notifications
+
+_For any_ schedule publication, notifications should be created for all staff users with shifts in that schedule.
+
+**Validates: Requirements 38.7**
+
+### Property 109: Overtime Approaching Creates Notifications
+
+_For any_ staff user reaching 35 or more hours in a 7-day period, notifications should be created for that staff user and their manager.
+
+**Validates: Requirements 38.8**
+
+### Property 110: Availability Change Creates Notifications
+
+_For any_ staff user modifying their availability, notifications should be created for all managers at their authorized locations.
+
+**Validates: Requirements 38.9**
+
+### Property 111: Eight Hour Day Warning Without Block
+
+_For any_ shift assignment resulting in exactly 8 hours worked in a day, the system should generate a warning notification but allow the assignment.
+
+**Validates: Requirements 39.1**
+
+### Property 112: Twelve Hour Day Hard Block
+
+_For any_ shift assignment resulting in more than 12 hours worked in a day, the system should block the assignment with a hard error.
+
+**Validates: Requirements 39.2**
+
+### Property 113: Six Consecutive Days Warning
+
+_For any_ staff user who has worked 6 consecutive days, assigning a shift on the next day should generate a warning but allow the assignment.
+
+**Validates: Requirements 39.3**
+
+### Property 114: Seven Consecutive Days Requires Override
+
+_For any_ staff user who has worked 7 consecutive days, assigning a shift on the next day should require manager override with documented reason.
+
+**Validates: Requirements 39.4**
+
+### Property 115: Thirty-Five Hour Proximity Warning
+
+_For any_ staff user with 35 or more hours in a 7-day period, the system should generate a warning notification indicating proximity to the 40-hour limit.
+
+**Validates: Requirements 39.5**
+
+### Property 116: Constraint Violation Provides Alternatives
+
+_For any_ shift assignment rejected due to constraint violation, the system should identify and return alternative staff users who meet all requirements.
+
+**Validates: Requirements 40.1**
+
+### Property 117: Alternative Staff Meet Requirements
+
+_For any_ alternative staff suggestion, the suggested staff user should possess all required skills, location certification, and availability for the shift.
+
+**Validates: Requirements 40.2**
+
+### Property 118: Alternative Staff Pass Constraint Validation
+
+_For any_ alternative staff suggestion, assigning that staff user to the shift should not violate any scheduling constraints.
+
+**Validates: Requirements 40.3**
+
+### Property 119: Alternative Staff Ranked by Hours
+
+_For any_ list of alternative staff suggestions, the staff users should be ranked in ascending order by current hour totals.
+
+**Validates: Requirements 40.4**
+
+### Property 120: Alternative Staff Limited to Five
+
+_For any_ alternative staff suggestion list, at most 5 staff users should be returned.
+
+**Validates: Requirements 40.5**
+
+### Property 121: Desired Weekly Hours Round Trip
+
+_For any_ staff user and desired hours value, setting desired weekly hours then retrieving them should return the same value.
+
+**Validates: Requirements 41.1**
+
+### Property 122: Actual vs Desired Hours Comparison Accuracy
+
+_For any_ staff user with desired hours set, the fairness analyzer's comparison should accurately reflect the difference between actual scheduled hours and desired hours.
+
+**Validates: Requirements 41.2**
+
+### Property 123: Under-Scheduled Staff Identification
+
+_For any_ staff user whose actual hours are significantly below desired hours, the fairness analyzer should identify them as under-scheduled.
+
+**Validates: Requirements 41.3**
+
+### Property 124: Over-Scheduled Staff Identification
+
+_For any_ staff user whose actual hours are significantly above desired hours, the fairness analyzer should identify them as over-scheduled.
+
+**Validates: Requirements 41.4**
+
+### Property 125: Fairness Report Includes Desired Hours
+
+_For any_ fairness analytics report, the report should display both desired hours and actual hours for each staff user.
+
+**Validates: Requirements 41.5**
+
+### Property 126: Shift Headcount Storage and Retrieval
+
+_For any_ shift created with a specified headcount, retrieving the shift should return the same headcount value.
+
+**Validates: Requirements 42.1**
+
+### Property 127: Multiple Assignments Up to Headcount
+
+_For any_ shift with required headcount N, the system should allow up to N staff assignments and reject the (N+1)th assignment.
+
+**Validates: Requirements 42.2**
+
+### Property 128: Filled Headcount Matches Assignments
+
+_For any_ shift, the filled headcount should equal the actual number of staff assignments for that shift.
+
+**Validates: Requirements 42.3**
+
+### Property 129: Partially Filled Shift Status
+
+_For any_ shift with filled headcount less than required headcount, the shift should be displayed as partially covered.
+
+**Validates: Requirements 42.4**
+
+### Property 130: Fully Filled Shift Removed from Available
+
+_For any_ shift where filled headcount equals required headcount, the shift should be marked as fully covered and removed from available shift listings.
+
+**Validates: Requirements 42.5**
+
 ## Error Handling
 
 ### Validation Errors
@@ -1362,7 +1993,7 @@ Each property-based test must reference its corresponding design document proper
 
 ```typescript
 // Feature: shiftsync-platform, Property 13: No Overlapping Shift Assignments
-test("staff cannot be assigned to overlapping shifts", () => {
+test('staff cannot be assigned to overlapping shifts', () => {
   fc.assert(
     fc.property(
       arbitraryStaff(),
@@ -1372,10 +2003,10 @@ test("staff cannot be assigned to overlapping shifts", () => {
         await assignStaffToShift(staff.id, shift1.id);
         const result = await assignStaffToShift(staff.id, shift2.id);
         expect(result.success).toBe(false);
-        expect(result.errorCode).toBe("SHIFT_OVERLAP");
-      },
+        expect(result.errorCode).toBe('SHIFT_OVERLAP');
+      }
     ),
-    { numRuns: 100 },
+    { numRuns: 100 }
   );
 });
 ```
@@ -1389,7 +2020,7 @@ Property-based tests require custom generators for domain entities:
 const arbitraryStaff = () =>
   fc.record({
     id: fc.uuid(),
-    role: fc.constant("STAFF"),
+    role: fc.constant('STAFF'),
     skills: fc.array(fc.uuid(), { minLength: 1, maxLength: 5 }),
     certifications: fc.array(fc.uuid(), { minLength: 1, maxLength: 3 }),
   });
@@ -1397,7 +2028,7 @@ const arbitraryStaff = () =>
 const arbitraryManager = () =>
   fc.record({
     id: fc.uuid(),
-    role: fc.constant("MANAGER"),
+    role: fc.constant('MANAGER'),
     authorizedLocations: fc.array(fc.uuid(), { minLength: 1, maxLength: 4 }),
   });
 
@@ -1408,12 +2039,12 @@ const arbitraryShift = () =>
       id: fc.uuid(),
       locationId: fc.uuid(),
       startTime: fc.date({
-        min: new Date("2024-01-01"),
-        max: new Date("2024-12-31"),
+        min: new Date('2024-01-01'),
+        max: new Date('2024-12-31'),
       }),
       endTime: fc.date({
-        min: new Date("2024-01-01"),
-        max: new Date("2024-12-31"),
+        min: new Date('2024-01-01'),
+        max: new Date('2024-12-31'),
       }),
       requiredSkills: fc.array(fc.uuid(), { minLength: 1, maxLength: 3 }),
     })
@@ -1469,21 +2100,17 @@ const arbitraryOverlappingShift = (existingShift) =>
 **Example Unit Test:**
 
 ```typescript
-describe("ScheduleService", () => {
-  describe("assignStaff", () => {
-    it("should reject assignment when staff lacks required skill", async () => {
-      const staff = await createStaff({ skills: ["cooking"] });
-      const shift = await createShift({ requiredSkills: ["bartending"] });
+describe('ScheduleService', () => {
+  describe('assignStaff', () => {
+    it('should reject assignment when staff lacks required skill', async () => {
+      const staff = await createStaff({ skills: ['cooking'] });
+      const shift = await createShift({ requiredSkills: ['bartending'] });
 
-      const result = await scheduleService.assignStaff(
-        shift.id,
-        staff.id,
-        managerId,
-      );
+      const result = await scheduleService.assignStaff(shift.id, staff.id, managerId);
 
       expect(result.success).toBe(false);
-      expect(result.errorCode).toBe("MISSING_REQUIRED_SKILL");
-      expect(result.details.missingSkills).toContain("bartending");
+      expect(result.errorCode).toBe('MISSING_REQUIRED_SKILL');
+      expect(result.details.missingSkills).toContain('bartending');
     });
   });
 });
@@ -1566,7 +2193,7 @@ class StaffBuilder {
   build(): Staff {
     return {
       id: uuid(),
-      role: "STAFF",
+      role: 'STAFF',
       skills: [],
       certifications: [],
       ...this.staff,

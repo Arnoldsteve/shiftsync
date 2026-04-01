@@ -5,6 +5,8 @@ import type {
   UpdateShiftDto,
   ShiftFilters,
   AssignStaffDto,
+  PublishScheduleDto,
+  UnpublishScheduleDto,
 } from '@/types/shift.types';
 
 export const shiftService = {
@@ -42,5 +44,22 @@ export const shiftService = {
 
   async unassignStaff(assignmentId: string): Promise<void> {
     await apiClient.delete(`/schedule/assignments/${assignmentId}`);
+  },
+
+  async publishSchedule(data: PublishScheduleDto): Promise<{ publishedCount: number }> {
+    const response = await apiClient.post('/schedule/publish', data);
+    return response.data;
+  },
+
+  async unpublishSchedule(data: UnpublishScheduleDto): Promise<{ unpublishedCount: number }> {
+    const response = await apiClient.post('/schedule/unpublish', data);
+    return response.data;
+  },
+
+  async getPublishedShifts(staffId: string, filters?: ShiftFilters): Promise<Shift[]> {
+    const response = await apiClient.get(`/schedule/staff/${staffId}/published-shifts`, {
+      params: filters,
+    });
+    return response.data as Shift[];
   },
 };

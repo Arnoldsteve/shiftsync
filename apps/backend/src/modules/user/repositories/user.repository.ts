@@ -113,4 +113,32 @@ export class UserRepository {
     });
     return count > 0;
   }
+
+  /**
+   * Update user with partial data
+   * Used for updating fields like desiredWeeklyHours
+   */
+  async update(id: string, data: Prisma.UserUpdateInput): Promise<User> {
+    return this.prisma.user.update({
+      where: { id },
+      data,
+      include: {
+        skills: {
+          include: {
+            skill: true,
+          },
+        },
+        certifications: {
+          include: {
+            location: true,
+          },
+        },
+        managerLocations: {
+          include: {
+            location: true,
+          },
+        },
+      },
+    });
+  }
 }

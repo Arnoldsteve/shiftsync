@@ -9,6 +9,11 @@ import { seedUsers } from './seeds/users.seed';
 import { seedManagerAssignments } from './seeds/manager-assignments.seed';
 import { seedAssignments } from './seeds/assignments.seed';
 import { seedShifts } from './seeds/shifts.seed';
+import {
+  seedAvailability,
+  seedNotificationPreferences,
+  seedDesiredHours,
+} from './seeds/availability.seed';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -41,6 +46,15 @@ async function main() {
 
   // 6. Seed shifts and assignments
   await seedShifts(prisma, { managers, staffMembers, skills, locations });
+
+  // 7. Seed availability windows and exceptions
+  await seedAvailability(prisma, { staffMembers });
+
+  // 8. Seed notification preferences
+  await seedNotificationPreferences(prisma, { admin, managers, staffMembers });
+
+  // 9. Seed desired weekly hours
+  await seedDesiredHours(prisma, { staffMembers });
 
   console.log('\n🎉 Seeding completed successfully!\n');
   console.log('═══════════════════════════════════════════════════════════');
@@ -96,7 +110,11 @@ async function main() {
   console.log('✓ Consecutive day assignments (overtime trap scenario)');
   console.log('✓ Unassigned shifts for coverage testing');
   console.log('✓ Multi-location staff for swap scenarios');
-  console.log('✓ Compliance rules configured per location\n');
+  console.log('✓ Compliance rules configured per location');
+  console.log('✓ Staff availability windows (weekday/weekend preferences)');
+  console.log('✓ Availability exceptions (time-off requests)');
+  console.log('✓ Desired weekly hours (full-time and part-time)');
+  console.log('✓ Notification preferences (in-app and email)\n');
 
   console.log('═══════════════════════════════════════════════════════════\n');
 }

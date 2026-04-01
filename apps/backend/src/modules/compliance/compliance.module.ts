@@ -5,6 +5,8 @@ import { RestPeriodValidationService } from './services/rest-period-validation.s
 import { DailyLimitValidationService } from './services/daily-limit-validation.service';
 import { WeeklyLimitValidationService } from './services/weekly-limit-validation.service';
 import { ConsecutiveDaysValidationService } from './services/consecutive-days-validation.service';
+import { AvailabilityValidationService } from './services/availability-validation.service';
+import { EnhancedComplianceValidationService } from './services/enhanced-compliance-validation.service';
 import { PrismaModule } from '../../prisma/prisma.module';
 
 @Module({
@@ -16,6 +18,8 @@ import { PrismaModule } from '../../prisma/prisma.module';
     DailyLimitValidationService,
     WeeklyLimitValidationService,
     ConsecutiveDaysValidationService,
+    AvailabilityValidationService,
+    EnhancedComplianceValidationService,
   ],
   exports: [ComplianceService],
 })

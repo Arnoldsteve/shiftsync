@@ -1,4 +1,10 @@
-import { Injectable, Logger, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { ScheduleRepository } from './repositories/schedule.repository';
 import { AuditService } from '../audit/audit.service';
 import { CacheService } from '../cache/cache.service';
@@ -109,7 +115,7 @@ export class ScheduleService {
       } else {
         // Manager: Restricted to their specific assigned locations
         const managedIds = currentUser.managedLocationIds || [];
-        
+
         if (locationId) {
           // Verify manager owns the specific location they requested
           if (!managedIds.includes(locationId)) {
@@ -147,7 +153,7 @@ export class ScheduleService {
       const shifts = rawShifts.map((shift) => {
         // We pull the specific timezone/name from the joined location object
         const locationData = (shift as any).location;
-        
+
         return {
           id: shift.id,
           locationId: shift.locationId,
@@ -192,15 +198,27 @@ export class ScheduleService {
       if (existingAssignment) throw new BadRequestException('Shift is already covered');
 
       // Double-booking check
-      const conflictResult = await this.conflictService.checkOverlap(staffId, shift.startTime, shift.endTime);
+      const conflictResult = await this.conflictService.checkOverlap(
+        staffId,
+        shift.startTime,
+        shift.endTime
+      );
       if (conflictResult.hasConflict) {
-        throw new BadRequestException(`Schedule Conflict: User is already working at ${conflictResult.conflictingShifts[0].locationId}`);
+        throw new BadRequestException(
+          `Schedule Conflict: User is already working at ${conflictResult.conflictingShifts[0].locationId}`
+        );
       }
 
       // Labor Compliance (10h rest, 12h daily limit, etc.)
       const location = await this.scheduleRepository.findLocationById(shift.locationId);
       const tz = location?.timezone || 'UTC';
-      const compliance = await this.complianceService.validateAll(shift.locationId, staffId, shift.startTime, shift.endTime, tz);
+      const compliance = await this.complianceService.validateAll(
+        shift.locationId,
+        staffId,
+        shift.startTime,
+        shift.endTime,
+        tz
+      );
 
       const failure = compliance.find((r) => !r.isValid);
       if (failure) throw new BadRequestException(`Compliance Violation: ${failure.message}`);
@@ -235,7 +253,9 @@ export class ScheduleService {
         previousState: { shiftId, staffId: assignment.staffId },
       });
 
-      this.realtimeGateway.emitAssignmentChanged(assignment.shiftId, assignment.staffId, { action: 'unassigned' });
+      this.realtimeGateway.emitAssignmentChanged(assignment.shiftId, assignment.staffId, {
+        action: 'unassigned',
+      });
     } catch (error) {
       this.logger.error(`Error unassigning staff:`, error);
       throw error;
@@ -244,5 +264,143 @@ export class ScheduleService {
 
   async getStaffSchedule(staffId: string, startDate?: Date, endDate?: Date): Promise<any[]> {
     return this.scheduleRepository.findShiftsByStaff(staffId, startDate, endDate);
+  }
+
+  /**
+   * Publish schedule for a week
+   * Requirements: 32.1, 32.5
+   */
+  async publishSchedule(
+    locationId: string,
+    weekStartDate: Date,
+    managerId: string,
+    managerLocationIds?: string[]
+  ): Promise<{ publishedCount: number }> {
+    try {
+      // PBAC: Check if manager is authorized for this location
+      if (managerLocationIds && !managerLocationIds.includes(locationId)) {
+        throw new ForbiddenException(
+          'Manager not authorized to publish schedules for this location'
+        );
+      }
+
+      // Calculate week end (7 days from start)
+      const weekEnd = new Date(weekStartDate);
+      weekEnd.setDate(weekEnd.getDate() + 7);
+
+      // Publish all shifts in the week
+      const publishedCount = await this.scheduleRepository.publishShifts(
+        locationId,
+        weekStartDate,
+        weekEnd
+      );
+
+      // Audit log
+      await this.auditService.logShiftChange('UPDATE', `schedule-${locationId}`, managerId, {
+        newState: {
+          action: 'publish',
+          locationId,
+          weekStartDate: weekStartDate.toISOString(),
+          publishedCount,
+        },
+      });
+
+      // Invalidate cache
+      await this.cacheService.invalidateSchedule(locationId);
+
+      // Emit real-time event
+      this.realtimeGateway.emitSchedulePublished(locationId, weekStartDate, publishedCount);
+
+      // TODO: Integrate with Notification Service when implemented (Task 20a)
+      // await this.notificationService.notifySchedulePublished(locationId, weekStartDate);
+
+      this.logger.log(`Published ${publishedCount} shifts for location ${locationId}`);
+
+      return { publishedCount };
+    } catch (error) {
+      this.logger.error(`Error publishing schedule:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Unpublish schedule for a week with cutoff enforcement
+   * Requirements: 32.4
+   */
+  async unpublishSchedule(
+    locationId: string,
+    weekStartDate: Date,
+    managerId: string,
+    managerLocationIds?: string[]
+  ): Promise<{ unpublishedCount: number }> {
+    try {
+      // PBAC: Check if manager is authorized for this location
+      if (managerLocationIds && !managerLocationIds.includes(locationId)) {
+        throw new ForbiddenException(
+          'Manager not authorized to unpublish schedules for this location'
+        );
+      }
+
+      // Get location config for cutoff hours
+      const location = await this.scheduleRepository.findLocationById(locationId);
+      if (!location) {
+        throw new NotFoundException('Location not found');
+      }
+
+      // Check cutoff time (default 48 hours before week start)
+      const cutoffHours = (location as any).schedulePublishCutoffHours || 48;
+      const cutoffTime = new Date(weekStartDate);
+      cutoffTime.setHours(cutoffTime.getHours() - cutoffHours);
+
+      const now = new Date();
+      if (now >= cutoffTime) {
+        throw new BadRequestException(
+          `Cannot unpublish schedule within ${cutoffHours} hours of week start`
+        );
+      }
+
+      // Calculate week end
+      const weekEnd = new Date(weekStartDate);
+      weekEnd.setDate(weekEnd.getDate() + 7);
+
+      // Unpublish all shifts in the week
+      const unpublishedCount = await this.scheduleRepository.unpublishShifts(
+        locationId,
+        weekStartDate,
+        weekEnd
+      );
+
+      // Audit log
+      await this.auditService.logShiftChange('UPDATE', `schedule-${locationId}`, managerId, {
+        newState: {
+          action: 'unpublish',
+          locationId,
+          weekStartDate: weekStartDate.toISOString(),
+          unpublishedCount,
+        },
+      });
+
+      // Invalidate cache
+      await this.cacheService.invalidateSchedule(locationId);
+
+      this.logger.log(`Unpublished ${unpublishedCount} shifts for location ${locationId}`);
+
+      return { unpublishedCount };
+    } catch (error) {
+      this.logger.error(`Error unpublishing schedule:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get staff schedule (only published shifts for staff role)
+   * Requirements: 32.2, 32.3
+   */
+  async getStaffSchedulePublished(
+    staffId: string,
+    startDate?: Date,
+    endDate?: Date
+  ): Promise<any[]> {
+    return this.scheduleRepository.findPublishedShiftsByStaff(staffId, startDate, endDate);
   }
 }
