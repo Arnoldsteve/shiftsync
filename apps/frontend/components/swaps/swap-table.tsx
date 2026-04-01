@@ -21,7 +21,8 @@ interface SwapTableProps {
 
 export function SwapTable({ swaps, onApprove, onReject, showActions = false }: SwapTableProps) {
   const getStatusColor = (status: string) => {
-    switch (status) {
+    const statusLower = status.toLowerCase();
+    switch (statusLower) {
       case 'approved':
         return 'text-green-600';
       case 'rejected':
@@ -60,7 +61,7 @@ export function SwapTable({ swaps, onApprove, onReject, showActions = false }: S
             <TableCell>{new Date(swap.createdAt).toLocaleDateString()}</TableCell>
             {showActions && (
               <TableCell className="text-right space-x-2">
-                {swap.status === 'pending' ? (
+                {swap.status === 'PENDING' ? (
                   <>
                     {onApprove && (
                       <Button variant="ghost" size="icon" onClick={() => onApprove(swap.id)}>

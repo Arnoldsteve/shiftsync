@@ -135,6 +135,7 @@ export default function MyShiftsPage() {
   };
 
   const getStatusBadge = (status: string) => {
+    const statusLower = status.toLowerCase();
     const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
       pending: 'secondary',
       approved: 'default',
@@ -143,7 +144,7 @@ export default function MyShiftsPage() {
       claimed: 'default',
       expired: 'outline',
     };
-    return <Badge variant={variants[status] || 'default'}>{status.toUpperCase()}</Badge>;
+    return <Badge variant={variants[statusLower] || 'default'}>{status.toUpperCase()}</Badge>;
   };
 
   // The useStaffShifts hook already filters by staff ID, no need to filter again
@@ -409,7 +410,7 @@ export default function MyShiftsPage() {
                       <div className="flex items-center gap-2">
                         {getStatusBadge(drop.status)}
                         <Can I={Action.Update} a="DropRequest">
-                          {drop.status === 'pending' && (
+                          {drop.status === 'PENDING' && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -440,7 +441,7 @@ export default function MyShiftsPage() {
                           <span className="font-medium">Claimed by:</span> {drop.claimedBy}
                         </div>
                       )}
-                      {drop.expiresAt && drop.status === 'pending' && (
+                      {drop.expiresAt && drop.status === 'PENDING' && (
                         <div
                           className={`flex items-center gap-2 text-xs ${
                             isExpiringSoon(drop.expiresAt)

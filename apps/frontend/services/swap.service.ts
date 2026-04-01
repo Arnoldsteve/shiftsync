@@ -21,7 +21,7 @@ export const swapService = {
   },
 
   async getSwapsByStaff(staffId: string): Promise<SwapRequest[]> {
-    const response = await apiClient.get(`/staff/${staffId}/swaps`);
+    const response = await apiClient.get(`/swaps/staff/${staffId}`);
     return response.data as SwapRequest[];
   },
 

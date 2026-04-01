@@ -68,7 +68,7 @@ export interface DropRequest {
   shiftId: string;
   requestorId: string;
   requestorName: string;
-  status: 'pending' | 'claimed' | 'expired' | 'cancelled';
+  status: 'PENDING' | 'CLAIMED' | 'EXPIRED' | 'CANCELLED';
   expiresAt: string;
   claimedBy?: string;
   claimedAt?: string;
