@@ -23,6 +23,7 @@ import { CalloutModule } from './modules/callout/callout.module';
 import { ConfigModule as AppConfigModule } from './modules/config/config.module';
 import { CsvModule } from './modules/csv/csv.module';
 import { LocationModule } from './modules/location/location.module';
+import { NotificationModule } from './modules/notification/notification.module';
 
 @Module({
   imports: [
@@ -79,6 +80,7 @@ import { LocationModule } from './modules/location/location.module';
     QueueModule,
     RealtimeModule,
     CalloutModule,
+    NotificationModule, // Notification system (Requirement 38)
     AppConfigModule,
     CsvModule,
   ],

@@ -316,4 +316,13 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     });
     this.logger.log(`Broadcasted drop:claimed to location:${locationId}`);
   }
+
+  /**
+   * Broadcast new notification event
+   * Requirements: 38.4
+   */
+  emitNotification(userId: string, notification: any) {
+    this.server.to(`staff:${userId}`).emit('notification:new', notification);
+    this.logger.log(`Broadcasted notification:new to staff:${userId}`);
+  }
 }

@@ -989,7 +989,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Broadcast events to appropriate rooms (location-based, staff-based)
     - _Requirements: 15.1, 15.2, 16.4, 22.2, 24.4_
 
-  - [ ] 18.4a Implement new real-time events (Requirements 32-38)
+  - [x] 18.4a Implement new real-time events (Requirements 32-38)
     - Implement shift:published event for schedule publishing
     - Implement swap:cancelled event for swap cancellations
     - Implement drop:created event for drop request creation
@@ -1110,7 +1110,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
   - Ensure background jobs, WebSocket communication, and callout management are working correctly. Run all tests. Ask the user if questions arise.
 
 - [ ] 20a. Implement Notification Service (Requirement 38)
-  - [ ] 20a.1 Create Notification Service with CRUD operations
+  - [x] 20a.1 Create Notification Service with CRUD operations
     - Implement createNotification with userId, type, title, message, metadata
     - Implement getNotifications with optional includeRead filter
     - Implement markAsRead for single notification
