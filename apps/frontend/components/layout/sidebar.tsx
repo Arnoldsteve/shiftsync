@@ -20,6 +20,7 @@ import {
   ClipboardList,
   UserCog,
   Package,
+  User,
 } from 'lucide-react';
 
 interface NavItem {
@@ -77,6 +78,13 @@ export function Sidebar() {
       icon: UserCog,
       action: Action.Read,
       subject: 'Availability',
+    },
+    {
+      label: 'Settings',
+      href: '/settings',
+      icon: User,
+      action: Action.Read,
+      subject: 'User',
     },
     {
       label: 'Coverage',

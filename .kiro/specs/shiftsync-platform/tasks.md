@@ -1681,13 +1681,13 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Implement mark all as read button
     - _Requirements: 38.1, 38.3_
 
-  - [ ] 30a.2 Create notification preferences interface
+  - [x] 30a.2 Create notification preferences interface
     - Build preferences form with in-app and email toggles
     - Display current preference values
     - Save preferences on change
     - _Requirements: 38.2_
 
-  - [ ] 30a.3 Implement real-time notification updates
+  - [x] 30a.3 Implement real-time notification updates
     - Subscribe to notification:new events via WebSocket
     - Display toast notification using Sonner for new notifications
     - Update notification center in real-time
@@ -1815,7 +1815,7 @@ Each task builds on previous work, with checkpoints to validate progress. Proper
     - Document any edge cases discovered
 
 - [ ] 36. Implement comprehensive integration tests
-  - [ ] 36.1 Set up integration test environment
+  - [x] 36.1 Set up integration test environment
     - Configure test database with migrations
     - Configure test Redis instance
     - Create test data seeding scripts
