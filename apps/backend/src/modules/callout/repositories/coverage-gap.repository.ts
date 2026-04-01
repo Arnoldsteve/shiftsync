@@ -7,7 +7,7 @@ export class CoverageGapRepository {
 
   /**
    * Find staff with required skills and location certification
-   * Senior Refactor: 
+   * Senior Refactor:
    * 1. Changed 'every' to 'some' so multi-skilled staff aren't filtered out.
    * 2. Included assignments and availabilities to allow for high-performance constraint checking.
    */
@@ -15,7 +15,7 @@ export class CoverageGapRepository {
     return this.prisma.user.findMany({
       where: {
         role: 'STAFF',
-        // FIX: Changed 'every' to 'some' 
+        // FIX: Changed 'every' to 'some'
         // Logic: Return user if AT LEAST ONE of their skills matches the shift requirements
         skills: {
           some: {
@@ -39,7 +39,8 @@ export class CoverageGapRepository {
         },
         certifications: true,
         // Performance: Fetching these now so the Service doesn't have to query again in a loop
-        availabilities: true,
+        availabilityWindows: true,
+        availabilityExceptions: true,
         assignments: {
           include: {
             shift: true,
