@@ -15,6 +15,7 @@ export type Subjects =
   | 'Shift'
   | 'Assignment'
   | 'SwapRequest'
+  | 'DropRequest'
   | 'CalloutRequest'
   | 'UserSkill'
   | 'LocationCertification'
@@ -23,6 +24,8 @@ export type Subjects =
   | 'Fairness'
   | 'Config'
   | 'Audit'
+  | 'Availability'
+  | 'DesiredHours'
   | 'all';
 
 // Define ability type
@@ -49,9 +52,11 @@ export function createAbility(role: string, _managerLocationIds?: string[]): App
     can(Action.Create, 'Assignment');
     can(Action.Delete, 'Assignment');
 
-    // Manager can approve/reject swap requests
+    // Manager can approve/reject swap and drop requests
     can(Action.Read, 'SwapRequest');
     can(Action.Update, 'SwapRequest');
+    can(Action.Read, 'DropRequest');
+    can(Action.Update, 'DropRequest');
 
     // Manager can manage callout requests
     can(Action.Read, 'CalloutRequest');
@@ -67,6 +72,10 @@ export function createAbility(role: string, _managerLocationIds?: string[]): App
     can(Action.Read, 'Schedule');
     can(Action.Read, 'Overtime');
     can(Action.Read, 'Fairness');
+
+    // Manager can view staff availability and desired hours
+    can(Action.Read, 'Availability');
+    can(Action.Read, 'DesiredHours');
 
     // Manager can update config for their locations
     can(Action.Read, 'Config');
@@ -87,9 +96,12 @@ export function createAbility(role: string, _managerLocationIds?: string[]): App
     can(Action.Read, 'Shift');
     can(Action.Read, 'Schedule');
 
-    // Staff can create swap requests
+    // Staff can create swap requests and drop requests
     can(Action.Create, 'SwapRequest');
     can(Action.Read, 'SwapRequest');
+    can(Action.Update, 'SwapRequest'); // Can cancel their own swaps
+    can(Action.Create, 'DropRequest');
+    can(Action.Read, 'DropRequest');
 
     // Staff can create callout requests
     can(Action.Create, 'CalloutRequest');
@@ -98,14 +110,21 @@ export function createAbility(role: string, _managerLocationIds?: string[]): App
     // Staff can view their overtime
     can(Action.Read, 'Overtime');
 
+    // Staff can manage their own availability and desired hours
+    can(Action.Create, 'Availability');
+    can(Action.Read, 'Availability');
+    can(Action.Update, 'Availability');
+    can(Action.Delete, 'Availability');
+    can(Action.Create, 'DesiredHours');
+    can(Action.Read, 'DesiredHours');
+    can(Action.Update, 'DesiredHours');
+
     // Staff cannot modify anything else
     cannot(Action.Create, 'Shift');
     cannot(Action.Update, 'Shift');
     cannot(Action.Delete, 'Shift');
     cannot(Action.Create, 'Assignment');
     cannot(Action.Delete, 'Assignment');
-    cannot(Action.Update, 'SwapRequest');
-    cannot(Action.Update, 'CalloutRequest');
     cannot(Action.Read, 'Fairness');
     cannot(Action.Read, 'Config');
     cannot(Action.Update, 'Config');

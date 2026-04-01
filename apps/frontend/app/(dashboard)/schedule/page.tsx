@@ -20,6 +20,8 @@ import { useLocations } from '@/hooks/use-locations';
 import { WeekCalendar } from '@/components/schedule/week-calendar';
 import { CreateShiftDialog } from '@/components/schedule/create-shift-dialog';
 import { AssignStaffDialog } from '@/components/schedule/assign-staff-dialog';
+import { Can } from '@/components/auth/can';
+import { Action } from '@/lib/ability';
 import type { Shift } from '@/types/shift.types';
 
 export default function SchedulePage() {
@@ -71,7 +73,9 @@ export default function SchedulePage() {
           <h1 className="text-3xl font-bold">Schedule</h1>
           <p className="text-muted-foreground">Manage shifts and staff assignments</p>
         </div>
-        <CreateShiftDialog />
+        <Can I={Action.Create} a="Shift">
+          <CreateShiftDialog />
+        </Can>
       </div>
 
       <Card>

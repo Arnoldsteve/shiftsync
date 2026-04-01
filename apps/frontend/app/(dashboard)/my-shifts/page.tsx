@@ -15,6 +15,9 @@ import {
   TabsTrigger,
 } from '@shiftsync/ui';
 import { useAuth } from '@/contexts/auth-context';
+import { usePermissions } from '@/hooks/use-permissions';
+import { Action } from '@/lib/ability';
+import { Can } from '@/components/auth/can';
 import { useShifts } from '@/hooks/use-shifts';
 import { useStaffSwaps, useCancelSwapRequest } from '@/hooks/use-swaps';
 import { useDropRequests } from '@/hooks/use-drop-requests';
@@ -24,6 +27,7 @@ import { Clock, MapPin, X } from 'lucide-react';
 
 export default function MyShiftsPage() {
   const { user } = useAuth();
+  const { can } = usePermissions();
   const [dateRange] = useState(() => {
     const now = new Date();
     const startDate = new Date(now);
@@ -70,6 +74,20 @@ export default function MyShiftsPage() {
   const myShifts = shifts?.filter((s) => s.assignment?.staffId === user?.id) || [];
   const availableStaff: Array<{ id: string; name: string }> = []; // TODO: Fetch available staff for swaps
 
+  // Check permissions
+  if (!can(Action.Read, 'SwapRequest')) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Access Denied</CardTitle>
+            <CardDescription>You don&apos;t have permission to view this page.</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
@@ -78,8 +96,12 @@ export default function MyShiftsPage() {
           <p className="text-muted-foreground">Manage your shifts, swaps, and drop requests</p>
         </div>
         <div className="flex gap-2">
-          <CreateSwapDialog staffShifts={myShifts} availableStaff={availableStaff} />
-          <CreateDropDialog staffShifts={myShifts} />
+          <Can I={Action.Create} a="SwapRequest">
+            <CreateSwapDialog staffShifts={myShifts} availableStaff={availableStaff} />
+          </Can>
+          <Can I={Action.Create} a="DropRequest">
+            <CreateDropDialog staffShifts={myShifts} />
+          </Can>
         </div>
       </div>
 
@@ -157,16 +179,18 @@ export default function MyShiftsPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         {getStatusBadge(swap.status)}
-                        {swap.status === 'pending' && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => cancelSwap.mutate(swap.id)}
-                            disabled={cancelSwap.isPending}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        )}
+                        <Can I={Action.Update} a="SwapRequest">
+                          {swap.status === 'pending' && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => cancelSwap.mutate(swap.id)}
+                              disabled={cancelSwap.isPending}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </Can>
                       </div>
                     </div>
                   </CardHeader>

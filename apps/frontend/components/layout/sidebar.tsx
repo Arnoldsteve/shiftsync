@@ -17,6 +17,9 @@ import {
   Briefcase,
   LogOut,
   LayoutDashboard,
+  ClipboardList,
+  UserCog,
+  Package,
 } from 'lucide-react';
 
 interface NavItem {
@@ -55,6 +58,27 @@ export function Sidebar() {
       subject: 'Schedule',
     },
     {
+      label: 'My Shifts',
+      href: '/my-shifts',
+      icon: ClipboardList,
+      action: Action.Read,
+      subject: 'SwapRequest',
+    },
+    {
+      label: 'Pickup Shifts',
+      href: '/pickup',
+      icon: Package,
+      action: Action.Read,
+      subject: 'Shift',
+    },
+    {
+      label: 'My Availability',
+      href: '/availability',
+      icon: UserCog,
+      action: Action.Read,
+      subject: 'Availability',
+    },
+    {
       label: 'Coverage',
       href: '/coverage',
       icon: Users,
@@ -65,21 +89,21 @@ export function Sidebar() {
       label: 'Shifts',
       href: '/shifts',
       icon: Briefcase,
-      action: Action.Read,
+      action: Action.Create,
       subject: 'Shift',
     },
     {
       label: 'Swap Requests',
       href: '/swaps',
       icon: RefreshCw,
-      action: Action.Read,
+      action: Action.Update,
       subject: 'SwapRequest',
     },
     {
       label: 'Callouts',
       href: '/callouts',
       icon: Phone,
-      action: Action.Read,
+      action: Action.Update,
       subject: 'CalloutRequest',
     },
     {
@@ -100,7 +124,7 @@ export function Sidebar() {
       label: 'Users',
       href: '/admin/users',
       icon: Users,
-      action: Action.Create,
+      action: Action.Manage,
       subject: 'User',
     },
     {

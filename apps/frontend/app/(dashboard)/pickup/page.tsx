@@ -5,11 +5,28 @@ import { useAvailableShifts } from '@/hooks/use-shift-pickup';
 import { ShiftPickupCard } from '@/components/shifts/shift-pickup-card';
 import { usePendingRequestCount } from '@/hooks/use-drop-requests';
 import { useAuth } from '@/contexts/auth-context';
+import { usePermissions } from '@/hooks/use-permissions';
+import { Action } from '@/lib/ability';
 
 export default function PickupPage() {
   const { user } = useAuth();
+  const { can } = usePermissions();
   const { data: availableShifts, isLoading } = useAvailableShifts();
   const { data: pendingCount } = usePendingRequestCount(user?.id || '');
+
+  // Check permissions
+  if (!can(Action.Read, 'Shift')) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Access Denied</CardTitle>
+            <CardDescription>You don&apos;t have permission to view this page.</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-6">

@@ -8,6 +8,8 @@ import { useShifts } from '@/hooks/use-shifts';
 import { CreateShiftDialog } from '@/components/schedule/create-shift-dialog';
 import { ShiftFilters } from '@/components/shifts/shift-filters';
 import { ShiftTable } from '@/components/shifts/shift-table';
+import { Can } from '@/components/auth/can';
+import { Action } from '@/lib/ability';
 
 /**
  * ShiftsPage: Operational Dashboard for Coastal Eats.
@@ -102,7 +104,9 @@ export default function ShiftsPage() {
             Monitoring coverage across all authorized Coastal Eats locations.
           </p>
         </div>
-        <CreateShiftDialog />
+        <Can I={Action.Create} a="Shift">
+          <CreateShiftDialog />
+        </Can>
       </div>
 
       {/* Requirement #17.1: Advanced Filtering */}

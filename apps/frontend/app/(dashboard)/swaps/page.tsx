@@ -20,11 +20,14 @@ import {
 import { usePendingSwaps, useApproveSwap, useRejectSwap } from '@/hooks/use-swaps';
 import { SwapTable } from '@/components/swaps/swap-table';
 import { useSwapRealtime } from '@/hooks/use-swap-realtime';
+import { usePermissions } from '@/hooks/use-permissions';
+import { Action } from '@/lib/ability';
 
 export default function SwapsPage() {
   const { data: swaps, isLoading } = usePendingSwaps();
   const approveSwap = useApproveSwap();
   const rejectSwap = useRejectSwap();
+  const { can } = usePermissions();
 
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [selectedSwapId, setSelectedSwapId] = useState<string>('');
@@ -32,11 +35,16 @@ export default function SwapsPage() {
 
   useSwapRealtime();
 
+  // Check permissions - only managers can approve/reject swaps
+  const canManageSwaps = can(Action.Update, 'SwapRequest');
+
   const handleApprove = (swapId: string) => {
+    if (!canManageSwaps) return;
     approveSwap.mutate({ swapRequestId: swapId });
   };
 
   const handleRejectClick = (swapId: string) => {
+    if (!canManageSwaps) return;
     setSelectedSwapId(swapId);
     setRejectDialogOpen(true);
   };
@@ -76,9 +84,9 @@ export default function SwapsPage() {
           ) : swaps && swaps.length > 0 ? (
             <SwapTable
               swaps={swaps}
-              onApprove={handleApprove}
-              onReject={handleRejectClick}
-              showActions
+              onApprove={canManageSwaps ? handleApprove : undefined}
+              onReject={canManageSwaps ? handleRejectClick : undefined}
+              showActions={canManageSwaps}
             />
           ) : (
             <div className="text-center py-8 text-muted-foreground">No pending swap requests</div>
