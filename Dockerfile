@@ -14,7 +14,7 @@ COPY apps/backend ./apps/backend
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
-# Generate Prisma Client (DATABASE_URL not needed for generate)
+# Generate Prisma Client
 WORKDIR /app/apps/backend
 RUN npx prisma generate
 
@@ -23,7 +23,7 @@ WORKDIR /app
 RUN pnpm --filter @shiftsync/shared build
 RUN pnpm --filter @shiftsync/backend build
 
-# Flatten the monorepo
+# Flatten the monorepo for production
 RUN pnpm deploy --filter=@shiftsync/backend --prod /app/out
 
 # ------------------------------------------------------------------------------
@@ -31,7 +31,7 @@ RUN pnpm deploy --filter=@shiftsync/backend --prod /app/out
 # ------------------------------------------------------------------------------
 FROM node:22-slim AS runner
 
-# Install OpenSSL and other required dependencies for Prisma
+# Install OpenSSL (required for Prisma)
 RUN apt-get update && \
     apt-get install -y openssl ca-certificates && \
     rm -rf /var/lib/apt/lists/*
@@ -39,15 +39,12 @@ RUN apt-get update && \
 WORKDIR /app
 ENV NODE_ENV=production
 
-# Copy flattened dependencies and built code
+# Copy production dependencies and built code
 COPY --from=builder /app/out/node_modules ./node_modules
 COPY --from=builder /app/out/package.json ./package.json
 COPY --from=builder /app/apps/backend/dist ./dist
-COPY --from=builder /app/apps/backend/prisma ./prisma
-COPY --from=builder /app/apps/backend/prisma.config.ts ./prisma.config.ts
 
 EXPOSE 3001
 
-# Run migrations and start the app
-# DATABASE_URL must be provided as environment variable at runtime
-CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && node dist/main.js"]
+# Start the application (no migrations needed - using shared DB)
+CMD ["node", "dist/main.js"]
