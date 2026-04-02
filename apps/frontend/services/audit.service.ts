@@ -22,4 +22,12 @@ export const auditService = {
     const response = await apiClient.get(`/audit/${recordId}/verify`);
     return response.data as AuditVerificationResult;
   },
+
+  async exportAuditLogs(filters: AuditFilters): Promise<Blob> {
+    const response = await apiClient.get('/audit/export/csv', {
+      params: filters,
+      responseType: 'blob',
+    });
+    return response.data;
+  },
 };

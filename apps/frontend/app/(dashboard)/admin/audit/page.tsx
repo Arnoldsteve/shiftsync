@@ -22,9 +22,10 @@ import {
   TableHeader,
   TableRow,
 } from '@shiftsync/ui';
-import { Shield } from 'lucide-react';
-import { useAuditLogs, useVerifyAuditRecord } from '@/hooks/use-audit';
+import { Shield, Download } from 'lucide-react';
+import { useAuditLogs, useVerifyAuditRecord, useExportAuditLogs } from '@/hooks/use-audit';
 import { ProtectedPage } from '@/components/auth/protected-page';
+import { Can } from '@/components/auth/can';
 import { Action } from '@/lib/ability';
 import type { AuditFilters } from '@/types/audit.types';
 
@@ -40,6 +41,7 @@ export default function AuditLogPage() {
 
   console.log('Audit log', auditData);
   const verifyRecord = useVerifyAuditRecord();
+  const exportLogs = useExportAuditLogs();
 
   const logs = auditData?.data;
 
@@ -50,6 +52,10 @@ export default function AuditLogPage() {
     });
   };
 
+  const handleExport = () => {
+    exportLogs.mutate(filters);
+  };
+
   return (
     <ProtectedPage
       action={Action.Read}
@@ -57,11 +63,23 @@ export default function AuditLogPage() {
       fallbackMessage="Only administrators and managers can view audit logs."
     >
       <div className="p-6">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold">Audit Log Viewer</h1>
-          <p className="text-muted-foreground">
-            View and verify system audit logs for compliance and security
-          </p>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Audit Log Viewer</h1>
+            <p className="text-muted-foreground">
+              View and verify system audit logs for compliance and security
+            </p>
+          </div>
+          <Can I={Action.Read} a="Audit">
+            <Button
+              onClick={handleExport}
+              disabled={exportLogs.isPending || isLoading}
+              variant="outline"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              {exportLogs.isPending ? 'Exporting...' : 'Export CSV'}
+            </Button>
+          </Can>
         </div>
 
         <Card className="mb-6">

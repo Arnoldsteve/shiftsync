@@ -165,6 +165,107 @@ export class AuditService {
   }
 
   /**
+   * Export audit logs to CSV format
+   * Requirement: 9
+   */
+  async exportToCSV(filters: AuditQueryFilters): Promise<string> {
+    const logs = await this.auditRepository.query(filters);
+
+    // CSV header
+    const headers = ['Timestamp', 'Actor', 'Action', 'Entity Type', 'Entity ID', 'Change Summary'];
+    const csvRows = [headers.join(',')];
+
+    // CSV data rows
+    for (const log of logs) {
+      const userName = (log as any).user
+        ? `${(log as any).user.firstName} ${(log as any).user.lastName}`
+        : 'Unknown';
+
+      const changeSummary = this.generateChangeSummary(log.previousState, log.newState);
+
+      const row = [
+        this.escapeCsvField(log.timestamp.toISOString()),
+        this.escapeCsvField(userName),
+        this.escapeCsvField(log.action),
+        this.escapeCsvField(log.entityType),
+        this.escapeCsvField(log.entityId),
+        this.escapeCsvField(changeSummary),
+      ];
+
+      csvRows.push(row.join(','));
+    }
+
+    return csvRows.join('\n');
+  }
+
+  /**
+   * Generate human-readable change summary from previous and new states
+   * @private
+   */
+  private generateChangeSummary(previousState: any, newState: any): string {
+    if (!previousState && newState) {
+      return `Created with: ${this.summarizeState(newState)}`;
+    }
+
+    if (previousState && !newState) {
+      return `Deleted: ${this.summarizeState(previousState)}`;
+    }
+
+    if (previousState && newState) {
+      const changes: string[] = [];
+      const allKeys = new Set([...Object.keys(previousState), ...Object.keys(newState)]);
+
+      for (const key of allKeys) {
+        if (JSON.stringify(previousState[key]) !== JSON.stringify(newState[key])) {
+          changes.push(
+            `${key}: ${JSON.stringify(previousState[key])} → ${JSON.stringify(newState[key])}`
+          );
+        }
+      }
+
+      return changes.length > 0 ? changes.join('; ') : 'No changes detected';
+    }
+
+    return 'No state information';
+  }
+
+  /**
+   * Summarize state object for display
+   * @private
+   */
+  private summarizeState(state: any): string {
+    if (!state || typeof state !== 'object') {
+      return String(state);
+    }
+
+    const entries = Object.entries(state)
+      .filter(([_, value]) => value !== null && value !== undefined)
+      .map(([key, value]) => `${key}=${JSON.stringify(value)}`)
+      .slice(0, 5); // Limit to first 5 fields
+
+    return entries.join(', ');
+  }
+
+  /**
+   * Escape CSV field to handle commas, quotes, and newlines
+   * @private
+   */
+  private escapeCsvField(field: string | null | undefined): string {
+    if (field === null || field === undefined) {
+      return '';
+    }
+
+    const stringField = String(field);
+
+    // If field contains comma, quote, or newline, wrap in quotes and escape internal quotes
+    if (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) {
+      return `"${stringField.replace(/"/g, '""')}"`;
+    }
+
+    return stringField;
+  }
+
+  /**
    * Create audit record with hash generation
    * Requirements: 20.1, 20.3
    * @private

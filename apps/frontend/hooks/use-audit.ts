@@ -26,3 +26,25 @@ export function useVerifyAuditRecord() {
     },
   });
 }
+
+export function useExportAuditLogs() {
+  return useMutation({
+    mutationFn: (filters: AuditFilters) => auditService.exportAuditLogs(filters),
+    onSuccess: (blob) => {
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `audit-logs-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success('Audit logs exported successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to export audit logs');
+    },
+  });
+}
