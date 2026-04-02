@@ -14,17 +14,19 @@ COPY apps/backend ./apps/backend
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
-# Generate Prisma Client
-WORKDIR /app/apps/backend
-RUN npx prisma generate
-
-# Build packages
+# Build packages (Prisma Client will be generated during build)
 WORKDIR /app
 RUN pnpm --filter @shiftsync/shared build
 RUN pnpm --filter @shiftsync/backend build
 
 # Flatten the monorepo for production
 RUN pnpm deploy --filter=@shiftsync/backend --prod /app/out
+
+# Generate Prisma Client AFTER deploy so it's in the correct node_modules
+WORKDIR /app/out
+COPY apps/backend/prisma ./prisma
+COPY apps/backend/prisma.config.ts ./prisma.config.ts
+RUN npx prisma generate
 
 # ------------------------------------------------------------------------------
 # STAGE 2: Production Runtime
