@@ -204,16 +204,32 @@ export default function DashboardPage() {
           <>
             <Card>
               <CardHeader>
-                <CardTitle>My Schedule</CardTitle>
+                <CardTitle>My Shifts</CardTitle>
                 <CardDescription>View your upcoming shifts</CardDescription>
               </CardHeader>
               <CardContent>
-                <Button onClick={() => router.push('/schedule')} className="w-full">
+                <Button onClick={() => router.push('/my-shifts')} className="w-full">
                   View Schedule
                 </Button>
               </CardContent>
             </Card>
 
+            {/* Common Cards for All Roles */}
+            <Can I={Action.Read} a="Shift">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Pickup Shift</CardTitle>
+                  <CardDescription>View all available shifts</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button onClick={() => router.push('/pickup')} className="w-full">
+                    Browse Shifts
+                  </Button>
+                </CardContent>
+              </Card>
+            </Can>
+
+          {/* 
             <Card>
               <CardHeader>
                 <CardTitle>Shift Swaps</CardTitle>
@@ -224,7 +240,7 @@ export default function DashboardPage() {
                   Manage Swaps
                 </Button>
               </CardContent>
-            </Card>
+            </Card> */}
 
             <Card>
               <CardHeader>
@@ -251,21 +267,6 @@ export default function DashboardPage() {
             </Card>
           </>
         )}
-
-        {/* Common Cards for All Roles */}
-        <Can I={Action.Read} a="Shift">
-          <Card>
-            <CardHeader>
-              <CardTitle>Available Shifts</CardTitle>
-              <CardDescription>View all available shifts</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={() => router.push('/shifts')} className="w-full">
-                Browse Shifts
-              </Button>
-            </CardContent>
-          </Card>
-        </Can>
       </div>
     </div>
   );
