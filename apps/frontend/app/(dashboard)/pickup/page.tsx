@@ -28,6 +28,20 @@ export default function PickupPage() {
     }
   }, [highlightShiftId, availableShifts]);
 
+  // Route guard: Only STAFF can access this page
+  if (user?.role !== 'STAFF') {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Access Denied</CardTitle>
+            <CardDescription>This page is only available to staff members.</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
   // Check permissions
   if (!can(Action.Read, 'Shift')) {
     return (

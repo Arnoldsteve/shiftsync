@@ -29,12 +29,13 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
   action: Action;
   subject: any;
+  roles?: string[]; // Optional: restrict to specific roles
 }
 
 export function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const { can } = usePermissions();
 
   const handleLogout = () => {
@@ -42,7 +43,7 @@ export function Sidebar() {
     router.push('/login');
   };
 
-  // Define navigation items with permissions
+  // Define navigation items with permissions and role restrictions
   const navItems: NavItem[] = [
     {
       label: 'Dashboard',
@@ -64,6 +65,7 @@ export function Sidebar() {
       icon: ClipboardList,
       action: Action.Read,
       subject: 'SwapRequest',
+      roles: ['STAFF'], // Only staff see this
     },
     {
       label: 'Pickup Shifts',
@@ -71,6 +73,7 @@ export function Sidebar() {
       icon: Package,
       action: Action.Read,
       subject: 'Shift',
+      roles: ['STAFF'], // Only staff see this
     },
     {
       label: 'My Availability',
@@ -78,13 +81,7 @@ export function Sidebar() {
       icon: UserCog,
       action: Action.Read,
       subject: 'Availability',
-    },
-    {
-      label: 'Settings',
-      href: '/settings',
-      icon: User,
-      action: Action.Read,
-      subject: 'User',
+      roles: ['STAFF'], // Only staff see this
     },
     {
       label: 'Coverage',
@@ -149,6 +146,13 @@ export function Sidebar() {
       action: Action.Read,
       subject: 'Audit',
     },
+    {
+      label: 'Settings',
+      href: '/settings',
+      icon: User,
+      action: Action.Read,
+      subject: 'User',
+    },
   ];
 
   return (
@@ -167,6 +171,11 @@ export function Sidebar() {
       <nav className="flex-1 overflow-y-auto px-3 py-4">
         <div className="space-y-1">
           {navItems.map((item) => {
+            // Check role restriction first
+            if (item.roles && user?.role && !item.roles.includes(user.role)) {
+              return null;
+            }
+
             // Check if user has permission to see this nav item
             if (!can(item.action, item.subject)) {
               return null;

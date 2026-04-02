@@ -45,10 +45,11 @@ export class CaslAbilityFactory {
 
       // Manager can view schedules, overtime, fairness
       can(Action.Read, 'Schedule');
+      can(Action.Update, 'Schedule');
       can(Action.Read, 'Overtime');
       can(Action.Read, 'Fairness');
 
-      // Manager can view staff availability and desired hours
+      // Manager can view staff availability and desired hours (read-only)
       can(Action.Read, 'Availability');
       can(Action.Read, 'DesiredHours');
 
@@ -75,6 +76,13 @@ export class CaslAbilityFactory {
       cannot(Action.Create, 'User');
       cannot(Action.Update, 'User');
       cannot(Action.Delete, 'User');
+
+      // Manager cannot set their own availability (they don't work shifts)
+      cannot(Action.Create, 'Availability');
+      cannot(Action.Update, 'Availability');
+      cannot(Action.Delete, 'Availability');
+      cannot(Action.Create, 'DesiredHours');
+      cannot(Action.Update, 'DesiredHours');
     } else if (user.role === Role.STAFF) {
       // Staff can read their own profile
       can(Action.Read, 'User');

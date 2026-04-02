@@ -4,10 +4,26 @@ import { Card, CardHeader, CardTitle, CardDescription } from '@shiftsync/ui';
 import { AvailabilityForm } from '@/components/users/availability-form';
 import { DesiredHoursForm } from '@/components/users/desired-hours-form';
 import { usePermissions } from '@/hooks/use-permissions';
+import { useAuth } from '@/contexts/auth-context';
 import { Action } from '@/lib/ability';
 
 export default function AvailabilityPage() {
   const { can } = usePermissions();
+  const { user } = useAuth();
+
+  // Route guard: Only STAFF can access this page
+  if (user?.role !== 'STAFF') {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Access Denied</CardTitle>
+            <CardDescription>This page is only available to staff members.</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
 
   // Check permissions
   if (!can(Action.Read, 'Availability')) {

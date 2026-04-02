@@ -106,6 +106,8 @@ export default function MyShiftsPage() {
         name: `${u.firstName} ${u.lastName}`,
       }));
   }, [allUsers, user]);
+
+  // Helper functions
   const formatDateTime = (date: string) => {
     return new Date(date).toLocaleString('en-US', {
       weekday: 'short',
@@ -150,10 +152,6 @@ export default function MyShiftsPage() {
   // The useStaffShifts hook already filters by staff ID, no need to filter again
   const myShifts = shifts || [];
 
-  // Debug: Log shifts to check for duplicates
-  console.log('Staff shifts from API:', shifts);
-  console.log('User ID:', user?.id);
-
   // Requirement 37.1: Handle swap cancellation with confirmation
   const handleCancelSwapClick = (swapId: string) => {
     setSwapToCancelId(swapId);
@@ -184,6 +182,20 @@ export default function MyShiftsPage() {
     setRejectDialogOpen(false);
     setSelectedSwapId('');
   };
+
+  // Route guard: Only STAFF can access this page
+  if (user?.role !== 'STAFF') {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Access Denied</CardTitle>
+            <CardDescription>This page is only available to staff members.</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
 
   // Check permissions
   if (!can(Action.Read, 'SwapRequest')) {
