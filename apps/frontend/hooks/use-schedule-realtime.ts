@@ -23,5 +23,9 @@ export function useScheduleRealtime() {
       queryClient.invalidateQueries({ queryKey: queryKeys.shifts.all });
       toast.info('Staff assignment changed');
     },
+    onSchedulePublished: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.shifts.all });
+      toast.success('Schedule published');
+    },
   });
 }

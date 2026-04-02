@@ -30,13 +30,15 @@ export class ScheduleRepository {
    * Senior Refactor: findShifts
    * Now accepts locationId as string OR string[] to support "Global" view.
    * Dynamically builds the 'where' clause.
+   * Added publishedOnly parameter to filter by published status (Requirement 32.3)
    */
   async findShiftsByLocation(
     locationId: string | string[] | undefined,
     startDate: Date,
     endDate: Date,
     skip?: number,
-    take?: number
+    take?: number,
+    publishedOnly?: boolean
   ): Promise<ShiftWithDetails[]> {
     const where: Prisma.ShiftWhereInput = {
       startTime: {
@@ -49,6 +51,11 @@ export class ScheduleRepository {
     // If undefined (Admin viewing all), the filter is omitted.
     if (locationId) {
       where.locationId = Array.isArray(locationId) ? { in: locationId } : locationId;
+    }
+
+    // Filter by published status for STAFF role (Requirement 32.3)
+    if (publishedOnly) {
+      where.isPublished = true;
     }
 
     return this.prisma.shift.findMany({

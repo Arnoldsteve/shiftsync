@@ -95,15 +95,25 @@ export function WeekCalendar({
                             : 'bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700'
                       }`}
                     >
-                      {/* Published Status Indicator (Requirement 32.2) */}
-                      {shift.isPublished && (
-                        <div className="absolute top-1 right-1">
-                          <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">
+                      {/* Published/Draft Status Indicator (Requirement 32.2) */}
+                      <div className="absolute top-1 right-1">
+                        {shift.isPublished ? (
+                          <Badge
+                            variant="default"
+                            className="text-[10px] px-1 py-0 h-4 bg-green-600"
+                          >
                             <CheckCircle className="h-2.5 w-2.5 mr-0.5" />
                             Published
                           </Badge>
-                        </div>
-                      )}
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] px-1 py-0 h-4 border-orange-400 text-orange-600"
+                          >
+                            Draft
+                          </Badge>
+                        )}
+                      </div>
                       <div className="font-medium">
                         {new Date(shift.startTime).toLocaleTimeString('en-US', {
                           hour: '2-digit',

@@ -9,6 +9,7 @@ import { ScheduleRepository } from '../repositories/schedule.repository';
 import { AuditService } from '../../audit/audit.service';
 import { CacheService } from '../../cache/cache.service';
 import { RealtimeGateway } from '../../realtime/realtime.gateway';
+import { ConfigService } from '../../config/config.service';
 
 /**
  * Schedule Publishing Service
@@ -23,7 +24,8 @@ export class SchedulePublishingService {
     private readonly scheduleRepository: ScheduleRepository,
     private readonly auditService: AuditService,
     private readonly cacheService: CacheService,
-    private readonly realtimeGateway: RealtimeGateway
+    private readonly realtimeGateway: RealtimeGateway,
+    private readonly configService: ConfigService
   ) {}
 
   /**
@@ -101,14 +103,11 @@ export class SchedulePublishingService {
         );
       }
 
-      // Get location config for cutoff hours
-      const location = await this.scheduleRepository.findLocationById(locationId);
-      if (!location) {
-        throw new NotFoundException('Location not found');
-      }
+      // Get location config for cutoff hours (Requirement 32.4)
+      const locationConfig = await this.configService.getLocationConfig(locationId);
+      const cutoffHours = locationConfig.schedulePublishCutoffHours || 48;
 
       // Check cutoff time (default 48 hours before week start)
-      const cutoffHours = (location as any).schedulePublishCutoffHours || 48;
       const cutoffTime = new Date(weekStartDate);
       cutoffTime.setHours(cutoffTime.getHours() - cutoffHours);
 

@@ -18,6 +18,7 @@ import { NotificationModule } from '../notification/notification.module';
 import { UserModule } from '../user/user.module';
 import { SwapModule } from '../swap/swap.module';
 import { OvertimeModule } from '../overtime/overtime.module';
+import { ConfigModule } from '../config/config.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { OvertimeModule } from '../overtime/overtime.module';
     UserModule,
     SwapModule,
     OvertimeModule,
+    ConfigModule,
   ],
   controllers: [ScheduleController],
   providers: [

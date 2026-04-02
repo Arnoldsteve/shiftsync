@@ -161,6 +161,7 @@ export interface RealtimeEventsCallbacks {
   onConflictDetected?: (data: any) => void;
   onCalloutReported?: (data: any) => void;
   onJobCompleted?: (data: any) => void;
+  onSchedulePublished?: (data: any) => void;
 }
 
 export function useRealtimeEvents(callbacks: RealtimeEventsCallbacks) {
@@ -180,4 +181,19 @@ export function useRealtimeEvents(callbacks: RealtimeEventsCallbacks) {
   useRealtimeConflictEvents(callbacks.onConflictDetected);
   useRealtimeCalloutEvents(callbacks.onCalloutReported);
   useRealtimeJobEvents(callbacks.onJobCompleted);
+  useRealtimeScheduleEvents(callbacks.onSchedulePublished);
+}
+
+export function useRealtimeScheduleEvents(onSchedulePublished?: (data: any) => void) {
+  const { socket, isConnected } = useWebSocket();
+
+  useEffect(() => {
+    if (!socket || !isConnected || !onSchedulePublished) return;
+
+    socket.on('shift:published', onSchedulePublished);
+
+    return () => {
+      socket.off('shift:published', onSchedulePublished);
+    };
+  }, [socket, isConnected, onSchedulePublished]);
 }

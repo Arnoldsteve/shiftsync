@@ -114,11 +114,13 @@ export class ShiftManagementService {
 
       // 1. Determine Authorization Context (PBAC Logic)
       let targetLocationIds: string | string[] | undefined = undefined;
+      let publishedOnly = false;
 
       if (currentUser.role === 'ADMIN') {
         // Admin: Return specific location or everything if missing
         targetLocationIds = locationId || undefined;
-      } else {
+        publishedOnly = false; // Admins see all shifts
+      } else if (currentUser.role === 'MANAGER') {
         // Manager: Restricted to their specific assigned locations
         const managedIds = currentUser.managedLocationIds || [];
 
@@ -132,6 +134,12 @@ export class ShiftManagementService {
           // "Global" View: Return only the locations this manager runs
           targetLocationIds = managedIds;
         }
+        publishedOnly = false; // Managers see all shifts (draft and published)
+      } else {
+        // STAFF: Only see published shifts for their location(s)
+        // Staff can view any location's published schedule
+        targetLocationIds = locationId || undefined;
+        publishedOnly = true; // Staff only see published shifts (Requirement 32.3)
       }
 
       const skip = (page - 1) * pageSize;
@@ -142,7 +150,8 @@ export class ShiftManagementService {
         start,
         end,
         skip,
-        pageSize
+        pageSize,
+        publishedOnly
       );
 
       // 3. Collect Unique Staff IDs for name hydration

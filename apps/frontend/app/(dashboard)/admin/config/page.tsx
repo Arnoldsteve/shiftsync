@@ -58,7 +58,7 @@ export default function ConfigPage() {
       subject="Config"
       fallbackMessage="Only administrators and managers can configure location settings."
     >
-      <div className="container mx-auto p-6">
+      <div className="p-6">
         <div className="mb-6">
           <h1 className="text-3xl font-bold">Location Configuration</h1>
           <p className="text-muted-foreground">

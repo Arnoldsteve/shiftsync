@@ -44,6 +44,7 @@ export default function SchedulePage() {
 
   const { user } = useAuth();
   const isStaff = user?.role === 'STAFF';
+  const isManager = user?.role === 'MANAGER' || user?.role === 'ADMIN';
 
   const startDate = new Date(selectedDate);
   startDate.setDate(startDate.getDate() - startDate.getDay());
@@ -63,12 +64,18 @@ export default function SchedulePage() {
   useScheduleRealtime();
 
   // Filter shifts based on user role (Requirement 32.3, 32.4)
+  // Staff: Only see published shifts
+  // Manager/Admin: See all shifts (draft and published)
   const filteredShifts = isStaff
     ? shifts?.filter((shift) => shift.isPublished) || []
     : shifts || [];
 
-  // Check if schedule is published
-  const isSchedulePublished = shifts?.some((shift) => shift.isPublished) || false;
+  // Check if any shifts are published
+  const hasPublishedShifts = shifts?.some((shift) => shift.isPublished) || false;
+  // Check if any shifts are draft
+  const hasDraftShifts = shifts?.some((shift) => !shift.isPublished) || false;
+  // All shifts are published
+  const allShiftsPublished = shifts && shifts.length > 0 && !hasDraftShifts;
 
   // Calculate cutoff time (48 hours before week start)
   const cutoffTime = new Date(startDate);
@@ -146,7 +153,7 @@ export default function SchedulePage() {
         <CardHeader>
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <CardTitle>Week View</CardTitle>
+              <CardTitle>{isStaff ? 'Team Schedule' : 'Schedule Builder'}</CardTitle>
               <CardDescription>
                 <div className="mt-2">
                   <Label>Location Filter</Label>
@@ -175,7 +182,12 @@ export default function SchedulePage() {
                 </div>
                 {isStaff && (
                   <div className="mt-2 text-sm text-muted-foreground">
-                    Showing published shifts only
+                    Viewing published shifts for the entire team
+                  </div>
+                )}
+                {isManager && hasDraftShifts && hasPublishedShifts && (
+                  <div className="mt-2 text-sm text-orange-600">
+                    This schedule has both draft and published shifts
                   </div>
                 )}
               </CardDescription>
@@ -184,7 +196,7 @@ export default function SchedulePage() {
             {/* Publish/Unpublish Buttons (Requirement 32.1, 32.2) */}
             <Can I={Action.Update} a="Schedule">
               <div className="flex gap-2">
-                {isSchedulePublished ? (
+                {allShiftsPublished ? (
                   <Button
                     variant="outline"
                     size="sm"
@@ -194,7 +206,7 @@ export default function SchedulePage() {
                     <XCircle className="h-4 w-4 mr-2" />
                     Unpublish
                   </Button>
-                ) : (
+                ) : hasDraftShifts ? (
                   <Button
                     variant="default"
                     size="sm"
@@ -204,7 +216,7 @@ export default function SchedulePage() {
                     <CheckCircle className="h-4 w-4 mr-2" />
                     Publish Schedule
                   </Button>
-                )}
+                ) : null}
               </div>
             </Can>
           </div>
