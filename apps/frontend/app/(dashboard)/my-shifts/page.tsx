@@ -82,6 +82,12 @@ export default function MyShiftsPage() {
   const { data: dropRequests, isLoading: dropsLoading } = useDropRequests(user?.id || '');
   const { data: pendingCount } = usePendingRequestCount(user?.id || '');
   const { data: allUsers } = useUsers();
+
+  // Debug logging
+  console.log('[MyShiftsPage] User ID:', user?.id);
+  console.log('[MyShiftsPage] Swap Requests:', swapRequests);
+  console.log('[MyShiftsPage] Pending Count:', pendingCount);
+  console.log('[MyShiftsPage] Drop Requests:', dropRequests);
   const cancelSwap = useCancelSwapRequest();
   const acceptSwap = useAcceptSwapRequest();
   const declineSwap = useDeclineSwapRequest();
