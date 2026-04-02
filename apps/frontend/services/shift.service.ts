@@ -90,4 +90,10 @@ export const shiftService = {
     });
     return response.data as StaffSuggestion[];
   },
+
+  // On-Duty Staff (Requirement 6.3)
+  async getOnDutyStaff(): Promise<any[]> {
+    const response = await apiClient.get('/schedule/on-duty');
+    return response.data as any[];
+  },
 };

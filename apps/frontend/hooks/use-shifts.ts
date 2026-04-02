@@ -216,3 +216,17 @@ export function useAlternativeStaff(shiftId: string, excludeStaffId?: string) {
     staleTime: 0, // Always fetch fresh data when triggered
   });
 }
+
+/**
+ * Hook to fetch currently on-duty staff
+ * Requirement 6.3
+ */
+export function useOnDutyStaff() {
+  return useQuery({
+    queryKey: queryKeys.shifts.onDuty(),
+    queryFn: () => shiftService.getOnDutyStaff(),
+    refetchInterval: 60000, // Refresh every minute
+    refetchOnWindowFocus: true,
+    staleTime: 30000,
+  });
+}

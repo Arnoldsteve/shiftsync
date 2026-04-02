@@ -232,4 +232,15 @@ export class ScheduleController {
   async getShiftHeadcountStatus(@Param('id') shiftId: string) {
     return this.scheduleService.getShiftHeadcountStatus(shiftId);
   }
+
+  /**
+   * Get currently on-duty staff - Manager and Admin only
+   * Requirements: 6.3
+   */
+  @Get('on-duty')
+  @CheckPolicies((ability) => ability.can(Action.Read, 'Shift'))
+  async getOnDutyStaff(@CurrentUser() user: any) {
+    const managerLocationIds = user.role === 'MANAGER' ? user.managedLocationIds : undefined;
+    return this.scheduleService.getOnDutyStaff(managerLocationIds);
+  }
 }

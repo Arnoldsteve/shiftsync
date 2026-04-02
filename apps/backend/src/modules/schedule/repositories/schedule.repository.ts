@@ -315,6 +315,83 @@ export class ScheduleRepository {
   }
 
   /**
+   * Find currently on-duty staff
+   * Requirements: 6.3
+   */
+  async findOnDutyStaff(locationIds?: string[]): Promise<any[]> {
+    const now = new Date();
+
+    const where: Prisma.ShiftWhereInput = {
+      isPublished: true,
+      startTime: { lte: now },
+      endTime: { gte: now },
+      assignments: {
+        some: {},
+      },
+    };
+
+    if (locationIds && locationIds.length > 0) {
+      where.locationId = { in: locationIds };
+    }
+
+    const shifts = await this.prisma.shift.findMany({
+      where,
+      include: {
+        location: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        skills: {
+          include: {
+            skill: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+        assignments: {
+          include: {
+            staff: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        startTime: 'asc',
+      },
+    });
+
+    // Transform to flat list of on-duty staff
+    const onDutyStaff: any[] = [];
+
+    for (const shift of shifts) {
+      for (const assignment of shift.assignments) {
+        onDutyStaff.push({
+          staffId: assignment.staff.id,
+          staffName: `${assignment.staff.firstName} ${assignment.staff.lastName}`,
+          locationId: shift.location.id,
+          locationName: shift.location.name,
+          shiftId: shift.id,
+          startTime: shift.startTime,
+          endTime: shift.endTime,
+          skills: shift.skills.map((s) => s.skill.name),
+        });
+      }
+    }
+
+    return onDutyStaff;
+  }
+
+  /**
    * Find notifications by user and type
    * Used to check if shifts were offered to a specific user
    */

@@ -311,4 +311,12 @@ export class ShiftManagementService {
       throw error;
     }
   }
+
+  /**
+   * Get currently on-duty staff
+   * Requirements: 6.3
+   */
+  async getOnDutyStaff(managerLocationIds?: string[]): Promise<any[]> {
+    return this.scheduleRepository.findOnDutyStaff(managerLocationIds);
+  }
 }

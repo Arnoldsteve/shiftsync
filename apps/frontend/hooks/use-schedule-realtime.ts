@@ -9,22 +9,27 @@ export function useScheduleRealtime() {
   useRealtimeEvents({
     onShiftCreated: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.shifts.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.shifts.onDuty() });
       toast.success('New shift created');
     },
     onShiftUpdated: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.shifts.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.shifts.onDuty() });
       toast.info('Shift updated');
     },
     onShiftDeleted: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.shifts.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.shifts.onDuty() });
       toast.info('Shift deleted');
     },
     onAssignmentChanged: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.shifts.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.shifts.onDuty() });
       toast.info('Staff assignment changed');
     },
     onSchedulePublished: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.shifts.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.shifts.onDuty() });
       toast.success('Schedule published');
     },
   });

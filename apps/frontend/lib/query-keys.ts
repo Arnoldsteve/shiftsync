@@ -23,6 +23,7 @@ export const queryKeys = {
       [...queryKeys.shifts.all, 'published', staffId, filters] as const,
     staff: (staffId: string, filters?: Record<string, any>) =>
       [...queryKeys.shifts.all, 'staff', staffId, filters] as const,
+    onDuty: () => [...queryKeys.shifts.all, 'on-duty'] as const,
   },
 
   // Schedules

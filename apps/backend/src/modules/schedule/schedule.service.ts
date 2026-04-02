@@ -173,4 +173,14 @@ export class ScheduleService {
   async getShiftHeadcountStatus(shiftId: string): Promise<HeadcountStatus> {
     return this.headcountTrackingService.getShiftHeadcountStatus(shiftId);
   }
+
+  // ==================== On-Duty Staff ====================
+
+  /**
+   * Get currently on-duty staff
+   * Requirements: 6.3
+   */
+  async getOnDutyStaff(managerLocationIds?: string[]): Promise<any[]> {
+    return this.shiftManagementService.getOnDutyStaff(managerLocationIds);
+  }
 }
