@@ -30,7 +30,7 @@ RUN pnpm --filter backend build
 
 # 7. THE PRO MOVE: Extract the production bundle
 # Using --legacy for pnpm v10 compatibility to ensure sharp binaries stay linked.
-RUN pnpm deploy --filter=backend --prod --legacy /app/out
+RUN pnpm deploy --filter=backend --prod /app/outout
 
 # ------------------------------------------------------------------------------
 # STAGE 2: The Production Runtime (Lean & Secure)
