@@ -78,7 +78,6 @@ export class StaffAssignmentService {
       const location = await this.scheduleRepository.findLocationById(shift.locationId);
       const tz = location?.timezone || 'UTC';
       const graduatedResult = await this.complianceService.validateWithGraduation(
-        shift.locationId,
         staffId,
         shift.startTime,
         shift.endTime,

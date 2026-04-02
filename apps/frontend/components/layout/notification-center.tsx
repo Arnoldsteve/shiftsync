@@ -43,7 +43,7 @@ export function NotificationCenter() {
 
     // Navigate based on notification type
     switch (notification.type) {
-      case 'SHIFT_OFFER':
+      case 'SHIFT_OFFER': {
         // Extract shiftId from metadata and add as query parameter
         const shiftId = notification.metadata?.shiftId;
         if (shiftId) {
@@ -52,6 +52,7 @@ export function NotificationCenter() {
           router.push('/pickup');
         }
         break;
+      }
       case 'SHIFT_OFFER_ACCEPTED':
       case 'COVERAGE_GAP':
         router.push('/coverage');

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ScheduleRepository } from '../repositories/schedule.repository';
 import { HeadcountStatus } from '../interfaces';
 

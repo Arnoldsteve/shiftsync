@@ -28,6 +28,6 @@ export const auditService = {
       params: filters,
       responseType: 'blob',
     });
-    return response.data;
+    return response.data as Blob;
   },
 };

@@ -11,7 +11,6 @@ export class EnhancedComplianceValidationService {
    * Requirements: 39.1, 39.2, 39.3, 39.4, 39.5
    */
   async validateWithGraduation(
-    locationId: string,
     staffId: string,
     newShiftStart: Date,
     newShiftEnd: Date,

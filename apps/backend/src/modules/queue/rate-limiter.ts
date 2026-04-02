@@ -14,13 +14,11 @@ import { Logger } from '@nestjs/common';
 export class QueueRateLimiter {
   private readonly logger = new Logger(QueueRateLimiter.name);
   private readonly maxJobsPerSecond: number;
-  private readonly maxConcurrentJobs: number;
   private jobsProcessedThisSecond = 0;
   private lastSecondReset = Date.now();
 
   constructor(maxJobsPerSecond: number = 50, maxConcurrentJobs: number = 10) {
     this.maxJobsPerSecond = maxJobsPerSecond;
-    this.maxConcurrentJobs = maxConcurrentJobs;
     this.logger.log(
       `⚡ Rate Limiter initialized: ${maxJobsPerSecond} jobs/sec, ${maxConcurrentJobs} concurrent`
     );

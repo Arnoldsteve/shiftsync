@@ -5,6 +5,12 @@ import { ComplianceService } from '../../compliance/compliance.service';
 import { ConflictService } from '../../conflict/conflict.service';
 import { OvertimeService } from '../../overtime/overtime.service';
 import { StaffSuggestion } from '../interfaces';
+import { User, UserSkill, LocationCertification } from '@prisma/client';
+
+type UserWithRelations = User & {
+  skills: (UserSkill & { skill: { id: string; name: string } })[];
+  certifications: LocationCertification[];
+};
 
 /**
  * Alternative Staff Service
@@ -52,7 +58,9 @@ export class AlternativeStaffService {
       const certifiedStaff = await this.userRepository.findByCertifiedLocation(shift.locationId);
 
       // Filter to only STAFF role users
-      const staffUsers = certifiedStaff.filter((user) => user.role === 'STAFF');
+      const staffUsers = certifiedStaff.filter(
+        (user) => user.role === 'STAFF'
+      ) as UserWithRelations[];
 
       // Exclude the specified staff member if provided
       const candidateStaff = excludeStaffId

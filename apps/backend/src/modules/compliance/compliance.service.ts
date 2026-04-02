@@ -167,7 +167,6 @@ export class ComplianceService {
    * Requirements: 39.1, 39.2, 39.3, 39.4, 39.5
    */
   async validateWithGraduation(
-    locationId: string,
     staffId: string,
     newShiftStart: Date,
     newShiftEnd: Date,
@@ -175,7 +174,6 @@ export class ComplianceService {
     overrideReason?: string
   ): Promise<GraduatedValidationResult> {
     return this.enhancedValidation.validateWithGraduation(
-      locationId,
       staffId,
       newShiftStart,
       newShiftEnd,
