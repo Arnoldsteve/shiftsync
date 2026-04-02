@@ -33,9 +33,10 @@ jobs:
         ECR_REPOSITORY: shiftsync-vault
         IMAGE_TAG: ${{ github.sha }}
       run: |
-        # IMPORTANT: Build from the ROOT (.), but point to the backend Dockerfile
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f apps/backend/Dockerfile .
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest -f apps/backend/Dockerfile .
+        # Build from the ROOT (.)
+        # Docker will now find the Dockerfile in the root automatically
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
         
         # Push to AWS
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
