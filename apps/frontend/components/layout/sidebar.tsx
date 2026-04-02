@@ -104,13 +104,13 @@ export function Sidebar() {
       action: Action.Manage,
       subject: 'SwapRequest',
     },
-    {
-      label: 'Callouts',
-      href: '/callouts',
-      icon: Phone,
-      action: Action.Update,
-      subject: 'CalloutRequest',
-    },
+    // {
+    //   label: 'Callouts',
+    //   href: '/callouts',
+    //   icon: Phone,
+    //   action: Action.Update,
+    //   subject: 'CalloutRequest',
+    // },
     {
       label: 'Overtime',
       href: '/overtime',
