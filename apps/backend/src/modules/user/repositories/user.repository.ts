@@ -92,6 +92,11 @@ export class UserRepository {
                 skill: true,
               },
             },
+            certifications: {
+              include: {
+                location: true,
+              },
+            },
           },
         },
       },

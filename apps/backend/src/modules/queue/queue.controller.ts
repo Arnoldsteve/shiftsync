@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { QueueService } from './queue.service';
+import { QUEUES } from './queue.constants';
 import { JwtAuthGuard } from '../user/guards/jwt-auth.guard';
 import { PoliciesGuard } from '../user/casl/policies.guard';
 import { CheckPolicies } from '../user/decorators/check-policies.decorator';
@@ -21,7 +22,7 @@ export class QueueController {
   @CheckPolicies((ability) => ability.can(Action.Read, 'User'))
   @ApiOperation({ summary: 'Get job status list' })
   async getJobs(
-    @Query('queue') queueName: 'fairness-report' | 'overtime-report',
+    @Query('queue') queueName: QUEUES,
     @Query('state') state: 'waiting' | 'active' | 'completed' | 'failed' = 'active'
   ) {
     const jobs = await this.queueService.getJobsByState(queueName, state);
@@ -47,10 +48,7 @@ export class QueueController {
   @Get(':id')
   @CheckPolicies((ability) => ability.can(Action.Read, 'User'))
   @ApiOperation({ summary: 'Get specific job status' })
-  async getJobStatus(
-    @Param('id') jobId: string,
-    @Query('queue') queueName: 'fairness-report' | 'overtime-report'
-  ) {
+  async getJobStatus(@Param('id') jobId: string, @Query('queue') queueName: QUEUES) {
     return this.queueService.getJobStatus(queueName, jobId);
   }
 
@@ -61,10 +59,7 @@ export class QueueController {
   @Post(':id/retry')
   @CheckPolicies((ability) => ability.can(Action.Update, 'User'))
   @ApiOperation({ summary: 'Retry failed job' })
-  async retryJob(
-    @Param('id') jobId: string,
-    @Query('queue') queueName: 'fairness-report' | 'overtime-report'
-  ) {
+  async retryJob(@Param('id') jobId: string, @Query('queue') queueName: QUEUES) {
     await this.queueService.retryJob(queueName, jobId);
 
     return {

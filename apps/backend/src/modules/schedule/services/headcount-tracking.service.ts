@@ -9,8 +9,6 @@ import { HeadcountStatus } from '../interfaces';
  */
 @Injectable()
 export class HeadcountTrackingService {
-  private readonly logger = new Logger(HeadcountTrackingService.name);
-
   constructor(private readonly scheduleRepository: ScheduleRepository) {}
 
   /**

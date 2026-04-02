@@ -1,15 +1,7 @@
-import { Controller, Post, Get, Body, Param, UseGuards, Delete } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
-import {
-  CreateUserDto,
-  AssignRoleDto,
-  AddSkillDto,
-  AddCertificationDto,
-  SetAvailabilityWindowDto,
-  AddAvailabilityExceptionDto,
-  SetDesiredHoursDto,
-} from '@shiftsync/shared';
+import { CreateUserDto, AssignRoleDto, AddSkillDto, AddCertificationDto } from '@shiftsync/shared';
 import { UserService } from './user.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PoliciesGuard } from './casl/policies.guard';

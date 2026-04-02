@@ -1,5 +1,5 @@
 import { applyDecorators, HttpStatus } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiBody, ApiParam } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 
 /**
  * Documentation for Create User endpoint

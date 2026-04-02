@@ -136,4 +136,36 @@ export class ComplianceRepository {
       where: { id: locationId },
     });
   }
+
+  /**
+   * Find shifts for a staff member in a time range
+   * Requirements: 39.1, 39.2, 39.3, 39.4, 39.5
+   *
+   * @param staffId - Staff member ID
+   * @param startDate - Start of time range (UTC)
+   * @param endDate - End of time range (UTC)
+   * @returns Array of shifts
+   */
+  async findShiftsByStaffAndTimeRange(
+    staffId: string,
+    startDate: Date,
+    endDate: Date
+  ): Promise<Shift[]> {
+    const assignments = await this.prisma.assignment.findMany({
+      where: {
+        staffId,
+        shift: {
+          startTime: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+      },
+      include: {
+        shift: true,
+      },
+    });
+
+    return assignments.map((assignment) => assignment.shift);
+  }
 }

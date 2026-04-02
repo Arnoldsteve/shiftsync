@@ -1,81 +1,55 @@
-# Multi-stage build for NestJS backend
+# --------------------------------------------------------
+# STAGE 1: The Build Machine
+# --------------------------------------------------------
+FROM node:22-slim AS builder
+RUN corepack enable && corepack prepare pnpm@10.15.1 --activate
 
-# Stage 1: Dependencies
-FROM node:20-alpine AS deps
 WORKDIR /app
 
-# Copy package files
-COPY package.json package-lock.json ./
-COPY apps/backend/package.json ./apps/backend/
-COPY packages/shared/package.json ./packages/shared/
+# Copy the Root monorepo files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-# Install dependencies
-RUN npm ci --only=production && \
-    npm cache clean --force
-
-# Stage 2: Builder
-FROM node:20-alpine AS builder
-WORKDIR /app
-
-# Copy package files
-COPY package.json package-lock.json ./
-COPY apps/backend/package.json ./apps/backend/
-COPY packages/shared/package.json ./packages/shared/
-
-# Install all dependencies (including dev)
-RUN npm ci
-
-# Copy source code
-COPY turbo.json ./
-COPY tsconfig.json ./
-COPY apps/backend ./apps/backend
+# Copy the shared package and the backend app
 COPY packages/shared ./packages/shared
+COPY apps/backend ./apps/backend
+
+# Install ALL dependencies (pnpm handles the workspace links automatically)
+RUN pnpm install --frozen-lockfile
 
 # Generate Prisma Client
 WORKDIR /app/apps/backend
 RUN npx prisma generate
 
-# Build the application
+# Build the shared package first, then the backend
 WORKDIR /app
-RUN npm run build
+RUN pnpm --filter shared build
+RUN pnpm --filter backend build
 
-# Stage 3: Production
-FROM node:20-alpine AS production
+# Use pnpm deploy to extract only the backend and its production dependencies
+# This fixes the monorepo "symlink" problem for Docker
+RUN pnpm deploy --filter=backend --prod --legacy /app/out
+
+# --------------------------------------------------------
+# STAGE 2: The Production Runtime
+# --------------------------------------------------------
+FROM node:22-slim AS runner
+
+# Install OpenSSL for Prisma/Postgres
+RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=3001
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+# 1. Copy the clean production code from the deploy folder
+COPY --from=builder /app/out/node_modules ./node_modules
+COPY --from=builder /app/out/package.json ./package.json
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nestjs -u 1001
+# 2. Copy the built dist from the builder (Turbo/Nest path)
+COPY --from=builder /app/apps/backend/dist ./dist
+COPY --from=builder /app/apps/backend/prisma ./prisma
 
-# Copy dependencies from deps stage
-COPY --from=deps --chown=nestjs:nodejs /app/node_modules ./node_modules
-COPY --from=deps --chown=nestjs:nodejs /app/apps/backend/node_modules ./apps/backend/node_modules
-
-# Copy built application from builder stage
-COPY --from=builder --chown=nestjs:nodejs /app/apps/backend/dist ./apps/backend/dist
-COPY --from=builder --chown=nestjs:nodejs /app/apps/backend/prisma ./apps/backend/prisma
-COPY --from=builder --chown=nestjs:nodejs /app/packages/shared/dist ./packages/shared/dist
-
-# Copy package.json files
-COPY --chown=nestjs:nodejs apps/backend/package.json ./apps/backend/
-COPY --chown=nestjs:nodejs packages/shared/package.json ./packages/shared/
-
-# Set working directory
-WORKDIR /app/apps/backend
-
-# Switch to non-root user
-USER nestjs
-
-# Expose port
 EXPOSE 3001
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s \
-  CMD node -e "require('http').get('http://localhost:3001/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
-
-# Start the application
-ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "dist/main.js"]
+# The command runs migrations THEN starts the app
+CMD npx prisma migrate deploy && node dist/main.js

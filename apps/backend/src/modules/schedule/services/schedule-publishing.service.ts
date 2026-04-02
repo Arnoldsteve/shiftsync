@@ -1,10 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  BadRequestException,
-  NotFoundException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ScheduleRepository } from '../repositories/schedule.repository';
 import { AuditService } from '../../audit/audit.service';
 import { CacheService } from '../../cache/cache.service';
